@@ -1,0 +1,2 @@
+@props(['title','description','icon'=>'tree'])
+<section class="family-page-head"><div class="container"><nav class="family-breadcrumb"><a href="{{ route('family.home') }}">عشيرة الزعبي</a><i class="bi bi-chevron-left"></i><span>{{ $title }}</span></nav><div class="row align-items-end g-3"><div class="col-lg-8"><span class="eyebrow"><i class="bi bi-{{ $icon }}"></i> موقع العشيرة</span><h1>{{ $title }}</h1><p>{{ $description }}</p></div><div class="col-lg-4 text-lg-start">{{ $slot }}</div></div></div></section>

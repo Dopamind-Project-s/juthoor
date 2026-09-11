@@ -1,0 +1,2 @@
+@props(['name','role','branch'=>'فرع تجريبي','description'=>'ملف تعريفي تجريبي سيخضع للمراجعة والتوثيق.','icon'=>'person'])
+<article class="profile-card"><div class="profile-avatar"><i class="bi bi-{{ $icon }}"></i></div><div><span class="status-badge unverified">نموذج غير موثّق</span><h3 class="h5 fw-bold mt-2 mb-1">{{ $name }}</h3><p class="text-primary fw-semibold small mb-1">{{ $role }}</p><p class="small text-muted mb-2"><i class="bi bi-diagram-2"></i> {{ $branch }}</p><p class="small mb-0">{{ $description }}</p></div></article>

@@ -1,0 +1,2 @@
+@props(['title','type','date'=>'تاريخ تقريبي غير محدد','icon'=>'image','source'=>'بانتظار التوثيق'])
+<article class="archive-card"><div class="archive-preview"><i class="bi bi-{{ $icon }}"></i><span>{{ $type }}</span></div><div class="p-3"><span class="status-badge unverified">{{ $source }}</span><h3 class="h6 fw-bold mt-3 mb-1">{{ $title }}</h3><small class="text-muted"><i class="bi bi-calendar3"></i> {{ $date }}</small></div></article>
