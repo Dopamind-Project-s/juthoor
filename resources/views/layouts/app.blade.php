@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="{{ asset('css/juthoor.css') }}" rel="stylesheet">
 </head>
 <body class="@yield('body-class')">
 <a class="visually-hidden-focusable position-absolute bg-white p-3" href="#main-content">انتقل إلى المحتوى</a>
@@ -17,5 +17,6 @@
 @unless(View::hasSection('hide-footer')) @include('partials.footer') @endunless
 @include('partials.mobile-navigation')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('js/juthoor.js') }}"></script>
 @stack('scripts')
 </body></html>
