@@ -1,0 +1,7 @@
+@extends('layouts.app')
+@section('title','شجرة العودات')
+@section('body-class','overflow-hidden')
+@section('hide-footer',true)
+@section('content')
+<section class="tree-page"><header class="tree-head"><div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center"><div><nav class="small text-muted"><a href="/families/al-zoubi">عشيرة الزعبي</a> <i class="bi bi-chevron-left"></i> <a href="/families/al-zoubi/branches">الفروع</a> <i class="bi bi-chevron-left"></i> العودات</nav><h1 class="h4 fw-bold mb-0">شجرة فرع العودات <span class="status-badge unverified">عرض مستقل من الرسم نفسه</span></h1></div><a class="btn btn-outline-primary btn-sm" href="/families/al-zoubi/tree">الشجرة الجامعة</a></div></header><x-tree-toolbar /><div class="tree-canvas"><div class="tree-map"><div class="tree-level"><x-tree-node name="العودات" years="فرع من الشجرة الجامعة" state="selected" type="branch" /></div><div class="tree-level branching">@foreach(['سعد','علي','محمد','حمد'] as $name)<x-tree-node :name="$name" years="الجيل الأول" />@endforeach</div><div class="tree-level branching">@foreach(['إبراهيم','عائد','سعود','موسى','أحمد','محمود'] as $name)<x-tree-node :name="$name" years="الجيل الثاني" />@endforeach</div><div class="tree-level branching">@foreach(['سالم','خليل','حسن','فاطمة','رامي'] as $name)<x-tree-node :name="$name" years="الجيل الثالث" />@endforeach</div></div><aside class="minimap d-none d-lg-block"><small class="fw-bold">خريطة الفرع</small><div class="minimap-lines"></div></aside></div></section>
+@endsection

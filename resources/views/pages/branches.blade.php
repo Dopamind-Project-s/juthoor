@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','فروع عشيرة الزعبي')
+@section('content')
+<x-page-header title="العشائر والفروع" eyebrow="عشيرة الزعبي" description="كل فرع نافذة مستقلة بصريًا على الشجرة الجامعة نفسها؛ لا تُنشأ نسخ منفصلة من الأشخاص أو العلاقات."><div class="mt-3"><a class="btn btn-link px-0" href="/families/al-zoubi"><i class="bi bi-arrow-right"></i> العودة إلى صفحة العائلة</a></div></x-page-header>
+<section class="section-space"><div class="container"><div class="filter-panel mb-4"><div class="row g-2"><div class="col-md-8"><input class="form-control" placeholder="ابحث باسم الفرع"></div><div class="col-md-4"><select class="form-select"><option>الترتيب حسب الاسم</option><option>عدد الأشخاص</option></select></div></div></div><div class="row g-4">@foreach(['العودات','القواسمة','الرحايمة','الخليفات','الجمعات','فروع أخرى'] as $branch)<div class="col-md-6 col-lg-4"><x-branch-card :name="$branch" description="عرض تجريبي لفرع ضمن الشجرة الجامعة، مع موجز يمكن مراجعته وتوثيقه لاحقًا." :people="[420,360,310,280,250,190][$loop->index]" :subbranches="[6,5,5,4,4,3][$loop->index]" href="{{ $loop->first ? route('branch.tree') : '#' }}" /></div>@endforeach</div></div></section>
+@endsection
