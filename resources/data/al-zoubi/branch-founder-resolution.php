@@ -1,0 +1,96 @@
+<?php
+
+return [
+    [
+        'branch_slug' => 'bakr',
+        'branch_name' => 'بكر',
+        'founder_canonical_key' => 'AZ-BAKR-FOUNDER',
+        'founder_name' => 'بكر',
+        'father_canonical_key' => 'AZ-BAKR-MUHAMMAD',
+        'parent_branch_slug' => null,
+        'verification_status' => 'verified',
+        'notes' => 'المسار متطابق من ذبيان في ثلاثة مشجرات: ذبيان ← علي ← محمد ← بكر.',
+        'path' => [
+            [
+                'canonical_key' => 'AZ-BAKR-ALI',
+                'name_ar' => 'علي',
+                'father_canonical_key' => 'ROOT-077',
+                'source_refs' => ['SRC-01-N0003', 'SRC-03-N0057', 'SRC-08-N0078'],
+            ],
+            [
+                'canonical_key' => 'AZ-BAKR-MUHAMMAD',
+                'name_ar' => 'محمد',
+                'father_canonical_key' => 'AZ-BAKR-ALI',
+                'source_refs' => ['SRC-01-N0004', 'SRC-03-N0058', 'SRC-08-N0079'],
+            ],
+            [
+                'canonical_key' => 'AZ-BAKR-FOUNDER',
+                'name_ar' => 'بكر',
+                'father_canonical_key' => 'AZ-BAKR-MUHAMMAD',
+                'source_refs' => ['SRC-01-N0005', 'SRC-03-N0059', 'SRC-08-N0080'],
+            ],
+        ],
+    ],
+    [
+        'branch_slug' => 'eid',
+        'branch_name' => 'عيد',
+        'founder_canonical_key' => 'AZ-EID-FOUNDER',
+        'founder_name' => 'عيد',
+        'father_canonical_key' => 'AZ-BAKR-FOUNDER',
+        'parent_branch_slug' => 'bakr',
+        'verification_status' => 'verified',
+        'notes' => 'عيد ظاهر ابناً مباشراً لبكر في مشجرات بكر/عيد وبكر/خميس الجامعة.',
+        'path' => [[
+            'canonical_key' => 'AZ-EID-FOUNDER',
+            'name_ar' => 'عيد',
+            'father_canonical_key' => 'AZ-BAKR-FOUNDER',
+            'source_refs' => ['SRC-01-N0006', 'SRC-03-N0060', 'SRC-08-N0081'],
+        ]],
+    ],
+    [
+        'branch_slug' => 'khamis',
+        'branch_name' => 'خميس',
+        'founder_canonical_key' => 'AZ-KHAMIS-FOUNDER',
+        'founder_name' => 'خميس',
+        'father_canonical_key' => 'AZ-BAKR-FOUNDER',
+        'parent_branch_slug' => 'bakr',
+        'verification_status' => 'verified',
+        'notes' => 'خميس ظاهر ابناً مباشراً لبكر في المشجرات الجامعة، بعد تثبيت مؤسس بكر.',
+        'path' => [[
+            'canonical_key' => 'AZ-KHAMIS-FOUNDER',
+            'name_ar' => 'خميس',
+            'father_canonical_key' => 'AZ-BAKR-FOUNDER',
+            'source_refs' => ['SRC-01-N0010', 'SRC-03-N0064', 'SRC-08-N0085'],
+        ]],
+    ],
+    [
+        'branch_slug' => 'al-rahaymeh',
+        'branch_name' => 'الرحايمة',
+        'founder_canonical_key' => 'AZ-RAHAYMEH-FOUNDER',
+        'founder_name' => 'عبد الرحمن',
+        'father_canonical_key' => 'AZ-RAHAYMEH-ABD-AL-QADIR',
+        'parent_branch_slug' => null,
+        'verification_status' => 'verified',
+        'notes' => 'ثلاثة مشجرات تعرض المسار نفسه من ذبيان: سليمان ← عبد القادر ← عبد الرحمن.',
+        'path' => [
+            [
+                'canonical_key' => 'AZ-RAHAYMEH-SULAYMAN',
+                'name_ar' => 'سليمان',
+                'father_canonical_key' => 'ROOT-077',
+                'source_refs' => ['SRC-09-N0003', 'SRC-11-N0078', 'SRC-12-N0078'],
+            ],
+            [
+                'canonical_key' => 'AZ-RAHAYMEH-ABD-AL-QADIR',
+                'name_ar' => 'عبد القادر',
+                'father_canonical_key' => 'AZ-RAHAYMEH-SULAYMAN',
+                'source_refs' => ['SRC-09-N0004', 'SRC-11-N0079', 'SRC-12-N0079'],
+            ],
+            [
+                'canonical_key' => 'AZ-RAHAYMEH-FOUNDER',
+                'name_ar' => 'عبد الرحمن',
+                'father_canonical_key' => 'AZ-RAHAYMEH-ABD-AL-QADIR',
+                'source_refs' => ['SRC-09-N0005', 'SRC-11-N0080', 'SRC-12-N0080'],
+            ],
+        ],
+    ],
+];
