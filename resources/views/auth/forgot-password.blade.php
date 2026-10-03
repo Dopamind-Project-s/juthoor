@@ -1,0 +1,3 @@
+@extends('layouts.app')
+@section('title','استعادة كلمة المرور')
+@section('content')<section class="section-space"><div class="container"><div class="auth-card mx-auto"><h1 class="h3">استعادة كلمة المرور</h1>@if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif<form method="post" action="{{ route('password.email') }}">@csrf<input class="form-control mb-3" type="email" name="email" placeholder="البريد الإلكتروني" required><button class="btn btn-primary w-100">إرسال رابط الاستعادة</button></form></div></div></section>@endsection

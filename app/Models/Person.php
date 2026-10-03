@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ArabicNameNormalizer;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,13 @@ class Person extends Model
     public const STATUS_HISTORICAL = 'historical';
 
     public const STATUS_UNRESOLVED = 'unresolved';
+
+    protected static function booted(): void
+    {
+        static::saving(function (Person $person): void {
+            $person->name_search = app(ArabicNameNormalizer::class)->normalize($person->full_name_ar);
+        });
+    }
 
     protected function casts(): array
     {
@@ -59,5 +67,10 @@ class Person extends Model
             Source::VERIFICATION_VERIFIED,
             Source::VERIFICATION_SOURCED,
         ]);
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query->verified()->where('status', self::STATUS_HISTORICAL);
     }
 }

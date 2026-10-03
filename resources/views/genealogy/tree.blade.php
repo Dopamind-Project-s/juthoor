@@ -1,0 +1,17 @@
+@extends('layouts.app')
+@section('title', $tree->name_ar)
+@section('body-class','genealogy-page')
+@section('hide-footer',true)
+@section('content')
+<section class="interactive-tree" data-tree-app data-graph-url="{{ route('genealogy.graph',$family->slug) }}" data-search-url="{{ route('genealogy.search',$family->slug) }}" data-branch="{{ $focusedBranch?->slug }}">
+<header class="tree-app-header"><div><nav class="family-breadcrumb"><a href="{{ route('home') }}">جذور</a><i class="bi bi-chevron-left"></i><span>{{ $family->name_ar }}</span></nav><h1>{{ $focusedBranch ? 'فرع '.$focusedBranch->name_ar : $tree->name_ar }}</h1><p>رسم تفاعلي للسجلات التاريخية المسموح بعرضها.</p></div><a class="btn btn-outline-primary" href="{{ route('home') }}">كل العائلات</a></header>
+<div class="tree-app-toolbar" role="toolbar" aria-label="أدوات الشجرة">
+<div class="tree-search"><input class="form-control" data-tree-search placeholder="ابحث عن شخص" autocomplete="off"><div class="tree-search-results" data-tree-search-results hidden></div></div>
+<select class="form-select" data-branch-select aria-label="اختيار الفرع"><option value="">الشجرة الجامعة</option>@foreach($branches as $branch)<option value="{{ $branch->slug }}" @selected($focusedBranch?->is($branch))>{{ $branch->name_ar }}</option>@endforeach</select>
+<select class="form-select" data-focus-mode aria-label="وضع التركيز"><option value="focus">تركيز مع السياق</option><option value="isolated">عزل الفرع</option></select>
+<button class="btn btn-light" data-tree-action="zoom-in" aria-label="تكبير"><i class="bi bi-zoom-in"></i></button><button class="btn btn-light" data-tree-action="zoom-out" aria-label="تصغير"><i class="bi bi-zoom-out"></i></button><button class="btn btn-light" data-tree-action="fit">ملاءمة</button><button class="btn btn-light" data-tree-action="reset">افتراضي</button>
+</div>
+<div class="tree-app-body"><div class="tree-stage" data-tree-stage tabindex="0"><div class="tree-loading" data-tree-loading><span class="spinner-border"></span><p>جارٍ تحميل الشجرة…</p></div><div class="tree-state" data-tree-empty hidden><i class="bi bi-diagram-3"></i><h2>لا توجد عقد متاحة</h2><p>لم تُنشر بعد بيانات تاريخية موثقة لهذه الشجرة.</p></div><div class="tree-state" data-tree-error hidden><i class="bi bi-exclamation-triangle"></i><h2>تعذر تحميل الشجرة</h2><button class="btn btn-primary" data-tree-retry>إعادة المحاولة</button></div><svg data-tree-svg role="img" aria-label="شجرة النسب التفاعلية"><g data-tree-viewport></g></svg><div class="tree-partial" data-tree-partial hidden>النتائج جزئية. اختر عقدة تحمل مؤشر (+) لتحميل ذريتها.</div></div><aside class="tree-person-panel" data-person-panel hidden><button class="btn-close" data-person-close aria-label="إغلاق"></button><span class="status-badge" data-person-status></span><h2 data-person-name></h2><p data-person-context>اختر عقدة لعرض ملخصها.</p><div class="d-grid gap-2"><button class="btn btn-outline-primary" data-person-load hidden>تحميل الذرية التالية</button><button class="btn btn-outline-primary" data-person-toggle>طي الذرية</button><a class="btn btn-primary" data-person-link>فتح صفحة الشخص</a></div></aside></div>
+</section>
+@endsection
+@push('scripts')<script src="{{ asset('js/genealogy-tree.js') }}"></script>@endpush
