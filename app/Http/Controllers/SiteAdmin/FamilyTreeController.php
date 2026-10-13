@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FamilyTreeController extends Controller
 {
@@ -24,6 +25,7 @@ class FamilyTreeController extends Controller
             'is_primary' => ['nullable', 'boolean'],
         ]);
         DB::transaction(function () use ($data, $familyModel, $request): void {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
             $tree = $familyModel->familyTrees()->create([
                 'name_ar' => $data['name_ar'], 'slug' => $data['slug'],
                 'is_primary' => $request->boolean('is_primary'), 'is_active' => true,
@@ -39,11 +41,15 @@ class FamilyTreeController extends Controller
         abort_unless($request->user()->isSuperAdmin(), 403);
         $familyModel = Family::query()->findOrFail($family);
         $treeModel = $familyModel->familyTrees()->whereKey($tree)->firstOrFail();
+        if ($treeModel->is_primary && ! $request->boolean('is_primary')) {
+            throw ValidationException::withMessages(['is_primary' => 'اجعل شجرة أخرى أساسية أولًا.']);
+        }
         $data = $request->validate([
             'name_ar' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'], 'is_primary' => ['nullable', 'boolean'],
         ]);
         DB::transaction(function () use ($data, $familyModel, $treeModel, $request): void {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
             $before = $this->audit->snapshot($treeModel);
             $treeModel->update([
                 'name_ar' => $data['name_ar'], 'is_active' => $request->boolean('is_active'),

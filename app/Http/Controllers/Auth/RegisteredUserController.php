@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Family;
 use App\Models\FamilyInvitation;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -30,12 +32,17 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'password' => ['required', 'confirmed', 'min:12'],
         ]);
-        $user = User::query()->create([
-            'name' => $data['name'], 'email' => $invitation->email,
-            'password' => Hash::make($data['password']),
-        ]);
+        $user = DB::transaction(function () use ($invitation, $token, $data): User {
+            Family::query()->whereKey($invitation->family_id)->lockForUpdate()->firstOrFail();
+            $current = FamilyInvitation::query()->with('family')->lockForUpdate()->findOrFail($invitation->id);
+            abort_unless($current->isAcceptable() && hash_equals($current->token_hash, hash('sha256', $token)), 410);
+            abort_if(User::query()->where('email', $current->email)->exists(), 404);
+
+            return User::query()->create(['name' => $data['name'], 'email' => $current->email, 'password' => Hash::make($data['password'])]);
+        });
         event(new Registered($user));
         Auth::login($user);
+        $request->session()->regenerate();
 
         return redirect()->route('invitations.show', $token);
     }

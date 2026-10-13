@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Management;
 use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Services\ArabicNameNormalizer;
+use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -15,7 +16,7 @@ class LookupController extends Controller
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('view', $familyModel);
-        $tree = $familyModel->primaryTree()->firstOrFail();
+        $tree = app(SelectedFamilyTree::class)->resolve($familyModel);
         $query = $tree->people()->orderBy('full_name_ar');
         if ($request->filled('q')) {
             $query->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
@@ -32,7 +33,7 @@ class LookupController extends Controller
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('view', $familyModel);
-        $query = $familyModel->primaryTree()->firstOrFail()->branches()->orderBy('name_ar');
+        $query = app(SelectedFamilyTree::class)->resolve($familyModel)->branches()->orderBy('name_ar');
         if ($request->filled('q')) {
             $query->where('name_ar', 'like', '%'.$request->query('q').'%');
         }

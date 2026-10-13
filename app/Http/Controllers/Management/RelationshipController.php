@@ -9,6 +9,7 @@ use App\Models\FamilyTree;
 use App\Models\PersonRelationship;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
+use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,7 @@ class RelationshipController extends Controller
 
         try {
             DB::transaction(function () use ($familyModel, $tree, $request): void {
+                FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
                 $relationship = $tree->personRelationships()->create([
                     'person_id' => $request->integer('person_id'),
                     'related_person_id' => $request->integer('father_id'),
@@ -61,6 +63,9 @@ class RelationshipController extends Controller
         $this->deletion->assertRelationshipCanBeDeleted($relationshipModel);
 
         DB::transaction(function () use ($familyModel, $relationshipModel): void {
+            FamilyTree::query()->whereKey($relationshipModel->family_tree_id)->lockForUpdate()->firstOrFail();
+            $relationshipModel->refresh();
+            $this->deletion->assertRelationshipCanBeDeleted($relationshipModel);
             $before = $this->audit->snapshot($relationshipModel);
             $relationshipModel->delete();
             $this->audit->record(auth()->user(), $familyModel, $relationshipModel, 'deleted', $before, null);
@@ -75,7 +80,7 @@ class RelationshipController extends Controller
         $family = Family::query()->where('slug', $slug)->firstOrFail();
         Gate::authorize('view', $family);
 
-        return [$family, $family->primaryTree()->firstOrFail()];
+        return [$family, app(SelectedFamilyTree::class)->resolve($family)];
     }
 
     private function arabicIntegrityMessage(DomainException $exception): string

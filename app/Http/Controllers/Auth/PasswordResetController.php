@@ -28,7 +28,7 @@ class PasswordResetController extends Controller
             throw ValidationException::withMessages(['email' => 'تعذر إرسال رابط الاستعادة.']);
         }
 
-        return back()->with('status', 'تم إرسال رابط استعادة كلمة المرور.');
+        return back()->with('status', 'أُضيف رابط استعادة كلمة المرور إلى طابور البريد.');
     }
 
     public function reset(Request $request, string $token): View

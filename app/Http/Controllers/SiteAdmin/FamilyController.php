@@ -6,11 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\User;
+use App\Notifications\FamilyInvitationNotification;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FamilyController extends Controller
 {
@@ -34,8 +38,24 @@ class FamilyController extends Controller
                 'name_ar' => $data['tree_name_ar'], 'slug' => 'main', 'is_primary' => true, 'is_active' => true,
             ]);
             if (! empty($data['manager_email'])) {
-                $manager = User::query()->where('email', $data['manager_email'])->firstOrFail();
-                $family->memberships()->create(['user_id' => $manager->id, 'role' => FamilyMembership::ROLE_ADMIN]);
+                $email = Str::lower($data['manager_email']);
+                $manager = User::query()->where('email', $email)->first();
+                if ($manager && ! $manager->is_active) {
+                    throw ValidationException::withMessages(['manager_email' => 'حساب المدير معطل.']);
+                }
+                if ($manager) {
+                    $membership = $family->memberships()->create(['user_id' => $manager->id, 'role' => FamilyMembership::ROLE_ADMIN]);
+                    $this->audit->record($request->user(), $family, $membership, 'created', null, $this->audit->snapshot($membership));
+                } else {
+                    $token = Str::random(64);
+                    $invitation = $family->invitations()->create([
+                        'invited_by' => $request->user()->id, 'email' => $email, 'role' => FamilyMembership::ROLE_ADMIN,
+                        'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7),
+                    ]);
+                    $this->audit->record($request->user(), $family, $invitation, 'invited', null, $this->audit->snapshot($invitation));
+                    Notification::route('mail', $email)
+                        ->notify(new FamilyInvitationNotification($invitation, $token));
+                }
             }
             $this->audit->record($request->user(), $family, $family, 'created', null, $this->audit->snapshot($family));
         });
@@ -54,6 +74,7 @@ class FamilyController extends Controller
             'tree_is_active' => ['nullable', 'boolean'],
         ]);
         DB::transaction(function () use ($data, $familyModel, $request): void {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
             $before = $this->audit->snapshot($familyModel);
             $familyModel->update(['name_ar' => $data['name_ar'], 'slug' => $data['slug'], 'is_active' => $request->boolean('is_active')]);
             $familyModel->primaryTree()->update(['is_active' => $request->boolean('tree_is_active')]);

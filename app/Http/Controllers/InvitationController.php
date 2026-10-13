@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Family;
 use App\Models\FamilyInvitation;
+use App\Models\User;
 use App\Notifications\FamilyInvitationNotification;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,7 @@ class InvitationController extends Controller
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('manageMembers', $familyModel);
+        abort_unless($familyModel->is_active, 403);
         $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'in:reader,editor,admin']]);
         $email = Str::lower($data['email']);
         if ($familyModel->users()->where('email', $email)->exists()) {
@@ -30,6 +32,12 @@ class InvitationController extends Controller
         }
         $token = Str::random(64);
         $invitation = DB::transaction(function () use ($familyModel, $request, $data, $email, $token): FamilyInvitation {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
+            foreach ($familyModel->invitations()->where('email', $email)->whereNull('accepted_at')->whereNull('cancelled_at')->get() as $previous) {
+                $before = $this->audit->snapshot($previous);
+                $previous->update(['cancelled_at' => now()]);
+                $this->audit->record($request->user(), $familyModel, $previous, 'cancelled', $before, $this->audit->snapshot($previous));
+            }
             $invitation = $familyModel->invitations()->create([
                 'invited_by' => $request->user()->id, 'email' => $email, 'role' => $data['role'],
                 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7),
@@ -40,14 +48,16 @@ class InvitationController extends Controller
         });
         Notification::route('mail', $email)->notify(new FamilyInvitationNotification($invitation, $token));
 
-        return back()->with('status', 'تم إرسال الدعوة لمدة سبعة أيام.');
+        return back()->with('status', 'أُضيفت الدعوة إلى طابور البريد لمدة سبعة أيام.');
     }
 
     public function show(string $token): View
     {
         $invitation = $this->invitation($token);
 
-        return view('invitations.show', compact('invitation', 'token'));
+        $existingUser = User::query()->where('email', $invitation->email)->exists();
+
+        return view('invitations.show', compact('invitation', 'token', 'existingUser'));
     }
 
     public function accept(Request $request, string $token): RedirectResponse
@@ -64,10 +74,13 @@ class InvitationController extends Controller
             throw ValidationException::withMessages(['invitation' => 'هذه الدعوة مرتبطة ببريد إلكتروني مختلف.']);
         }
 
-        DB::transaction(function () use ($invitation, $user): void {
-            $invitation->family->memberships()->updateOrCreate(
-                ['user_id' => $user->id], ['role' => $invitation->role],
-            );
+        DB::transaction(function () use ($invitation, $user, $token): void {
+            Family::query()->whereKey($invitation->family_id)->lockForUpdate()->firstOrFail();
+            $invitation = FamilyInvitation::query()->with('family')->lockForUpdate()->findOrFail($invitation->id);
+            if (! $invitation->isAcceptable() || ! hash_equals($invitation->token_hash, hash('sha256', $token)) || $invitation->family->memberships()->where('user_id', $user->id)->exists()) {
+                throw ValidationException::withMessages(['invitation' => 'الدعوة غير متاحة أو المستخدم عضو بالفعل.']);
+            }
+            $invitation->family->memberships()->create(['user_id' => $user->id, 'role' => $invitation->role]);
             $before = $this->audit->snapshot($invitation);
             $user->markEmailAsVerified();
             $invitation->update(['accepted_by' => $user->id, 'accepted_at' => now()]);
@@ -75,6 +88,27 @@ class InvitationController extends Controller
         });
 
         return redirect()->route('management.families.show', $invitation->family->slug)->with('status', 'تم قبول الدعوة.');
+    }
+
+    public function resend(Request $request, string $family, int $invitation): RedirectResponse
+    {
+        $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
+        Gate::authorize('manageMembers', $familyModel);
+        $token = Str::random(64);
+        $invitationModel = DB::transaction(function () use ($request, $familyModel, $invitation, $token): FamilyInvitation {
+            $model = $familyModel->invitations()->lockForUpdate()->findOrFail($invitation);
+            if ($model->accepted_at || $model->cancelled_at) {
+                throw ValidationException::withMessages(['invitation' => 'لا يمكن إعادة إرسال دعوة مقبولة أو ملغاة.']);
+            }
+            $before = $this->audit->snapshot($model);
+            $model->update(['token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'invited_by' => $request->user()->id]);
+            $this->audit->record($request->user(), $familyModel, $model, 'resent', $before, $this->audit->snapshot($model));
+
+            return $model;
+        });
+        Notification::route('mail', $invitationModel->email)->notify(new FamilyInvitationNotification($invitationModel, $token));
+
+        return back()->with('status', 'أُضيفت الدعوة إلى طابور البريد وأُبطل الرابط السابق.');
     }
 
     public function cancel(Request $request, string $family, int $invitation): RedirectResponse

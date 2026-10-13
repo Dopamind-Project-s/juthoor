@@ -6,6 +6,7 @@ use App\Services\Genealogy\RelationshipIntegrityService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['family_tree_id', 'person_id', 'related_person_id', 'relationship_type', 'is_primary', 'source_id', 'verification_status'])]
 class PersonRelationship extends Model
@@ -22,6 +23,11 @@ class PersonRelationship extends Model
     protected function casts(): array
     {
         return ['is_primary' => 'boolean'];
+    }
+
+    public function citations(): HasMany
+    {
+        return $this->hasMany(Citation::class, 'person_relationship_id');
     }
 
     public function familyTree(): BelongsTo

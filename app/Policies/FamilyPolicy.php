@@ -13,6 +13,21 @@ class FamilyPolicy
         return $user->roleFor($family) !== null;
     }
 
+    public function manageSources(User $user, Family $family): bool
+    {
+        return $user->canEditFamily($family);
+    }
+
+    public function propose(User $user, Family $family): bool
+    {
+        return $this->view($user, $family);
+    }
+
+    public function review(User $user, Family $family): bool
+    {
+        return $this->update($user, $family);
+    }
+
     public function update(User $user, Family $family): bool
     {
         return $user->roleFor($family) === FamilyMembership::ROLE_ADMIN;

@@ -12,10 +12,10 @@ class GenealogyTraversalService
     public const DEFAULT_MAX_DEPTH = 100;
 
     /** @return Collection<int, Person> Root-to-person order. */
-    public function getAncestorPath(int $personId, ?int $depth = null): Collection
+    public function getAncestorPath(int $personId, ?int $depth = null, bool $verifiedOnly = true): Collection
     {
         $person = Person::query()->findOrFail($personId);
-        $parents = $this->fatherMap($person->family_tree_id);
+        $parents = $this->fatherMap($person->family_tree_id, $verifiedOnly);
         $people = Person::query()->where('family_tree_id', $person->family_tree_id)->get()->keyBy('id');
         $limit = $this->depth($depth);
         $path = [];
@@ -54,13 +54,13 @@ class GenealogyTraversalService
     }
 
     /** @return array<int, int> Includes the starting person. */
-    public function getDescendantIds(int $personId, ?int $depth = null): array
+    public function getDescendantIds(int $personId, ?int $depth = null, bool $verifiedOnly = true): array
     {
         $person = Person::query()->findOrFail($personId);
 
         return $this->walkDescendants(
             $person->id,
-            $this->childrenMap($person->family_tree_id),
+            $this->childrenMap($person->family_tree_id, $verifiedOnly),
             $this->depth($depth),
         );
     }
@@ -111,9 +111,9 @@ class GenealogyTraversalService
     }
 
     /** @return array<int, int> child ID => father ID */
-    private function fatherMap(int $treeId): array
+    private function fatherMap(int $treeId, bool $verifiedOnly = true): array
     {
-        return PersonRelationship::query()->verified()
+        return PersonRelationship::query()->when($verifiedOnly, fn ($query) => $query->verified())->where('is_primary', true)
             ->where('family_tree_id', $treeId)
             ->where('relationship_type', PersonRelationship::TYPE_FATHER)
             ->pluck('related_person_id', 'person_id')
@@ -122,9 +122,9 @@ class GenealogyTraversalService
     }
 
     /** @return array<int, array<int, int>> father ID => child IDs */
-    private function childrenMap(int $treeId): array
+    private function childrenMap(int $treeId, bool $verifiedOnly = true): array
     {
-        return PersonRelationship::query()->verified()
+        return PersonRelationship::query()->when($verifiedOnly, fn ($query) => $query->verified())->where('is_primary', true)
             ->where('family_tree_id', $treeId)
             ->where('relationship_type', PersonRelationship::TYPE_FATHER)
             ->get(['person_id', 'related_person_id'])

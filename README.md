@@ -1,58 +1,160 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# جذور — Juthoor
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+منصة عربية لإدارة الأنساب والعائلات، مبنية على Laravel 13 وPHP. تدعم عائلات مستقلة، عدة أشجار لكل عائلة، الأدوار والدعوات، وسجل تدقيق، وعرض شجرة تدريجي يدعم RTL واللمس.
 
-## About Laravel
+## التشغيل المحلي
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+المتطلبات: PHP 8.3 أو أحدث (اختُبر PHP 8.4)، Composer 2، وإضافات `pdo_sqlite`, `mbstring`, `intl`, `dom`, `xml`, `xmlwriter`, `curl`, `zip`, `fileinfo`, `ctype`, `tokenizer`, `phar`. SQLite يكفي للتطوير؛ لا تحتاج إلى Node أو Vite لتشغيل التطبيق. أصول Bootstrap وBootstrap Icons وخط Cairo مثبتة محليًا في `public/vendor`، مع التراخيص وبصمات حزمها في `manifest.json`.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+من جذر المشروع:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer check-platform-reqs --lock
+# vendor موجود في هذا المستودع. عند غيابه أو تحديث الاعتماديات:
+# composer install --no-interaction --prefer-dist
+[ -f .env ] || cp .env.example .env
+php artisan key:generate       # مرة واحدة فقط إن لم يوجد APP_KEY
+php artisan migrate --force
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+لا تعِد توليد مفتاح تطبيق موجود، ولا تحفظ `.env` في Git. الإعداد الافتراضي هو SQLite وsession/cache/queue في قاعدة البيانات و`MAIL_MAILER=log`. أنشئ أول سوبر أدمن دون سيدر أو كلمة مرور ثابتة:
 
-## Contributing
+```bash
+php artisan site:make-super-admin owner@example.com --name="مالك الموقع"
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+يطلب الأمر كلمة المرور سرًا (12 محرفًا على الأقل)، ويُنشئ حسابًا موثّقًا ونشطًا مع تسجيل منح الصلاحية. عند استخدام بريد حساب موجود، يرقّيه؛ هذا أمر إداري يُشغَّل من خادم موثوق. سجّل الدخول ثم افتح `/site-admin`.
 
-## Code of Conduct
+**في بيئة Codex الحالية:** أضف `export PATH=/workspace/tooling/bin:$PATH` قبل أوامر PHP وComposer. أدوات PHP وComposer محفوظة خارج المستودع. كل مهمة معزولة أصلًا؛ استخدم checkout الموجود ولا تنشئ Git worktree إلا بطلب صريح.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## عائلة جديدة وعدة أشجار
 
-## Security Vulnerabilities
+1. من لوحة السوبر أدمن، أنشئ العائلة ورابطها واسم شجرتها. إذا أدخلت بريد مدير موجود ونشط، يُعيَّن مباشرة؛ وإذا كان جديدًا، تُنشأ دعوة مدير وتُضاف إلى طابور البريد.
+2. افتح إدارة الأنساب، ثم اختر الشجرة الحالية. أضف الجذر كشخص واختره في نموذج **جذر الشجرة**. لا يجوز اختيار شخص من شجرة أخرى أو شخص له أب أساسي موثق.
+3. أضف الأشخاص، ثم علاقات الأبوة والفروع. حقول اختيار الأشخاص والفروع تُحمّل أول دفعة تلقائيًا، وتدعم البحث و«تحميل خيارات أخرى».
+4. استخدم **معاينة الشجرة** للعرض الخاص. تشمل السجلات الخاصة وقيد المراجعة للأعضاء المخولين؛ لا تجعل هذا الرابط وسيلة نشر عامة.
+5. للنشر العام، يجب أن تكون العائلة والشجرة نشطتين، وأن يكون الشخص تاريخيًا، وغير مصنّف صراحةً كحي، وموثقًا أو مسندًا. العلاقات والفروع العامة تحتاج أيضًا إلى التوثيق. لا يُظهر العرض العام بيانات الأحياء حتى إن اختيرت حالة تاريخي بالخطأ.
+6. أنشئ أشجارًا أخرى من لوحة الموقع. لكل شجرة أشخاصها وعلاقاتها وفروعها وجذرها وبحثها. اختيار الشجرة محفوظ في الروابط والنماذج والترقيم عبر `?tree=slug`. لتغيير الأساسية، فعّل «أساسية» على الشجرة الجديدة؛ لا يمكن إزالة علامة الأساسية دون بديل.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+لا يعتمد هذا التدفق على سيدر الزعبي. بيانات الزعبي مثال مستقل، ولم تُعدَّل أسماؤها. يمكن تشغيل `php artisan db:seed` اختياريًا لاستخدام ذلك المثال، بعد مراجعة بيانات الاستيراد؛ ليس جزءًا من تهيئة عائلة جديدة.
 
-## License
+## تشغيل البريد والطابور
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+شغّل عاملًا في نافذة ثانية من جذر المشروع:
+
+```bash
+php artisan queue:work --tries=4 --timeout=30 --sleep=1
+```
+
+الدعوات والتحقق من البريد واستعادة كلمة المرور تُرسل بعد اعتماد المعاملة عبر queue. لكل رسالة أربع محاولات، وتأخيرات إعادة محاولة 30 ثم 120 ثم 300 ثانية. مهلة المهمة 30 ثانية، وأجل إعادة حجز مهمة قاعدة البيانات الافتراضي 90 ثانية؛ أبقِ الأخير أطول من مهلة العامل. `QUEUE_CONNECTION=sync` ينفّذ الإرسال داخل الطلب؛ استخدم `database` للإرسال الخلفي.
+
+للتطوير، `MAIL_MAILER=log` يكتب الرسائل في `storage/logs/laravel.log` ولا يرسل بريدًا خارجيًا. تحتوي الرسائل على روابط حساسة، فلا تشارك سجل البريد. لاكتشاف الفشل وإعادة المحاولة:
+
+```bash
+php artisan queue:failed
+php artisan queue:retry <job-uuid>
+php artisan queue:restart
+```
+
+إعادة إرسال دعوة تولّد رمزًا جديدًا وتُبطل القديم، بما فيه رسائل الطابور القديمة التي لم تُرسل بعد. يمكن تجديد دعوة منتهية؛ لا يمكن إعادة إرسال دعوة مقبولة أو ملغاة. قبول الدعوة والتسجيل يرفضان الرموز المنتهية أو الملغاة والعائلات المعطلة. الدعوة لا تُخفض صلاحية عضو موجود.
+
+للبريد الفعلي، اضبط القيم التالية في إعدادات البيئة الآمنة، حسب مزود SMTP:
+
+```dotenv
+APP_URL=https://your-domain.example
+QUEUE_CONNECTION=database
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+MAIL_HOST=smtp.your-provider.example
+MAIL_PORT=465
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM_ADDRESS=noreply@your-domain.example
+MAIL_FROM_NAME="جذور"
+```
+
+القيم الفارغة للبيانات السرية تُعبّأ خارج Git. اضبط المنفذ والتشفير وفق مزودك؛ بعض المزودين يستخدمون STARTTLS على 587. يجب السماح باتصال SMTP من الخادم. شغّل العامل تحت مدير عمليات مثل systemd أو Supervisor في النشر، وأعد تشغيله عند تغيير الكود أو الإعدادات. بعد تغيير إعدادات بيئة إنتاج مُخزّنة مؤقتًا، أعد إنشاء config cache وأعد تشغيل العامل. اختبر تسليم دعوة حقيقية قبل إطلاق البريد؛ النجاح باستخدام `log` لا يثبت تسليم SMTP.
+
+## الحسابات والتدقيق
+
+القارئ يرى بيانات عائلته الخاصة، والمحرر يدير الأنساب، والمدير يدير العضويات والدعوات والجذر، والسوبر أدمن يدير الموقع والأشجار. تُقرأ حالة المستخدم وصلاحياته من قاعدة البيانات على الطلب التالي؛ تعطيله يزيل sessions قاعدة البيانات ورمز remember ويمنع الطلبات الخاصة وعمليات الكتابة. تعطيل العائلة يمنع وصول أعضائها؛ يستطيع السوبر أدمن الوصول إلى إدارتها لإعادة تفعيلها، لكن الرسم الخاص والعام لا يُعرضان لعائلة معطلة.
+
+تُحمى صلاحية آخر سوبر أدمن نشط وآخر مدير نشط للعائلة، بما في ذلك تعطيل المستخدم وحذفه. تعيينات المدير والدعوات وتغييرات الأنساب والصلاحيات تُسجل في التدقيق. اللقطات الجديدة تستبعد password وremember_token وtoken_hash.
+
+## الاختبارات
+
+```bash
+php artisan test --compact
+vendor/bin/pint --dirty --format agent
+node --check public/js/genealogy-tree.js
+node --check public/js/juthoor.js
+```
+
+اختبارات Pest تستخدم قاعدة SQLite منفصلة في الذاكرة. لا تغيّر قاعدة التطوير. لا يوجد بناء JavaScript مطلوب؛ ملفات الواجهة مباشرة في `public`.
+
+لاختبارات المتصفح، يلزم Chromium وPlaywright. في بيئة Codex الحالية هما متاحان. خارجها، يمكن تثبيت Playwright خارج المستودع دون تغيير اعتماديات التطبيق:
+
+```bash
+npm install --prefix /tmp/juthoor-browser-tools playwright@1.62.1
+export NODE_PATH=/tmp/juthoor-browser-tools/node_modules
+export CHROMIUM_PATH=/usr/bin/chromium   # مسار Chromium المثبت لديك
+export BROWSER_ARTIFACTS=/tmp/juthoor-browser-artifacts
+mkdir -p "$BROWSER_ARTIFACTS"
+APP_ENV=testing DB_DATABASE=/tmp/juthoor-browser.sqlite \
+  php tests/Browser/fixtures.php > "$BROWSER_ARTIFACTS/fixture.json"
+APP_ENV=testing DB_DATABASE=/tmp/juthoor-browser.sqlite \
+  php artisan serve --host=127.0.0.1 --port=8000 --no-reload
+# في نافذة ثانية، مع متغيرات المتصفح نفسها:
+node tests/Browser/smoke.cjs
+```
+
+**ملف fixtures يحذف ويعيد بناء قاعدة الاختبار المحددة.** يتحقق من `APP_ENV=testing` ومن وجود `juthoor-browser` في اسم قاعدة SQLite. استخدم الملف المؤقت أعلاه فقط، وليس قاعدة التطوير أو الإنتاج. ينشئ بيانات اصطناعية: 402 شخصًا، فرعًا واسعًا من 360 ابنًا، وأشجارًا مستقلة بينها معاينة خاصة لشخص حي قيد المراجعة، وحساب اختبار معروفًا لهذه القاعدة المعزولة فقط. تظل بيئة المتصفح وقاعدتها منفصلتين عن تشغيل التطبيق المعتاد.
+
+يمكن تغيير منفذ الاختبار عبر `BROWSER_BASE_URL`. يُنتج الفحص لقطات شاشة و`results.json` في `BROWSER_ARTIFACTS`. اختبار الهاتف محاكاة Chromium بحجم 390×844 ولمس؛ لا يثبت التوافق مع أجهزة فعلية أو Safari. راجع [تقرير التجربة](BETA-REVIEW.md) للنتائج والحدود التي تحققت فعليًا.
+
+## المرحلة الجديدة: المراجعة والاسترجاع والمصادر وCSV
+
+بعد تحديث الشيفرة شغّل `php artisan migrate --force` لإضافة جداول `change_requests` و`citations` و`import_batches` وربط عمليات الاسترجاع. المهاجرات الجديدة إضافية وتحافظ على الجداول والروابط السابقة؛ لا تشغّل `migrate:fresh` على قاعدة التطبيق القائمة.
+
+من قائمة العائلة، اختر الشجرة ثم افتح **طلبات التغيير والمراجعة** أو **المصادر والاستشهادات** أو **استيراد CSV ومعاينة**. يستطيع القارئ تقديم مقترح إنشاء أو تعديل شخص/أبوة/فرع؛ يستطيع المدير أو السوبر أدمن مراجعة مقترح شخص آخر مع سبب. يبقى السجل المعتمد كما هو حتى القبول؛ تغيره بعد تقديم المقترح يمنع الاعتماد. المحرر يحتفظ بتحريره المباشر ويستطيع اختيار مسار المراجعة.
+
+من تفاصيل عملية تدقيق مدعومة، افتح **معاينة الاسترجاع** وراجع أثرها قبل التأكيد. يدعم الاسترجاع إنشاء وتعديل الأشخاص والأبوة والفروع فقط، ويرفض السجلات التي عُدلت لاحقًا أو أصبحت لها اعتماديات تمنع الاسترجاع. يُسجل كتغيير جديد مرتبط بالعملية الأصلية. لا يعيد حذفًا أو دفعة استيراد كاملة تلقائيًا.
+
+المحرر والمدير يديران المصادر والاستشهادات؛ الاستشهاد يحدد الشخص أو علاقة الأبوة والمعلومة والصفحة/الموضع والرابط وحالة التحقق. ملفات PDF/JPG/PNG/TXT حتى 10MB تُحفظ تحت `storage/app/private/genealogy/sources` عبر disk `genealogy_private`، ولا تُنقل إلى public أو storage link. التنزيل محمي بعضوية العائلة النشطة. ملفات المصادر القديمة خارج هذا المخزن لا تُنشر أو تُنقل تلقائيًا؛ ارفع نسخة خاصة عند الحاجة. ضم هذا المجلد وملفات الاستيراد الخاصة إلى خطة النسخ والاستعادة، مع قاعدة البيانات.
+
+### قالب CSV
+
+نزّل القالب من شاشة الاستيراد. ترميز UTF-8، بفواصل، حتى 1MB و1000 صف. الحقول:
+
+| الحقل | المعنى |
+|---|---|
+| external_id | معرف جديد ثابت وفريد في الشجرة، حروف لاتينية وأرقام و`._:-`؛ لا يُستخدم اسم الشخص كمفتاح |
+| first_name_ar / full_name_ar | الاسم الأول والكامل، مطلوبان |
+| gender | male أو female، اختياري |
+| birth_year / death_year | سنتان اختياريتان؛ الوفاة لا تسبق الميلاد |
+| is_living | 0 أو 1؛ لا تضع 0 لشخص حي |
+| status | active أو historical أو unresolved |
+| verification_status | pending_review أو verified أو sourced أو unresolved |
+| father_external_id | معرف الأب في الملف أو معرف قائم في الشجرة نفسها؛ اختياري |
+| branch_slug / branch_name_ar | إنشاء فرع جديد مؤسسه الشخص في هذا الصف؛ اختياريان معًا |
+
+الرفع ينشئ دفعة ومعاينة فقط. المدير يراجع الصفوف ويؤكد السبب ونسخة المعاينة قبل الكتابة؛ المحرر لا يعتمد. المعرف القائم تعارض لا يُدمج ولا يُحدّث، وتشابه الأسماء يحتاج سببًا وتأكيدًا لإبقاء الأشخاص منفصلين. إذا تغيّرت الشجرة، أعد **التحقق والمعاينة**. الاعتماد ذري لكل الصفوف؛ أصلح الصفوف غير الصالحة وأعد رفع الملف. عند فشل الحفظ، لم تُكتب بيانات جزئية، ويجب إعادة التحقق قبل المحاولة التالية. البصمة المعتمدة لا تُنفذ مرة أخرى. عندما تكون الشجرة بلا جذر يمكن تحديد معرف جذر بلا أب صراحةً أثناء الاعتماد.
+
+### إعادة إنتاج اختبارات سير العمل
+
+باستخدام أدوات المتصفح ومتغيراته وقاعدة الاختبار المعزولة الموثقة أعلاه، اضبط مخزن ملفات اختبار مستقل وشغّل fixtures وخادم الاختبار بالقيم نفسها:
+
+```bash
+export GENEALOGY_PRIVATE_ROOT=/tmp/juthoor-browser-private-files
+# أعد تشغيل خادم الاختبار بهذه القيمة أيضًا قبل workflows.cjs.
+# تهيئة قاعدة اختبار فقط؛ يعيد حذف وبناء قاعدة juthoor-browser المؤقتة:
+APP_ENV=testing DB_DATABASE=/tmp/juthoor-browser.sqlite \
+  php tests/Browser/fixtures.php > "$BROWSER_ARTIFACTS/fixture.json"
+# مع خادم الاختبار العامل على القاعدة نفسها:
+node tests/Browser/workflows.cjs
+```
+
+ينشئ fixtures عائلتين اصطناعيتين وأشجارًا مستقلة وحسابات reader/editor/admin للاختبار فقط. `workflows.cjs` يختبر المراجعة والاسترجاع والمصادر وCSV، وينتج `workflows-results.json` ولقطات الشاشة. استخدم قواعد مستقلة إن شغلت فحوص المتصفح بالتوازي، ولا تعِد بناء قاعدة يستخدمها اختبار جارٍ.
+
+تجد مطابقة الخطة ودليل التنفيذ وما بقي ومعايير اكتماله في `PROJECT-PROGRESS.md`. وجود نص عن CI أو staging أو backup في الوثيقة البحثية لا يثبت تشغيلها؛ حالات هذه البنود ودليل التحقق موثقة صراحةً هناك.

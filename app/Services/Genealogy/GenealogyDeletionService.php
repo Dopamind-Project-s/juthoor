@@ -12,6 +12,9 @@ class GenealogyDeletionService
 {
     public function assertPersonCanBeDeleted(Person $person): void
     {
+        if ($person->citations()->exists() || $person->sources()->exists()) {
+            $this->reject('person', 'الشخص مرتبط بمصادر واستشهادات. أزل الربط قبل الحذف.');
+        }
         if (FamilyTree::query()->where('root_person_id', $person->id)->exists()) {
             $this->reject('person', 'لا يمكن حذف جذر الشجرة. عيّن جذرًا آخر أولًا.');
         }
@@ -27,6 +30,9 @@ class GenealogyDeletionService
 
     public function assertRelationshipCanBeDeleted(PersonRelationship $relationship): void
     {
+        if ($relationship->citations()->exists()) {
+            $this->reject('relationship', 'العلاقة مرتبطة باستشهادات. أزل الربط قبل الحذف.');
+        }
         if (Branch::query()->where('root_person_id', $relationship->person_id)->where('is_active', true)->exists()) {
             $this->reject('relationship', 'لا يمكن حذف مسار الأبوة لمؤسس فرع نشط. عطّل الفرع أو غيّر مؤسسه أولًا.');
         }

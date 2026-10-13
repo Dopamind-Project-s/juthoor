@@ -31,6 +31,6 @@ class FamilyInvitation extends Model
 
     public function isAcceptable(): bool
     {
-        return $this->accepted_at === null && $this->cancelled_at === null && $this->expires_at->isFuture();
+        return $this->family?->is_active && $this->accepted_at === null && $this->cancelled_at === null && $this->expires_at->isFuture();
     }
 }

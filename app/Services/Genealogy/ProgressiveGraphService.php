@@ -13,22 +13,34 @@ use Illuminate\Support\Collection;
 class ProgressiveGraphService
 {
     /** @return array<string, mixed> */
-    public function build(FamilyTree $tree, int $rootId, int $depth, int $limit, bool $publicOnly, ?Branch $branch = null, string $mode = 'focus'): array
+    public function build(FamilyTree $tree, int $rootId, int $depth, int $limit, bool $publicOnly, ?Branch $branch = null, string $mode = 'focus', int $after = 0): array
     {
         $allowed = fn (Builder $query): Builder => $publicOnly ? $query->publiclyVisible() : $query;
         $root = $allowed($tree->people()->getQuery())->whereKey($rootId)->firstOrFail();
         $nodes = collect([$root->id => $root]);
         $edges = collect();
+        $ancestorNodes = collect();
+        $ancestorEdges = collect();
+        if ($branch) {
+            [$ancestorNodes, $ancestorEdges] = $this->ancestors($tree, $branch->root_person_id, $publicOnly, min(20, $limit));
+            foreach ($ancestorNodes as $person) {
+                $nodes->put($person->id, $person);
+            }
+            $edges = $ancestorEdges;
+        }
         $frontier = [$root->id];
         $truncated = false;
 
         for ($level = 0; $level < $depth && $frontier !== []; $level++) {
-            $relationships = $this->relationships($tree, $publicOnly)->whereIn('related_person_id', $frontier)->get();
+            $relationships = $this->relationships($tree, $publicOnly)->whereIn('related_person_id', $frontier)
+                ->when($level === 0 && $after > 0, fn ($query) => $query->where('person_id', '>', $after))
+                ->when($publicOnly, fn ($query) => $query->whereHas('person', fn ($query) => $query->publiclyVisible()))
+                ->orderBy('person_id')->limit($limit + 1)->get();
             $candidateIds = $relationships->pluck('person_id')->unique()->values();
             $people = $allowed($tree->people()->getQuery())->whereKey($candidateIds)->get()->keyBy('id');
             $next = [];
             foreach ($relationships as $relationship) {
-                if (! $people->has($relationship->person_id)) {
+                if (! $people->has($relationship->person_id) || $nodes->has($relationship->person_id)) {
                     continue;
                 }
                 if ($nodes->count() >= $limit) {
@@ -44,7 +56,6 @@ class ProgressiveGraphService
 
         $states = [];
         if ($branch) {
-            [$ancestorNodes, $ancestorEdges] = $this->ancestors($tree, $branch->root_person_id, $publicOnly, $limit - $nodes->count());
             foreach ($ancestorNodes as $person) {
                 $nodes->put($person->id, $person);
                 $states[$person->id] = 'ancestor_path';
@@ -70,6 +81,8 @@ class ProgressiveGraphService
 
         $childCounts = $this->relationships($tree, $publicOnly)
             ->whereIn('related_person_id', $nodes->keys())
+            ->when($after > 0, fn ($query) => $query->where(fn ($query) => $query->where('related_person_id', '!=', $rootId)->orWhere('person_id', '>', $after)))
+            ->when($publicOnly, fn ($query) => $query->whereHas('person', fn ($query) => $query->publiclyVisible()))
             ->selectRaw('related_person_id, count(*) as aggregate')
             ->groupBy('related_person_id')->pluck('aggregate', 'related_person_id');
         $loadedCounts = $edges->countBy('related_person_id');
@@ -82,15 +95,15 @@ class ProgressiveGraphService
                 'name' => $person->full_name_ar,
                 'status' => $states[$person->id] ?? 'visible',
                 'verification' => $person->verification_status,
-                'has_more_children' => (int) ($childCounts[$person->id] ?? 0) > (int) ($loadedCounts[$person->id] ?? 0),
-                'url' => route('genealogy.person', [$tree->family->slug, $person->id]),
+                'has_more_children' => ! ($mode === 'isolated' && ($states[$person->id] ?? '') === 'ancestor_path') && (int) ($childCounts[$person->id] ?? 0) > (int) ($loadedCounts[$person->id] ?? 0),
+                'url' => route('genealogy.person', [$tree->family->slug, $person->id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
             ])->all(),
             'edges' => $edges->map(fn (PersonRelationship $edge): array => [
                 'id' => $edge->id, 'child_id' => $edge->person_id, 'parent_id' => $edge->related_person_id,
             ])->all(),
             'meta' => [
                 'depth' => $depth, 'limit' => $limit, 'returned' => $nodes->count(),
-                'truncated' => $truncated, 'complete' => ! $truncated && $frontier === [],
+                'truncated' => $truncated, 'complete' => ! $truncated && $childCounts->every(fn ($count, $id) => ($mode === 'isolated' && ($states[$id] ?? '') === 'ancestor_path') || (int) $count <= (int) ($loadedCounts[$id] ?? 0)),
                 'next_frontier' => ($truncated || $frontier !== []) ? $frontier : [],
             ],
         ];
@@ -98,7 +111,7 @@ class ProgressiveGraphService
 
     private function relationships(FamilyTree $tree, bool $publicOnly): Builder|HasMany
     {
-        $query = $tree->personRelationships()->where('relationship_type', PersonRelationship::TYPE_FATHER);
+        $query = $tree->personRelationships()->where('relationship_type', PersonRelationship::TYPE_FATHER)->where('is_primary', true);
 
         return $publicOnly ? $query->verified() : $query;
     }

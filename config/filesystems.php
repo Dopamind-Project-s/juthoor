@@ -29,6 +29,7 @@ return [
     */
 
     'disks' => [
+        'genealogy_private' => ['driver' => 'local', 'root' => env('GENEALOGY_PRIVATE_ROOT') ?: storage_path('app/private/genealogy'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
 
         'local' => [
             'driver' => 'local',

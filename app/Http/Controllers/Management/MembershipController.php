@@ -46,9 +46,11 @@ class MembershipController extends Controller
     {
         $familyModel = $this->family($family);
         $membershipModel = $familyModel->memberships()->whereKey($membership)->firstOrFail();
-        $this->protectLastAdmin($familyModel, $membershipModel, (string) $request->string('role'));
 
         DB::transaction(function () use ($familyModel, $membershipModel, $request): void {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
+            $membershipModel->refresh();
+            $this->protectLastAdmin($familyModel, $membershipModel, (string) $request->string('role'));
             $before = $this->audit->snapshot($membershipModel);
             $membershipModel->update(['role' => (string) $request->string('role')]);
             $this->audit->record($request->user(), $familyModel, $membershipModel, 'updated', $before, $this->audit->snapshot($membershipModel));
@@ -61,9 +63,11 @@ class MembershipController extends Controller
     {
         $familyModel = $this->family($family);
         $membershipModel = $familyModel->memberships()->whereKey($membership)->firstOrFail();
-        $this->protectLastAdmin($familyModel, $membershipModel, null);
 
         DB::transaction(function () use ($familyModel, $membershipModel): void {
+            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
+            $membershipModel->refresh();
+            $this->protectLastAdmin($familyModel, $membershipModel, null);
             $before = $this->audit->snapshot($membershipModel);
             $membershipModel->delete();
             $this->audit->record(auth()->user(), $familyModel, $membershipModel, 'deleted', $before, null);
@@ -82,9 +86,9 @@ class MembershipController extends Controller
 
     private function protectLastAdmin(Family $family, FamilyMembership $membership, ?string $newRole): void
     {
-        if ($membership->role === FamilyMembership::ROLE_ADMIN
+        if ($membership->role === FamilyMembership::ROLE_ADMIN && $membership->user->is_active
             && $newRole !== FamilyMembership::ROLE_ADMIN
-            && $family->memberships()->where('role', FamilyMembership::ROLE_ADMIN)->count() === 1) {
+            && $family->memberships()->where('role', FamilyMembership::ROLE_ADMIN)->whereHas('user', fn ($query) => $query->where('is_active', true))->count() <= 1) {
             throw ValidationException::withMessages(['role' => 'يجب أن يبقى للعائلة مدير واحد على الأقل.']);
         }
     }

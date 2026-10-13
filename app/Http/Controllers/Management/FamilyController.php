@@ -7,6 +7,7 @@ use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Services\ArabicNameNormalizer;
 use App\Services\Genealogy\BranchMembershipService;
+use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -17,7 +18,7 @@ class FamilyController extends Controller
     {
         $query = auth()->user()->isSuperAdmin()
             ? Family::query()
-            : auth()->user()->families();
+            : auth()->user()->families()->active();
         $families = $query->orderBy('name_ar')->paginate(12)->withQueryString();
 
         return view('management.families.index', compact('families'));
@@ -27,7 +28,7 @@ class FamilyController extends Controller
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('view', $familyModel);
-        $tree = $familyModel->primaryTree()->firstOrFail();
+        $tree = app(SelectedFamilyTree::class)->resolve($familyModel);
         $peopleQuery = $tree->people()->orderBy('full_name_ar');
         if ($request->filled('q')) {
             $peopleQuery->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
@@ -43,7 +44,7 @@ class FamilyController extends Controller
         $role = auth()->user()->isSuperAdmin() ? 'super_admin' : auth()->user()->roleFor($familyModel);
 
         return view('management.families.show', [
-            'family' => $familyModel, 'tree' => $tree, 'role' => $role,
+            'family' => $familyModel, 'tree' => $tree, 'trees' => $familyModel->familyTrees()->get(), 'role' => $role,
             'canEdit' => auth()->user()->canEditFamily($familyModel),
             'isAdmin' => auth()->user()->isSuperAdmin() || $role === FamilyMembership::ROLE_ADMIN,
             'people' => $peopleQuery->paginate(15, ['*'], 'people_page')->withQueryString(),

@@ -11,6 +11,7 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
+use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,8 @@ class BranchController extends Controller
 
         try {
             DB::transaction(function () use ($attributes, $familyModel, $tree, $request): void {
+                FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
+                $this->ensureSlugIsUnique($tree->id, $attributes['slug']);
                 $branch = $tree->branches()->create($attributes);
                 $this->audit->record($request->user(), $familyModel, $branch, 'created', null, $this->audit->snapshot($branch));
             });
@@ -54,6 +57,9 @@ class BranchController extends Controller
 
         try {
             DB::transaction(function () use ($attributes, $familyModel, $branchModel, $request): void {
+                FamilyTree::query()->whereKey($branchModel->family_tree_id)->lockForUpdate()->firstOrFail();
+                $branchModel->refresh();
+                $this->ensureSlugIsUnique($branchModel->family_tree_id, $attributes['slug'], $branchModel->id);
                 $before = $this->audit->snapshot($branchModel);
                 $branchModel->update($attributes);
                 $this->audit->record($request->user(), $familyModel, $branchModel, 'updated', $before, $this->audit->snapshot($branchModel));
@@ -73,6 +79,9 @@ class BranchController extends Controller
         $this->deletion->assertBranchCanBeDeleted($branchModel);
 
         DB::transaction(function () use ($familyModel, $branchModel): void {
+            FamilyTree::query()->whereKey($branchModel->family_tree_id)->lockForUpdate()->firstOrFail();
+            $branchModel->refresh();
+            $this->deletion->assertBranchCanBeDeleted($branchModel);
             $before = $this->audit->snapshot($branchModel);
             $branchModel->delete();
             $this->audit->record(auth()->user(), $familyModel, $branchModel, 'deleted', $before, null);
@@ -87,7 +96,7 @@ class BranchController extends Controller
         $family = Family::query()->where('slug', $slug)->firstOrFail();
         Gate::authorize('view', $family);
 
-        return [$family, $family->primaryTree()->firstOrFail()];
+        return [$family, app(SelectedFamilyTree::class)->resolve($family)];
     }
 
     /** @return array<string, mixed> */

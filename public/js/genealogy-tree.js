@@ -1,58 +1,260 @@
 (() => {
     const app = document.querySelector('[data-tree-app]');
     if (!app) return;
-    const svg = app.querySelector('[data-tree-svg]');
-    const viewport = app.querySelector('[data-tree-viewport]');
-    const stage = app.querySelector('[data-tree-stage]');
-    const loading = app.querySelector('[data-tree-loading]');
-    const empty = app.querySelector('[data-tree-empty]');
-    const error = app.querySelector('[data-tree-error]');
-    const partial = app.querySelector('[data-tree-partial]');
-    const panel = app.querySelector('[data-person-panel]');
-    let graph = {nodes: [], edges: [], meta: {}};
-    let scale = 1, x = 40, y = 40, dragging = false, origin = null, collapsed = new Set(), selected = null;
+    const $ = selector => app.querySelector(selector);
+    const svg = $('[data-tree-svg]'), viewport = $('[data-tree-viewport]'), stage = $('[data-tree-stage]');
+    const loading = $('[data-tree-loading]'), empty = $('[data-tree-empty]'), error = $('[data-tree-error]');
+    const partial = $('[data-tree-partial]'), panel = $('[data-person-panel]');
+    const branch = $('[data-branch-select]'), mode = $('[data-focus-mode]');
     const ns = 'http://www.w3.org/2000/svg';
+    let graph = {nodes: [], edges: []}, collapsed = new Set(), selected = null;
+    let scale = 1, x = 40, y = 40, positions = new Map(), sequence = 0, controller;
+    let currentContext = '', loadedContext = '', lastOperation = () => load(), moved = false;
+    const contexts = new Map(), pointers = new Map();
     const transform = () => viewport.setAttribute('transform', `translate(${x} ${y}) scale(${scale})`);
-    const state = (name) => [loading, empty, error].forEach(el => el.hidden = el !== name);
-    const params = () => {
-        const p = new URLSearchParams({depth: '4', limit: '160', mode: app.querySelector('[data-focus-mode]').value});
-        const branch = app.querySelector('[data-branch-select]').value;
-        if (branch) p.set('branch', branch);
-        return p;
+    const state = active => [loading, empty, error].forEach(el => el.hidden = el !== active);
+    const contextKey = () => `${branch.value}:${mode.value}`;
+    const endpoint = (base, extra = {}, includeBranch = true) => {
+        const url = new URL(base, location.href);
+        url.searchParams.set('mode', mode.value);
+        if (includeBranch && branch.value) url.searchParams.set('branch', branch.value);
+        Object.entries(extra).forEach(([key, value]) => url.searchParams.set(key, value));
+        return url;
     };
-    async function load(extra = {}) {
-        state(loading); partial.hidden = true;
+    function saveContext() {
+        if (currentContext && currentContext === loadedContext) contexts.set(currentContext, {graph, collapsed: new Set(collapsed), selected, scale, x, y});
+    }
+    function merge(payload) {
+        const nodes = new Map(graph.nodes.map(node => [node.id, node]));
+        payload.nodes.forEach(node => nodes.set(node.id, {...node, status: nodes.get(node.id)?.status || node.status}));
+        const edges = new Map(graph.edges.map(edge => [edge.id, edge]));
+        payload.edges.forEach(edge => edges.set(edge.id, edge));
+        graph = {...payload, nodes: [...nodes.values()], edges: [...edges.values()]};
+    }
+    async function load({root = null, append = false, after = 0, focus = null, fresh = false} = {}) {
+        const key = contextKey();
+        if (key !== currentContext) {
+            saveContext(); currentContext = key;
+            const cached = contexts.get(key);
+            if (cached && !fresh && root === null) {
+                controller?.abort(); sequence++;
+                ({graph, collapsed, selected, scale, x, y} = cached); loadedContext = key;
+                state(graph.nodes.length ? null : empty);
+                $('[data-person-load]').disabled = false;
+                render(); updatePanel(); return;
+            }
+            collapsed = new Set(); selected = null; panel.hidden = true;
+        }
+        const ticket = ++sequence;
+        controller?.abort(); controller = new AbortController();
+        const anchor = append ? positions.get(root) : null;
+        lastOperation = () => load({root, append, after, focus, fresh});
+        state(loading);
+        $('[data-person-load]').disabled = true;
         try {
-            const p = params(); Object.entries(extra).forEach(([k,v]) => p.set(k,v));
-            const response = await fetch(`${app.dataset.graphUrl}?${p}`, {headers: {'Accept':'application/json'}});
+            const url = endpoint(app.dataset.graphUrl, {depth: append ? 1 : 4, limit: 160, ...(root !== null ? {root, after} : {})}, root === null);
+            const response = await fetch(url, {headers: {Accept: 'application/json'}, signal: controller.signal});
             if (!response.ok) throw new Error('graph');
-            graph = await response.json();
-            if (!graph.nodes.length) return state(empty);
-            state(null); partial.hidden = graph.meta.complete;
-            render(); fit();
-        } catch (_) { state(error); }
+            const payload = await response.json();
+            if (ticket !== sequence) return;
+            if (append) merge(payload); else graph = payload;
+            loadedContext = key;
+            state(graph.nodes.length ? null : empty);
+            render();
+            if (append && anchor && positions.has(root)) {
+                const next = positions.get(root); x += (anchor.x-next.x)*scale; y += (anchor.y-next.y)*scale; transform();
+            } else if (!append) {
+                const rootPosition = positions.get(payload.root_id);
+                scale = .85; x = stage.clientWidth/2-((rootPosition?.x || 0)+120)*scale; y = 30; transform();
+            }
+            if (focus !== null) {
+                reveal(focus); selected = focus; render(); center(focus);
+            }
+            updatePanel();
+        } catch (cause) {
+            if (ticket === sequence && cause.name !== 'AbortError') state(error);
+        } finally {
+            if (ticket === sequence) $('[data-person-load]').disabled = false;
+        }
     }
     function visibleNodes() {
-        const hidden = new Set();
-        const children = new Map(); graph.edges.forEach(e => children.set(e.parent_id, [...(children.get(e.parent_id)||[]), e.child_id]));
-        const hide = id => (children.get(id)||[]).forEach(child => { hidden.add(child); hide(child); });
-        collapsed.forEach(hide); return graph.nodes.filter(n => !hidden.has(n.id));
+        const hidden = new Set(), children = new Map();
+        graph.edges.forEach(edge => children.set(edge.parent_id, [...(children.get(edge.parent_id) || []), edge.child_id]));
+        const hide = id => (children.get(id) || []).forEach(child => { if (hidden.has(child)) return; hidden.add(child); hide(child); });
+        collapsed.forEach(hide);
+        return graph.nodes.filter(node => !hidden.has(node.id));
+    }
+    const measure = document.createElement('canvas').getContext('2d');
+    function nameLines(name) {
+        measure.font = '700 13px Cairo, Tahoma, sans-serif';
+        const lines = [''];
+        for (const word of name.split(/\s+/)) {
+            if (measure.measureText(`${lines.at(-1)} ${word}`).width <= 216) lines[lines.length-1] = `${lines.at(-1)} ${word}`.trim();
+            else if (measure.measureText(word).width <= 216) lines.push(word);
+            else for (const letter of word) {
+                if (measure.measureText(lines.at(-1)+letter).width > 216) lines.push('');
+                lines[lines.length-1] += letter;
+            }
+        }
+        return lines.filter(Boolean);
     }
     function render() {
         viewport.replaceChildren();
-        const nodes = visibleNodes(), ids = new Set(nodes.map(n=>n.id)), parent = new Map(graph.edges.map(e=>[e.child_id,e.parent_id]));
-        const levels = new Map(); const depth = id => parent.has(id) && ids.has(parent.get(id)) ? depth(parent.get(id))+1 : 0;
-        nodes.forEach(n => { const d=depth(n.id); levels.set(d,[...(levels.get(d)||[]),n]); });
-        const positions = new Map(); [...levels.entries()].forEach(([d,list]) => list.forEach((n,i) => positions.set(n.id,{x:i*210,y:d*150})));
-        graph.edges.filter(e=>ids.has(e.child_id)&&ids.has(e.parent_id)).forEach(e=>{const a=positions.get(e.parent_id),b=positions.get(e.child_id); const path=document.createElementNS(ns,'path'); path.setAttribute('d',`M${a.x+80},${a.y+68} C${a.x+80},${a.y+105} ${b.x+80},${b.y-35} ${b.x+80},${b.y}`); path.setAttribute('class','tree-edge'); viewport.append(path);});
-        nodes.forEach(n=>{const p=positions.get(n.id),g=document.createElementNS(ns,'g');g.setAttribute('transform',`translate(${p.x} ${p.y})`);g.setAttribute('class',`tree-svg-node tree-svg-node--${n.status}${selected===n.id?' is-selected':''}`);g.dataset.id=n.id;const rect=document.createElementNS(ns,'rect');rect.setAttribute('width','160');rect.setAttribute('height','68');rect.setAttribute('rx','14');const text=document.createElementNS(ns,'text');text.setAttribute('x','80');text.setAttribute('y','30');text.setAttribute('text-anchor','middle');text.setAttribute('direction','rtl');text.textContent=n.name.length>20?n.name.slice(0,19)+'…':n.name;const badge=document.createElementNS(ns,'text');badge.setAttribute('x','80');badge.setAttribute('y','51');badge.setAttribute('text-anchor','middle');badge.setAttribute('class','tree-node-meta');badge.textContent=n.has_more_children?'لديه ذرية إضافية +':'فتح الملخص';g.append(rect,text,badge);g.addEventListener('click',()=>select(n));viewport.append(g);}); transform();
+        const nodes = visibleNodes(), byId = new Map(nodes.map(node => [node.id, node]));
+        const children = new Map(), parents = new Map(), boxes = new Map();
+        graph.edges.forEach(edge => {
+            if (!byId.has(edge.child_id) || !byId.has(edge.parent_id)) return;
+            if (parents.has(edge.child_id)) return;
+            parents.set(edge.child_id, edge.parent_id);
+            children.set(edge.parent_id, [...(children.get(edge.parent_id) || []), edge.child_id]);
+        });
+        nodes.forEach(node => { const lines = nameLines(node.name); boxes.set(node.id, {lines, height: 42+lines.length*19}); });
+        const widths = new Map(), levelHeights = [], depths = new Map();
+        const width = (id, depth = 0, seen = new Set()) => {
+            if (seen.has(id)) return 240;
+            seen.add(id); depths.set(id, depth); levelHeights[depth] = Math.max(levelHeights[depth] || 0, boxes.get(id).height);
+            const list = children.get(id) || [];
+            const result = Math.max(240, list.reduce((sum, child) => sum+width(child, depth+1, new Set(seen)), 0)+Math.max(0,list.length-1)*30);
+            widths.set(id, result); return result;
+        };
+        const roots = nodes.filter(node => !parents.has(node.id)); roots.forEach(node => width(node.id));
+        const offsets = [0]; levelHeights.forEach((height, i) => offsets[i+1] = offsets[i]+height+65);
+        positions = new Map();
+        const place = (id, left) => {
+            if (positions.has(id)) return;
+            positions.set(id, {x: left+(widths.get(id)-240)/2, y: offsets[depths.get(id)], height: boxes.get(id).height});
+            (children.get(id) || []).forEach(child => { place(child, left); left += widths.get(child)+30; });
+        };
+        let left = 0; roots.forEach(node => { place(node.id, left); left += widths.get(node.id)+60; });
+        graph.edges.forEach(edge => {
+            const a = positions.get(edge.parent_id), b = positions.get(edge.child_id);
+            if (!a || !b) return;
+            const path = document.createElementNS(ns, 'path');
+            path.setAttribute('d', `M${a.x+120},${a.y+a.height} C${a.x+120},${a.y+a.height+35} ${b.x+120},${b.y-35} ${b.x+120},${b.y}`);
+            path.setAttribute('class', 'tree-edge'); viewport.append(path);
+        });
+        nodes.forEach(node => {
+            const p = positions.get(node.id); if (!p) return;
+            const group = document.createElementNS(ns, 'g'), rect = document.createElementNS(ns, 'rect');
+            group.setAttribute('transform', `translate(${p.x} ${p.y})`);
+            group.setAttribute('class', `tree-svg-node tree-svg-node--${node.status}${selected===node.id ? ' is-selected' : ''}`);
+            group.dataset.id = node.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', '0'); group.setAttribute('aria-label', node.name);
+            const title = document.createElementNS(ns, 'title'); title.textContent = node.name;
+            rect.setAttribute('width', 240); rect.setAttribute('height', p.height); rect.setAttribute('rx', 14);
+            group.append(title, rect);
+            boxes.get(node.id).lines.forEach((line, index) => {
+                const text = document.createElementNS(ns, 'text');
+                text.setAttribute('x', 120); text.setAttribute('y', 24+index*19); text.setAttribute('text-anchor', 'middle'); text.setAttribute('direction', 'rtl');
+                text.textContent = line; group.append(text);
+            });
+            const badge = document.createElementNS(ns, 'text'); badge.setAttribute('x', 120); badge.setAttribute('y', p.height-12);
+            badge.setAttribute('text-anchor', 'middle'); badge.setAttribute('class', 'tree-node-meta');
+            badge.textContent = collapsed.has(node.id) ? 'ذرية مطوية' : node.has_more_children ? 'لديه ذرية إضافية +' : 'فتح الملخص';
+            group.append(badge);
+            group.addEventListener('click', () => { if (!moved) select(node.id); });
+            group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(node.id); } });
+            viewport.append(group);
+        });
+        partial.hidden = !graph.nodes.some(node => node.has_more_children); transform();
     }
-    function select(node){selected=node.id;panel.hidden=false;panel.querySelector('[data-person-name]').textContent=node.name;panel.querySelector('[data-person-status]').textContent=node.verification==='verified'?'موثق':'مسند إلى مصدر';panel.querySelector('[data-person-link]').href=node.url;const more=panel.querySelector('[data-person-load]');more.hidden=!node.has_more_children;more.onclick=()=>load({root:node.id,depth:4});panel.querySelector('[data-person-toggle]').textContent=collapsed.has(node.id)?'توسيع الذرية':'طي الذرية';panel.querySelector('[data-person-toggle]').onclick=()=>{collapsed.has(node.id)?collapsed.delete(node.id):collapsed.add(node.id);render();select(node);};render();}
-    function fit(){const box=viewport.getBBox();if(!box.width)return;scale=Math.min(.95,(stage.clientWidth-80)/box.width,(stage.clientHeight-80)/box.height);x=(stage.clientWidth-box.width*scale)/2;y=40;transform();}
-    app.querySelectorAll('[data-tree-action]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.treeAction;if(a==='zoom-in')scale=Math.min(2.5,scale+.2);if(a==='zoom-out')scale=Math.max(.3,scale-.2);if(a==='fit')return fit();if(a==='reset'){scale=1;x=40;y=40;}transform();}));
-    svg.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(.3,Math.min(2.5,scale+(e.deltaY<0?.1:-.1)));transform();},{passive:false});
-    svg.addEventListener('pointerdown',e=>{dragging=true;origin={px:e.clientX,py:e.clientY,x,y};svg.setPointerCapture(e.pointerId);});svg.addEventListener('pointermove',e=>{if(!dragging)return;x=origin.x+e.clientX-origin.px;y=origin.y+e.clientY-origin.py;transform();});svg.addEventListener('pointerup',()=>dragging=false);
-    app.querySelector('[data-branch-select]').addEventListener('change',load);app.querySelector('[data-focus-mode]').addEventListener('change',load);app.querySelector('[data-tree-retry]').addEventListener('click',load);app.querySelector('[data-person-close]').addEventListener('click',()=>panel.hidden=true);
-    const input=app.querySelector('[data-tree-search]'), results=app.querySelector('[data-tree-search-results]');let timer;input.addEventListener('input',()=>{clearTimeout(timer);if(input.value.trim().length<2){results.hidden=true;return;}timer=setTimeout(async()=>{const r=await fetch(`${app.dataset.searchUrl}?q=${encodeURIComponent(input.value)}`);const j=await r.json();results.replaceChildren(...j.data.map(item=>{const b=document.createElement('button');b.type='button';b.textContent=item.text;b.onclick=()=>{results.hidden=true;const found=graph.nodes.find(n=>n.id===item.id);if(found){select(found);document.querySelector(`[data-id="${item.id}"]`)?.scrollIntoView({block:'center'});}else load({root:item.id,depth:2});};return b;}));results.hidden=!j.data.length;},250);});
+    function reveal(id) {
+        const parents = new Map(graph.edges.map(edge => [edge.child_id, edge.parent_id])), seen = new Set();
+        while (parents.has(id) && !seen.has(id)) { seen.add(id); id = parents.get(id); collapsed.delete(id); }
+    }
+    function center(id) {
+        const p = positions.get(id); if (!p) return;
+        x = stage.clientWidth/2-(p.x+120)*scale; y = stage.clientHeight/2-(p.y+p.height/2)*scale; transform();
+    }
+    function select(id) {
+        if (loadedContext !== currentContext || !loading.hidden) return;
+        selected = id; render(); updatePanel();
+    }
+    function updatePanel() {
+        const node = graph.nodes.find(node => node.id === selected);
+        panel.hidden = !node; if (!node) return;
+        $('[data-person-name]').textContent = node.name;
+        $('[data-person-status]').textContent = ({verified: 'موثق', sourced: 'مسند إلى مصدر', pending_review: 'قيد المراجعة', disputed: 'مختلف عليه', rejected: 'مرفوض'})[node.verification] || 'غير موثق';
+        $('[data-person-link]').href = node.url;
+        const more = $('[data-person-load]'); more.hidden = !node.has_more_children;
+        more.onclick = () => {
+            const ids = graph.edges.filter(edge => edge.parent_id === node.id).map(edge => edge.child_id);
+            load({root: node.id, after: Math.max(0, ...ids), append: true});
+        };
+        const toggle = $('[data-person-toggle]'); toggle.textContent = collapsed.has(node.id) ? 'توسيع الذرية' : 'طي الذرية';
+        toggle.onclick = () => { collapsed.has(node.id) ? collapsed.delete(node.id) : collapsed.add(node.id); render(); updatePanel(); };
+    }
+    function fit() {
+        if (!graph.nodes.length) return;
+        const box = viewport.getBBox(); if (!box.width) return;
+        scale = Math.max(.001, Math.min(.95, (stage.clientWidth-40)/box.width, (stage.clientHeight-40)/box.height));
+        x = (stage.clientWidth-box.width*scale)/2-box.x*scale; y = (stage.clientHeight-box.height*scale)/2-box.y*scale; transform();
+    }
+    function zoom(factor, px = stage.clientWidth/2, py = stage.clientHeight/2) {
+        const next = Math.max(.001, Math.min(3, scale*factor));
+        x = px-(px-x)*next/scale; y = py-(py-y)*next/scale; scale = next; transform();
+    }
+    app.querySelectorAll('[data-tree-action]').forEach(button => button.addEventListener('click', () => {
+        const action = button.dataset.treeAction;
+        if (action === 'zoom-in') zoom(1.3);
+        if (action === 'zoom-out') zoom(1/1.3);
+        if (action === 'fit') fit();
+        if (action === 'reset') { collapsed.clear(); selected = null; load({fresh: true}); }
+    }));
+    svg.addEventListener('wheel', event => {
+        event.preventDefault(); const box = svg.getBoundingClientRect(); zoom(event.deltaY < 0 ? 1.12 : 1/1.12, event.clientX-box.left, event.clientY-box.top);
+    }, {passive: false});
+    svg.addEventListener('pointerdown', event => {
+        if (event.button && event.pointerType === 'mouse') return;
+        if (!pointers.size) moved = false;
+        pointers.set(event.pointerId, {x: event.clientX, y: event.clientY}); event.target.setPointerCapture(event.pointerId);
+    });
+    svg.addEventListener('pointermove', event => {
+        const previous = pointers.get(event.pointerId); if (!previous) return;
+        const oldPoints = [...pointers.values()];
+        pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+        const nextPoints = [...pointers.values()];
+        const dx = event.clientX-previous.x, dy = event.clientY-previous.y;
+        if (Math.abs(dx)+Math.abs(dy) > 2) moved = true;
+        if (pointers.size === 2) {
+            moved = true;
+            const distance = points => Math.hypot(points[0].x-points[1].x, points[0].y-points[1].y);
+            const oldDistance = distance(oldPoints); if (oldDistance < 1) return;
+            const box = svg.getBoundingClientRect();
+            const mx = (oldPoints[0].x+oldPoints[1].x)/2-box.left, my = (oldPoints[0].y+oldPoints[1].y)/2-box.top;
+            zoom(distance(nextPoints)/oldDistance, mx, my); x += dx/2; y += dy/2; transform();
+        } else { x += dx; y += dy; transform(); }
+    });
+    const release = event => { pointers.delete(event.pointerId); if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId); };
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => svg.addEventListener(type, release));
+    const input = $('[data-tree-search]'), results = $('[data-tree-search-results]');
+    let timer, searchSequence = 0, searchController;
+    const clearSearch = () => { clearTimeout(timer); searchSequence++; searchController?.abort(); results.hidden = true; };
+    [branch, mode].forEach(control => control.addEventListener('change', () => { clearSearch(); load(); }));
+    $('[data-tree-retry]').addEventListener('click', () => lastOperation());
+    $('[data-person-close]').addEventListener('click', () => { selected = null; panel.hidden = true; render(); });
+    input.addEventListener('input', () => {
+        clearSearch(); const q = input.value.trim(); if (q.length < 2) return;
+        const ticket = searchSequence;
+        timer = setTimeout(async () => {
+            searchController = new AbortController();
+            try {
+                const response = await fetch(endpoint(app.dataset.searchUrl, {q}, false), {headers: {Accept: 'application/json'}, signal: searchController.signal});
+                if (!response.ok) throw new Error('search');
+                const payload = await response.json(); if (ticket !== searchSequence) return;
+                results.replaceChildren(...payload.data.map(item => {
+                    const button = document.createElement('button'); button.type = 'button'; button.textContent = item.text;
+                    button.onclick = () => {
+                        clearSearch();
+                        if (graph.nodes.some(node => node.id === item.id)) { reveal(item.id); select(item.id); center(item.id); }
+                        else { branch.value = ''; load({root: item.id, focus: item.id}); }
+                    }; return button;
+                }));
+                if (!payload.data.length) results.textContent = 'لا توجد نتائج.';
+                results.hidden = false;
+            } catch (cause) { if (ticket === searchSequence && cause.name !== 'AbortError') { results.textContent = 'تعذر البحث. حاول مجددًا.'; results.hidden = false; } }
+        }, 250);
+    });
+    document.fonts?.ready.then(() => { if (graph.nodes.length) render(); });
+    new ResizeObserver(() => transform()).observe(stage);
     load();
 })();

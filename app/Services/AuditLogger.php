@@ -26,6 +26,6 @@ class AuditLogger
     /** @return array<string, mixed> */
     public function snapshot(Model $record): array
     {
-        return collect($record->getAttributes())->except(['created_at', 'updated_at'])->all();
+        return collect($record->getAttributes())->except(['created_at', 'updated_at', 'password', 'remember_token', 'token_hash'])->all();
     }
 }

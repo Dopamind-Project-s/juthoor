@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['family_id', 'source_type', 'title', 'reference', 'file_path', 'url', 'published_at', 'notes', 'verification_status'])]
 class Source extends Model
@@ -26,6 +27,11 @@ class Source extends Model
     public function family(): BelongsTo
     {
         return $this->belongsTo(Family::class);
+    }
+
+    public function citations(): HasMany
+    {
+        return $this->hasMany(Citation::class);
     }
 
     public function people(): BelongsToMany

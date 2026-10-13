@@ -36,3 +36,52 @@
 
 /* Unified RTL administration shell */
 .management-shell{background:#f2f4f2;min-height:100vh}.management-sidebar{position:fixed;z-index:1050;inset-block:0;right:0;width:270px;padding:1.25rem;background:#12382d;color:#fff;overflow-y:auto}.management-sidebar .brand-mark{background:rgba(255,255,255,.12);color:#fff}.management-sidebar .brand small{color:rgba(255,255,255,.6)}.management-family-switch{margin:1.5rem 0;padding:1rem;background:rgba(255,255,255,.08);border-radius:.8rem}.management-family-switch label{font-size:.7rem;margin-bottom:.35rem}.management-sidebar nav{display:grid;gap:.25rem}.management-sidebar nav a{padding:.7rem .8rem;border-radius:.6rem;color:rgba(255,255,255,.8)}.management-sidebar nav a:hover{background:rgba(255,255,255,.1);color:#fff}.management-sidebar nav i{margin-left:.6rem}.management-main{margin-right:270px;min-height:100vh}.management-topbar{height:72px;padding:0 1.5rem;display:flex;align-items:center;background:#fff;border-bottom:1px solid var(--juthoor-border);position:sticky;top:0;z-index:1020}.management-topbar small,.management-topbar strong{display:block}.management-topbar small{font-size:.7rem;color:var(--juthoor-muted)}.management-content{padding:1.5rem;max-width:1500px;margin:auto}.dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}.dashboard-stat{padding:1.2rem;background:#fff;border:1px solid var(--juthoor-border);border-radius:1rem}.dashboard-stat strong{font-size:1.8rem;color:var(--juthoor-primary);display:block}.data-table-wrap{overflow:auto;border:1px solid var(--juthoor-border);border-radius:.8rem}.data-table{margin:0;min-width:720px}.data-table th{background:var(--juthoor-soft-green);white-space:nowrap}.empty-panel{padding:3rem;text-align:center;color:var(--juthoor-muted)}.sidebar-backdrop{display:none}@media(max-width:991.98px){.management-sidebar{transform:translateX(100%);transition:.2s}.management-sidebar.is-open{transform:none}.management-main{margin-right:0}.sidebar-backdrop.is-open{display:block;position:fixed;z-index:1040;inset:0;background:rgba(0,0,0,.35)}.dashboard-stats{grid-template-columns:1fr 1fr}}@media(max-width:575.98px){.dashboard-stats{grid-template-columns:1fr}.management-content{padding:1rem}.management-topbar{padding:0 .75rem}}
+
+/* Keep native hidden semantics when component styles use display:grid/flex. */
+[hidden]{display:none!important}
+.management-list article>*{min-width:0}
+.management-list article{flex-wrap:wrap}
+.management-list article form.d-flex{flex-wrap:wrap}
+.management-list article details{flex-basis:100%}
+.management-list small,.management-topbar strong,.tree-person-panel h2{overflow-wrap:anywhere}
+.management-panel,.management-main,.tree-stage{min-width:0}
+.management-topbar{gap:.75rem}
+.tree-app-toolbar{flex-wrap:wrap}
+.tree-search-results{max-height:280px;overflow-y:auto}
+.tree-svg-node:focus rect{stroke:var(--juthoor-gold);stroke-width:3}
+.tree-partial{max-width:calc(100% - 2rem);text-align:center;pointer-events:none}
+@media(max-width:767.98px){
+    .tree-app-toolbar{gap:.35rem;padding:.5rem;overflow:visible}
+    .tree-search{flex-basis:100%;max-width:none;min-width:0}
+    .tree-app-toolbar .form-select{flex:1;min-width:0;max-width:100%;font-size:.8rem}
+    .tree-app-toolbar .btn{font-size:.8rem;padding:.4rem .6rem}
+    .genealogy-page .mobile-nav{display:none}
+    .interactive-tree{height:calc(100dvh - 66px);min-height:480px}
+    .tree-person-panel{max-height:45%;overflow-y:auto;padding:.8rem 1rem}
+    .management-topbar{height:auto;min-height:72px;flex-wrap:wrap;padding:.7rem}
+    .management-topbar .status-badge{max-width:130px;overflow-wrap:anywhere}
+    .management-shell{padding-bottom:0}
+}
+@media(max-width:767.98px){
+    .management-topbar{display:grid;grid-template-columns:44px minmax(0,1fr)}
+    .management-topbar>[data-sidebar-toggle]{width:44px;min-height:44px;align-self:center}
+    .management-topbar>div:nth-child(2){min-width:0;overflow-wrap:anywhere}
+    .management-topbar>div:last-child{grid-column:1/-1;justify-content:flex-end;margin:0!important}
+}
+.management-shell{overflow-x:clip}
+@media(max-width:991.98px){
+    .management-sidebar{display:none;transform:none}
+    .management-sidebar.is-open{display:block}
+}
+.management-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+.management-list article>details{grid-column:1/-1;width:100%;min-width:0;flex-basis:auto}
+details:not([open])>:not(summary){display:none}
+@media(max-width:767.98px){.management-list article{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:767.98px){
+    .tree-app-toolbar select[aria-label="اختيار الشجرة"]{flex-basis:100%}
+    .tree-app-toolbar [data-branch-select],.tree-app-toolbar [data-focus-mode]{flex:1 1 calc(50% - .4rem)}
+}
+
+.workflow-confirmation > label { display: block; margin-block: 1rem; }
+.workflow-confirmation textarea { min-height: 6rem; }
+.workflow-confirmation > button { margin-inline-end: .5rem; margin-block: .25rem; }

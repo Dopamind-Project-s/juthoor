@@ -34,6 +34,11 @@ class Person extends Model
         ];
     }
 
+    public function citations(): HasMany
+    {
+        return $this->hasMany(Citation::class, 'person_id');
+    }
+
     public function familyTree(): BelongsTo
     {
         return $this->belongsTo(FamilyTree::class);
@@ -71,6 +76,6 @@ class Person extends Model
 
     public function scopePubliclyVisible($query)
     {
-        return $query->verified()->where('status', self::STATUS_HISTORICAL);
+        return $query->verified()->where('status', self::STATUS_HISTORICAL)->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'));
     }
 }

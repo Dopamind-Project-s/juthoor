@@ -4,14 +4,25 @@ namespace App\Notifications;
 
 use App\Models\FamilyInvitation;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class FamilyInvitationNotification extends Notification
+class FamilyInvitationNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use MailRetryPolicy, Queueable;
 
-    public function __construct(public FamilyInvitation $invitation, public string $token) {}
+    public function __construct(public FamilyInvitation $invitation, public string $token)
+    {
+        $this->afterCommit();
+    }
+
+    public function shouldSend(object $notifiable, string $channel): bool
+    {
+        $current = $this->invitation->fresh();
+
+        return $current && $current->isAcceptable() && hash_equals($current->token_hash, hash('sha256', $this->token));
+    }
 
     public function via(object $notifiable): array
     {

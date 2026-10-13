@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Notifications\QueuedPasswordReset;
+use App\Notifications\QueuedVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
@@ -35,6 +37,16 @@ class User extends Authenticatable implements MustVerifyEmailContract
         ];
     }
 
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new QueuedVerifyEmail);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new QueuedPasswordReset($token));
+    }
+
     public function families(): BelongsToMany
     {
         return $this->belongsToMany(Family::class, 'family_memberships')
@@ -55,6 +67,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     public function canEditFamily(Family|int $family): bool
     {
+        if (! $this->is_active) {
+            return false;
+        }
         if ($this->is_super_admin && $this->is_active) {
             return true;
         }
