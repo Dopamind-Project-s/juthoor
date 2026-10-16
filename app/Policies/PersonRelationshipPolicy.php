@@ -13,6 +13,11 @@ class PersonRelationshipPolicy
         return $user->canEditFamily($family);
     }
 
+    public function update(User $user, PersonRelationship $relationship): bool
+    {
+        return $user->canEditFamily($relationship->familyTree->family_id);
+    }
+
     public function delete(User $user, PersonRelationship $relationship): bool
     {
         return $user->canEditFamily($relationship->familyTree->family_id);

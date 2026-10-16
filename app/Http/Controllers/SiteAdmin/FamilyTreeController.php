@@ -8,6 +8,7 @@ use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -17,8 +18,8 @@ class FamilyTreeController extends Controller
 
     public function store(Request $request, int $family): RedirectResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403);
         $familyModel = Family::query()->findOrFail($family);
+        Gate::authorize('update', $familyModel);
         $data = $request->validate([
             'name_ar' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'alpha_dash', 'max:255', Rule::unique('family_trees')->where('family_id', $familyModel->id)],
@@ -38,8 +39,8 @@ class FamilyTreeController extends Controller
 
     public function update(Request $request, int $family, int $tree): RedirectResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403);
         $familyModel = Family::query()->findOrFail($family);
+        Gate::authorize('update', $familyModel);
         $treeModel = $familyModel->familyTrees()->whereKey($tree)->firstOrFail();
         if ($treeModel->is_primary && ! $request->boolean('is_primary')) {
             throw ValidationException::withMessages(['is_primary' => 'اجعل شجرة أخرى أساسية أولًا.']);

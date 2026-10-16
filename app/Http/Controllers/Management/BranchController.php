@@ -87,7 +87,7 @@ class BranchController extends Controller
             $this->audit->record(auth()->user(), $familyModel, $branchModel, 'deleted', $before, null);
         });
 
-        return back()->with('status', 'تم حذف الفرع دون حذف مؤسسه.');
+        return redirect()->route('management.sections.index', [$familyModel->slug, 'branches', 'tree' => request('tree')])->with('status', 'تم حذف الفرع دون حذف مؤسسه.');
     }
 
     /** @return array{Family, FamilyTree} */

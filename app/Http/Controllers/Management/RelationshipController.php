@@ -55,6 +55,34 @@ class RelationshipController extends Controller
         return back()->with('status', 'تمت إضافة علاقة الأبوة.');
     }
 
+    public function update(StoreRelationshipRequest $request, string $family, int $relationship): RedirectResponse
+    {
+        [$familyModel, $tree] = $this->familyTree($family);
+        $model = $tree->personRelationships()->findOrFail($relationship);
+        Gate::authorize('update', $model);
+        abort_unless($tree->people()->whereKey([$request->integer('person_id'), $request->integer('father_id')])->count() === 2, 404);
+        try {
+            DB::transaction(function () use ($request, $tree, $familyModel, $model): void {
+                FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
+                $model->refresh();
+                if ($model->person_id !== $request->integer('person_id') || $model->related_person_id !== $request->integer('father_id')) {
+                    $this->deletion->assertRelationshipCanBeDeleted($model);
+                }
+                $before = $this->audit->snapshot($model);
+                $model->update([
+                    'person_id' => $request->integer('person_id'),
+                    'related_person_id' => $request->integer('father_id'),
+                    'verification_status' => (string) $request->string('verification_status'),
+                ]);
+                $this->audit->record($request->user(), $familyModel, $model, 'updated', $before, $this->audit->snapshot($model));
+            });
+        } catch (DomainException $exception) {
+            throw ValidationException::withMessages(['relationship' => $this->arabicIntegrityMessage($exception)]);
+        }
+
+        return back()->with('status', 'تم تحديث العلاقة.');
+    }
+
     public function destroy(string $family, int $relationship): RedirectResponse
     {
         [$familyModel, $tree] = $this->familyTree($family);
@@ -71,7 +99,7 @@ class RelationshipController extends Controller
             $this->audit->record(auth()->user(), $familyModel, $relationshipModel, 'deleted', $before, null);
         });
 
-        return back()->with('status', 'تم حذف علاقة الأبوة.');
+        return redirect()->route('management.sections.index', [$familyModel->slug, 'relationships', 'tree' => request('tree')])->with('status', 'تم حذف علاقة الأبوة.');
     }
 
     /** @return array{Family, FamilyTree} */

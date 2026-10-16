@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Family;
 use App\Models\FamilyInvitation;
+use App\Models\FamilyMembership;
+use App\Models\FamilyTree;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\View\View;
 
@@ -22,6 +25,10 @@ class DashboardController extends Controller
             'auditLogs' => AuditLog::query()->with(['family', 'user'])->latest()->paginate(15, ['*'], 'audit_page')->withQueryString(),
             'statistics' => [
                 'families' => Family::query()->count(),
+                'trees' => FamilyTree::query()->count(),
+                'people' => Person::query()->count(),
+                'memberships' => FamilyMembership::query()->count(),
+                'audit' => AuditLog::query()->count(),
                 'active_families' => Family::query()->active()->count(),
                 'users' => User::query()->count(),
                 'pending_invitations' => FamilyInvitation::query()->whereNull('accepted_at')->whereNull('cancelled_at')->where('expires_at', '>', now())->count(),

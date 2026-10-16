@@ -111,12 +111,34 @@ class InvitationController extends Controller
         return back()->with('status', 'أُضيفت الدعوة إلى طابور البريد وأُبطل الرابط السابق.');
     }
 
+    public function update(Request $request, string $family, int $invitation): RedirectResponse
+    {
+        $familyModel = Family::query()->where('slug', $family)->firstOrFail();
+        Gate::authorize('manageMembers', $familyModel);
+        $data = $request->validate(['role' => ['required', 'in:reader,editor,admin']]);
+        DB::transaction(function () use ($familyModel, $invitation, $data, $request): void {
+            $model = $familyModel->invitations()->lockForUpdate()->findOrFail($invitation);
+            if ($model->accepted_at || $model->cancelled_at) {
+                throw ValidationException::withMessages(['invitation' => 'لا يمكن تعديل دعوة مقبولة أو ملغاة.']);
+            }
+            $before = $this->audit->snapshot($model);
+            $model->update($data);
+            $this->audit->record($request->user(), $familyModel, $model, 'updated', $before, $this->audit->snapshot($model));
+        });
+
+        return back()->with('status', 'تم تحديث دور الدعوة.');
+    }
+
     public function cancel(Request $request, string $family, int $invitation): RedirectResponse
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('manageMembers', $familyModel);
         $invitationModel = $familyModel->invitations()->whereKey($invitation)->firstOrFail();
         DB::transaction(function () use ($invitationModel, $familyModel, $request): void {
+            $invitationModel = $familyModel->invitations()->lockForUpdate()->findOrFail($invitationModel->id);
+            if ($invitationModel->accepted_at || $invitationModel->cancelled_at) {
+                throw ValidationException::withMessages(['invitation' => 'لا يمكن إلغاء دعوة مقبولة أو ملغاة.']);
+            }
             $before = $this->audit->snapshot($invitationModel);
             $invitationModel->update(['cancelled_at' => now()]);
             $this->audit->record($request->user(), $familyModel, $invitationModel, 'cancelled', $before, $this->audit->snapshot($invitationModel));

@@ -28,6 +28,37 @@ php artisan site:make-super-admin owner@example.com --name="مالك الموق�
 
 **في بيئة Codex الحالية:** أضف `export PATH=/workspace/tooling/bin:$PATH` قبل أوامر PHP وComposer. أدوات PHP وComposer محفوظة خارج المستودع. كل مهمة معزولة أصلًا؛ استخدم checkout الموجود ولا تنشئ Git worktree إلا بطلب صريح.
 
+## حسابات الإدارة المحلية
+
+في بيئة `local` أو `testing` فقط، شغّل الأمرين التاليين دون حذف أي بيانات:
+
+```bash
+php artisan migrate
+php artisan db:seed --class=DevelopmentAdminSeeder
+```
+
+رابط الدخول: http://127.0.0.1:8000/login. يقبل الحقل اسم المستخدم أو البريد الإلكتروني.
+
+| اسم المستخدم | البريد | الصلاحية |
+| --- | --- | --- |
+| superadmin | superadmin@juthoor.test | سوبر أدمن |
+| familyadmin | familyadmin@juthoor.test | مدير العائلة |
+| editor | editor@juthoor.test | محرر |
+| reader | reader@juthoor.test | قارئ |
+
+كلمة المرور الأولية لهذه الحسابات هي `password`. الحسابات الجديدة نشطة وموثقة، ويُحوّل السوبر أدمن إلى `/site-admin` بعد الدخول. يرفض السيدر التشغيل خارج `local/testing`، ولا يعيد تعيين كلمات المرور أو الأدوار لحسابات موجودة، ولا يكرر العضويات. يعيد استخدام عائلة الزعبي وأشجارها أو أول عائلة موجودة دون تغيير الأسماء؛ وينشئ عائلة تجريبية فقط إذا لم توجد أي عائلة.
+
+قوائم الإدارة المستقلة متاحة تحت `/site-admin/{families,trees,users,memberships,invitations,audit}`. صفحات إدارة العائلة متاحة من الشريط الجانبي تحت `/manage/families/{slug}/pages/{section}`. سجلات التدقيق للقراءة والتراجع المصرّح فقط؛ تُنشأ تلقائيًا مع العمليات ولا تُعدّل يدويًا.
+
+اختبار واجهة الإدارة على الخادم المحلي بعد تشغيل السيدر:
+
+```bash
+# يحتاج Playwright المتوافق مع إصدار Node وChrome؛ لا ينشئ بيانات أنساب.
+NODE_PATH=/tmp/juthoor-browser/node_modules node tests/Browser/admin.cjs
+```
+
+يمكن ضبط `BROWSER_BASE_URL` و`CHROME_PATH` و`BROWSER_ARTIFACTS`. اختبارات الصلاحيات والنماذج والسيدر ضمن `tests/Feature/AdminFrontendTest.php` تستخدم SQLite في الذاكرة.
+
 ## عائلة جديدة وعدة أشجار
 
 1. من لوحة السوبر أدمن، أنشئ العائلة ورابطها واسم شجرتها. إذا أدخلت بريد مدير موجود ونشط، يُعيَّن مباشرة؛ وإذا كان جديدًا، تُنشأ دعوة مدير وتُضاف إلى طابور البريد.

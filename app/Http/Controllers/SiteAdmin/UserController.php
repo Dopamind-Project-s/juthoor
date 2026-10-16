@@ -9,21 +9,50 @@ use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
+    public function store(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users'],
+            'username' => ['nullable', 'alpha_dash:ascii', 'lowercase', 'max:64', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'is_active' => ['nullable', 'boolean'], 'is_super_admin' => ['nullable', 'boolean'],
+        ]);
+        DB::transaction(function () use ($data, $request): void {
+            $user = new User;
+            $user->forceFill([
+                'name' => $data['name'], 'email' => strtolower($data['email']),
+                'username' => $data['username'] ?? null, 'password' => $data['password'],
+                'is_active' => $request->boolean('is_active'), 'is_super_admin' => $request->boolean('is_super_admin'),
+            ])->save();
+            $this->audit->record($request->user(), null, $user, 'created', null, $this->audit->snapshot($user));
+        });
+
+        return redirect()->route('site-admin.resources.index', 'users')->with('status', 'تم إنشاء المستخدم. يمكنه تأكيد بريده بعد الدخول.');
+    }
+
     public function update(Request $request, int $user): RedirectResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
         $userModel = User::query()->findOrFail($user);
-        $request->validate(['is_active' => ['nullable', 'boolean'], 'is_super_admin' => ['nullable', 'boolean']]);
+        $profile = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users')->ignore($userModel)],
+            'username' => ['sometimes', 'nullable', 'alpha_dash:ascii', 'lowercase', 'max:64', Rule::unique('users')->ignore($userModel)],
+            'is_active' => ['nullable', 'boolean'], 'is_super_admin' => ['nullable', 'boolean'],
+        ]);
         $nextActive = $request->boolean('is_active');
         $nextSuperAdmin = $request->boolean('is_super_admin');
 
-        DB::transaction(function () use ($request, $userModel, $nextActive, $nextSuperAdmin): void {
+        DB::transaction(function () use ($request, $userModel, $nextActive, $nextSuperAdmin, $profile): void {
             $this->lockAccountChanges($request, $userModel);
             $this->protectLastSuperAdmin($userModel, $nextActive && $nextSuperAdmin);
             if (! $nextActive) {
@@ -34,6 +63,10 @@ class UserController extends Controller
                 $userModel->setRememberToken(null);
                 DB::table('sessions')->where('user_id', $userModel->id)->delete();
             }
+            if (isset($profile['email']) && $profile['email'] !== $userModel->email) {
+                $userModel->email_verified_at = null;
+            }
+            $userModel->fill(collect($profile)->only(['name', 'email', 'username'])->all());
             $userModel->forceFill(['is_active' => $nextActive, 'is_super_admin' => $nextSuperAdmin])->save();
             $action = $before['is_super_admin'] !== $userModel->is_super_admin ? 'super_admin_changed' : 'updated';
             $this->audit->record($request->user(), null, $userModel, $action, $before, $this->audit->snapshot($userModel));
@@ -56,7 +89,7 @@ class UserController extends Controller
             $userModel->delete();
         });
 
-        return back()->with('status', 'تم حذف المستخدم.');
+        return redirect()->route('site-admin.resources.index', 'users')->with('status', 'تم حذف المستخدم.');
     }
 
     private function lockAccountChanges(Request $request, User $user): void

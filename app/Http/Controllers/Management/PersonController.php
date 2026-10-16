@@ -89,7 +89,7 @@ class PersonController extends Controller
             $this->audit->record(auth()->user(), $familyModel, $personModel, 'deleted', $before, null);
         });
 
-        return back()->with('status', 'تم حذف الشخص غير المرتبط.');
+        return redirect()->route('management.sections.index', [$familyModel->slug, 'people', 'tree' => request('tree')])->with('status', 'تم حذف الشخص غير المرتبط.');
     }
 
     /** @return array{Family, FamilyTree} */

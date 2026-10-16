@@ -85,3 +85,20 @@ details:not([open])>:not(summary){display:none}
 .workflow-confirmation > label { display: block; margin-block: 1rem; }
 .workflow-confirmation textarea { min-height: 6rem; }
 .workflow-confirmation > button { margin-inline-end: .5rem; margin-block: .25rem; }
+
+/* Shared administration pages */
+.management-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-block:1.5rem}
+.management-cards>a{text-decoration:none;color:inherit;transition:box-shadow .15s}
+.management-cards>a:hover{box-shadow:0 4px 18px #163f3020}
+.management-sidebar nav a[aria-current="page"]{background:#ffffff20;border-inline-start:3px solid #dbc58f}
+.management-grid>label{display:flex;flex-direction:column;gap:.5rem;font-weight:600}
+.management-grid>label:has(input[type="checkbox"]){flex-direction:row;align-items:center}
+.management-grid>.field-wrapper{min-width:0}
+.management-list article{flex-wrap:wrap;gap:1rem}
+.management-list article>div{min-width:0;overflow-wrap:anywhere}
+.management-content dd{overflow-wrap:anywhere}
+.management-content .form-control:focus,.management-content .form-select:focus{box-shadow:0 0 0 .2rem #38785830}
+.management-content form[aria-busy="true"]{opacity:.7}
+.management-content .field-error{color:#a32222;font-size:.85rem}
+.management-sidebar{overflow-y:auto}
+@media(max-width:767px){.management-grid{grid-template-columns:1fr!important}.management-content{padding:1rem}.management-topbar{gap:.5rem;flex-wrap:wrap}.management-list article>form{width:100%;flex-wrap:wrap}.management-cards{grid-template-columns:1fr}.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

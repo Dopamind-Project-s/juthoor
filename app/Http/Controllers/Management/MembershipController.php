@@ -73,7 +73,7 @@ class MembershipController extends Controller
             $this->audit->record(auth()->user(), $familyModel, $membershipModel, 'deleted', $before, null);
         });
 
-        return back()->with('status', 'تمت إزالة العضوية.');
+        return redirect()->route('management.sections.index', [$familyModel->slug, 'members', 'tree' => request('tree')])->with('status', 'تمت إزالة العضوية.');
     }
 
     private function family(string $slug): Family

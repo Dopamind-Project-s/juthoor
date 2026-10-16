@@ -26,7 +26,12 @@ class AuthenticatedSessionController extends Controller
             throw ValidationException::withMessages(['email' => 'محاولات كثيرة. حاول مجددًا بعد دقيقة.']);
         }
 
-        if (! Auth::attempt($request->safe()->only(['email', 'password']), $request->boolean('remember'))) {
+        $identifier = Str::lower(trim((string) $request->string('email')));
+        $credentials = [
+            str_contains($identifier, '@') ? 'email' : 'username' => $identifier,
+            'password' => (string) $request->string('password'),
+        ];
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'بيانات الدخول غير صحيحة.']);
         }
@@ -41,6 +46,10 @@ class AuthenticatedSessionController extends Controller
 
         if ($request->filled('invitation')) {
             return redirect()->route('invitations.show', $request->string('invitation'));
+        }
+
+        if ($request->user()->isSuperAdmin()) {
+            return redirect()->route('site-admin.dashboard');
         }
 
         return redirect()->intended(route('management.families.index'));
