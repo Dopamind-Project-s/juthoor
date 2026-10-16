@@ -41,6 +41,7 @@
                 ({graph, collapsed, selected, scale, x, y} = cached); loadedContext = key;
                 state(graph.nodes.length ? null : empty);
                 $('[data-person-load]').disabled = false;
+                $('[data-tree-progress]').textContent = `اكتمل التحميل: ${graph.nodes.length} شخص`;
                 render(); updatePanel(); return;
             }
             collapsed = new Set(); selected = null; panel.hidden = true;
@@ -49,15 +50,39 @@
         controller?.abort(); controller = new AbortController();
         const anchor = append ? positions.get(root) : null;
         lastOperation = () => load({root, append, after, focus, fresh});
+        loadedContext = '';
         state(loading);
+        $('[data-tree-progress]').textContent = 'جارٍ تحميل جميع السجلات تلقائيًا…';
+        partial.hidden = true;
         $('[data-person-load]').disabled = true;
         try {
-            const url = endpoint(app.dataset.graphUrl, {depth: append ? 1 : 4, limit: 160, ...(root !== null ? {root, after} : {})}, root === null);
-            const response = await fetch(url, {headers: {Accept: 'application/json'}, signal: controller.signal});
-            if (!response.ok) throw new Error('graph');
-            const payload = await response.json();
-            if (ticket !== sequence) return;
-            if (append) merge(payload); else graph = payload;
+            let cursor = 0, payload;
+            graph = {nodes: [], edges: []};
+            do {
+                const response = await fetch(endpoint(app.dataset.graphUrl, {all: 1, cursor, limit: 160}, false), {headers: {Accept: 'application/json'}, signal: controller.signal});
+                if (!response.ok) throw new Error('graph');
+                payload = await response.json();
+                if (ticket !== sequence) return;
+                merge(payload);
+                partial.hidden = false;
+                partial.textContent = `جارٍ تحميل الشجرة تلقائيًا: ${graph.nodes.length} / ${payload.meta.total}`;
+                $('[data-tree-progress]').textContent = partial.textContent;
+                render();
+                if (!payload.meta.complete && (!payload.meta.next_cursor || payload.meta.next_cursor <= cursor)) throw new Error('cursor');
+                cursor = payload.meta.next_cursor;
+            } while (!payload.meta.complete);
+            const branchRoot = Number(branch.selectedOptions[0]?.dataset.root || 0);
+            if (branchRoot) {
+                const parents = new Map(graph.edges.map(e => [e.child_id, e.parent_id]));
+                const children = new Map(); graph.edges.forEach(e => children.set(e.parent_id, [...(children.get(e.parent_id) || []), e.child_id]));
+                const path = new Set(), descendants = new Set(), queue = [branchRoot];
+                let id = branchRoot; while (id && !path.has(id)) { path.add(id); id = parents.get(id); }
+                for (let i = 0; i < queue.length; i++) { const next = queue[i]; if (descendants.has(next)) continue; descendants.add(next); queue.push(...(children.get(next) || [])); }
+                graph.nodes = graph.nodes.filter(n => mode.value !== 'isolated' || path.has(n.id) || descendants.has(n.id)).map(n => ({...n, status: n.id === branchRoot ? 'branch_root' : path.has(n.id) ? 'ancestor_path' : descendants.has(n.id) ? 'branch_descendant' : 'dimmed'}));
+                const ids = new Set(graph.nodes.map(n => n.id)); graph.edges = graph.edges.filter(e => ids.has(e.child_id) && ids.has(e.parent_id));
+            }
+            partial.hidden = true;
+            $('[data-tree-progress]').textContent = `اكتمل التحميل: ${graph.nodes.length} شخص — جميع الفروع مفتوحة افتراضيًا`;
             loadedContext = key;
             state(graph.nodes.length ? null : empty);
             render();
@@ -72,7 +97,7 @@
             }
             updatePanel();
         } catch (cause) {
-            if (ticket === sequence && cause.name !== 'AbortError') state(error);
+            if (ticket === sequence && cause.name !== 'AbortError') { state(error); $('[data-tree-progress]').textContent = 'التحميل غير مكتمل؛ أعد المحاولة لعرض جميع السجلات.'; }
         } finally {
             if (ticket === sequence) $('[data-person-load]').disabled = false;
         }
@@ -99,6 +124,9 @@
         return lines.filter(Boolean);
     }
     function render() {
+            const legend = $('[data-attribute-legend]'); legend.replaceChildren();
+            const attributes = new Map(graph.nodes.flatMap(n => n.attributes || []).map(a => [a.id, a]));
+            attributes.forEach(a => { const badge = document.createElement('span'); badge.className = 'person-attribute'; badge.textContent = a.label; badge.style.backgroundColor = a.color; badge.style.color = a.text_color; legend.append(badge); });
         viewport.replaceChildren();
         const nodes = visibleNodes(), byId = new Map(nodes.map(node => [node.id, node]));
         const children = new Map(), parents = new Map(), boxes = new Map();
@@ -164,13 +192,13 @@
             });
             const badge = document.createElementNS(ns, 'text'); badge.setAttribute('x', 120); badge.setAttribute('y', p.height-12);
             badge.setAttribute('text-anchor', 'middle'); badge.setAttribute('class', 'tree-node-meta');
-            badge.textContent = collapsed.has(node.id) ? 'ذرية مطوية' : node.has_more_children ? 'لديه ذرية إضافية +' : 'فتح الملخص';
+            badge.textContent = collapsed.has(node.id) ? 'ذرية مطوية' : ({verified: 'موثق ومراجع', sourced: 'مسند إلى مصدر', pending_review: 'رواية مقدمة؛ قيد المراجعة', disputed: 'مختلف عليه', unresolved: 'غير محسوم'})[node.verification] || 'غير موثق';
             group.append(badge);
             group.addEventListener('click', () => { if (!moved) select(node.id); });
             group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(node.id); } });
             viewport.append(group);
         });
-        partial.hidden = !graph.nodes.some(node => node.has_more_children); transform();
+        transform();
     }
     function reveal(id) {
         const parents = new Map(graph.edges.map(edge => [edge.child_id, edge.parent_id])), seen = new Set();

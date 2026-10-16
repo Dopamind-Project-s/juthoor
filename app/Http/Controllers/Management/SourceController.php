@@ -35,7 +35,9 @@ class SourceController extends Controller
     public function index(string $family): View
     {
         [$family,$tree] = $this->context($family);
-        $sources = Source::query()->where('family_id', $family->id)->orderByDesc('id')->paginate(20)->withQueryString();
+        $sources = Source::query()->where('family_id', $family->id)
+            ->when(! auth()->user()->isSuperAdmin() && auth()->user()->roleFor($family) !== 'admin', fn ($q) => $q->whereDoesntHave('citations', fn ($q) => $q->whereNotNull('cross_family_link_id')))
+            ->orderByDesc('id')->paginate(20)->withQueryString();
 
         return view('management.sources.index', compact('family', 'tree', 'sources'));
     }
@@ -44,6 +46,9 @@ class SourceController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         $citations = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->with(['person', 'relationship.person', 'relationship.relatedPerson'])->orderByDesc('id')->paginate(20)->withQueryString();
 
         $canDownload = $source->file_path && Storage::disk('genealogy_private')->exists($source->file_path);
@@ -71,6 +76,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         $this->save($request, $family, $this->data($request, $family, $source), $source);
 
         return back()->with('status', 'تم تحديث المصدر.');
@@ -117,6 +125,9 @@ class SourceController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         abort_unless($source->file_path && Storage::disk('genealogy_private')->exists($source->file_path), 404);
 
         return Storage::disk('genealogy_private')->download($source->file_path, 'source-'.$source->id.'.'.pathinfo($source->file_path, PATHINFO_EXTENSION), ['Content-Type' => 'application/octet-stream', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
@@ -127,6 +138,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         DB::transaction(function () use ($family, $source): void {
             Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
             if ($source->people()->exists() || Citation::query()->where('source_id', $source->id)->exists() || PersonRelationship::query()->where('source_id', $source->id)->exists()) {
@@ -148,6 +162,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         $data = $request->validate(['target_type' => ['required', 'in:person,relationship'], 'target_id' => ['required', 'integer'], 'field_key' => ['required', 'in:person,full_name_ar,birth_year,death_year,notes,father'], 'locator' => ['nullable', 'string', 'max:255'], 'url' => ['nullable', 'url:http,https', 'max:2000'], 'notes' => ['nullable', 'string', 'max:5000'], 'verification_status' => ['required', 'in:verified,sourced,pending_review,unresolved']]);
         DB::transaction(function () use ($request, $family, $tree, $source, $data): void {
             Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
@@ -174,6 +191,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         $data = $request->validate(['locator' => ['nullable', 'string', 'max:255'], 'url' => ['nullable', 'url:http,https', 'max:2000'], 'notes' => ['nullable', 'string', 'max:5000'], 'verification_status' => ['required', 'in:verified,sourced,pending_review,unresolved']]);
         DB::transaction(function () use ($request, $family, $tree, $source, $citation, $data): void {
             $citation = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->lockForUpdate()->findOrFail($citation);
@@ -190,6 +210,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
+            Gate::authorize('manageMembers', $family);
+        }
         DB::transaction(function () use ($family, $tree, $source, $citation): void {
             $citation = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->lockForUpdate()->findOrFail($citation);
             $before = $this->audit->snapshot($citation);

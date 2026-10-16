@@ -23,10 +23,14 @@ class GenealogyGraphController extends Controller
             abort_unless($request->user()?->hasVerifiedEmail(), 403);
         }
         $data = $request->validate([
+            'all' => ['nullable', 'boolean'], 'cursor' => ['nullable', 'integer', 'min:0'],
             'root' => ['nullable', 'integer'], 'depth' => ['nullable', 'integer', 'between:1,5'],
             'limit' => ['nullable', 'integer', 'between:10,200'], 'branch' => ['nullable', 'string', 'max:255'],
             'mode' => ['nullable', 'in:focus,isolated'], 'after' => ['nullable', 'integer', 'min:0'],
         ]);
+        if ($request->boolean('all')) {
+            return response()->json($graphs->batch($tree, (int) ($data['cursor'] ?? 0), (int) ($data['limit'] ?? 160), ! $private));
+        }
         $branch = null;
         if (! empty($data['branch'])) {
             $branch = $tree->branches()->where('slug', $data['branch'])
@@ -54,7 +58,7 @@ class GenealogyGraphController extends Controller
             abort_unless($request->user()?->hasVerifiedEmail(), 403);
         }
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
-        $people = $tree->people()->when(! $private, fn ($query) => $query->publiclyVisible())
+        $people = $tree->people()->when(! $private, fn ($query) => $query->treeVisible())
             ->where('name_search', 'like', '%'.$normalizer->normalize($data['q']).'%')
             ->orderBy('full_name_ar')->limit(20)->get(['id', 'full_name_ar', 'title', 'honorific', 'verification_status']);
 

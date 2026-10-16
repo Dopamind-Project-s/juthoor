@@ -193,3 +193,5 @@ node tests/Browser/workflows.cjs
 ## صفات الأشخاص والجذر المشترك المقدم للمراجعة
 
 تدعم الإدارة صفات مشتركة وصفات خاصة بالعائلة بأسماء وألوان قابلة للتعديل، مع لقب وعبارة تكريم منفصلين عن الاسم. راجع [دليل الصفات والتسلسل المشترك](docs/person-attributes-and-shared-ancestry.md) لمسارات الإدارة والسيدر الاختياري ومفاتيح يوسف والتعارضات التي تحتاج مراجعة. تشغيل السيدر الجديد لا يضيف فروعًا ولا يستبدل بيانات الإصدار الرابع عند وجود تعارض.
+
+Complete trees and reviewed cross-family links: [workflow, evidence and test setup](docs/shared-ancestry-review.md).

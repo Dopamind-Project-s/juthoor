@@ -45,7 +45,7 @@ test('shared ancestry preserves all supplied names order titles honors and pendi
     }
     expect(Source::query()->sole()->verification_status)->toBe('pending_review')
         ->and(Citation::query()->count())->toBe(157);
-    $this->getJson(route('genealogy.search', ['al-zoubi', 'q' => 'آدم']))->assertJsonCount(0, 'data');
+    $this->getJson(route('genealogy.search', ['al-zoubi', 'q' => 'آدم']))->assertJsonCount(1, 'data')->assertJsonPath('data.0.verification', 'pending_review');
 });
 
 test('shared seeding is idempotent and preserves manual data reference edits and branches', function () {

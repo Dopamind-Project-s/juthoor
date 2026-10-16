@@ -50,6 +50,14 @@ class PersonRelationship extends Model
         return $this->belongsTo(Source::class);
     }
 
+    public function scopeTreeVisible($query)
+    {
+        return $query->where(fn ($q) => $q->whereIn('verification_status', ['verified', 'sourced'])
+            ->orWhere(fn ($q) => $q->where('verification_status', 'pending_review')
+                ->whereIn('canonical_key', array_map(fn ($n) => sprintf('ROOT-%03d-father-ROOT-%03d', $n, $n - 1), range(2, 79)))
+                ->whereHas('source', fn ($source) => $source->where('reference', 'al-zoubi-shared-ancestry-user-2026-10-16'))));
+    }
+
     public function scopeVerified($query)
     {
         return $query->where('is_primary', true)->whereIn('verification_status', [

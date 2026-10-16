@@ -90,6 +90,18 @@ class Person extends Model
         ]);
     }
 
+    /** Explicitly published submitted foundation; verification is never changed. */
+    public function scopeTreeVisible($query)
+    {
+        return $query->where('status', self::STATUS_HISTORICAL)
+            ->where(fn ($q) => $q->where('is_living', false)->orWhereNull('is_living'))
+            ->where(fn ($q) => $q->whereIn('verification_status', ['verified', 'sourced'])
+                ->orWhere(fn ($q) => $q->where('verification_status', 'pending_review')
+                    ->whereIn('canonical_key', array_map(fn ($n) => sprintf('ROOT-%03d', $n), range(1, 79)))
+                    ->whereHas('sources', fn ($source) => $source->where('reference', 'al-zoubi-shared-ancestry-user-2026-10-16'))
+                    ->whereHas('familyTree.family', fn ($family) => $family->where('slug', 'al-zoubi'))));
+    }
+
     public function scopePubliclyVisible($query)
     {
         return $query->verified()->where('status', self::STATUS_HISTORICAL)->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'));

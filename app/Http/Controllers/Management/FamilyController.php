@@ -73,6 +73,7 @@ class FamilyController extends Controller
                 ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
                 ->latest()->paginate(15, ['*'], 'invitations_page')->withQueryString(),
             'auditLogs' => $familyModel->auditLogs()->with('user')
+                ->when(! $request->user()->isSuperAdmin() && $request->user()->roleFor($familyModel) !== 'admin', fn ($q) => $q->where('reviewers_only', false))
                 ->when($section === 'audit' && $request->filled('q'), fn ($query) => $query->where('action', 'like', '%'.$request->query('q').'%'))
                 ->latest()->paginate(20, ['*'], 'audit_page')->withQueryString(),
             'statistics' => [

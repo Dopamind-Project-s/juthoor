@@ -3,13 +3,13 @@
 @section('content')
 <section class="family-page-head"><div class="container">
     <div class="family-breadcrumb"><a href="{{ route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null]) }}">{{ $tree->name_ar }}</a><i class="bi bi-chevron-left"></i><span>صفحة شخص</span></div>
-    <span class="status-badge verified">{{ request()->boolean('private') ? 'معاينة خاصة' : 'سجل تاريخي موثق' }}</span>
+    <span class="status-badge verified">{{ request()->boolean('private') ? 'معاينة خاصة' : (in_array($person->verification_status,['verified','sourced']) ? 'سجل تاريخي مراجع' : 'رواية مقدمة؛ قيد المراجعة') }}</span>
     <h1>{{ $person->display_name }}</h1><x-person-descriptors :person="$person" />
     <p>مسار هذا الشخص داخل شجرة {{ $family->name_ar }} الموحدة.</p>
 </div></section>
 
 <section class="section-space"><div class="container">
-    <div class="privacy-note"><i class="bi bi-shield-check"></i><div><strong>خصوصية العرض</strong><p>{{ request()->boolean('private') ? 'هذه الصفحة متاحة للأعضاء المخولين فقط. لا تشارك بيانات الأحياء دون موافقتهم.' : 'لا تعرض الصفحة ملاحظات الاستيراد أو بيانات الاتصال أو أي سجل غير مصنف كتاريخي وموثق.' }}</p></div></div>
+    <div class="privacy-note"><i class="bi bi-shield-check"></i><div><strong>خصوصية العرض</strong><p>{{ request()->boolean('private') ? 'هذه الصفحة متاحة للأعضاء المخولين فقط. لا تشارك بيانات الأحياء دون موافقتهم.' : 'لا تعرض الصفحة ملاحظات الاستيراد أو بيانات الاتصال وتوضح حالة مراجعة كل سجل تاريخي منشور.' }}</p></div></div>
 
     @if(auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($family))
 <div class="d-flex gap-2 my-3"><a class="btn btn-primary" href="{{ route('management.records.create',[$family->slug,'people','tree'=>$tree->slug,'father_id'=>$person->id]) }}">إضافة ابن / ابنة</a><a class="btn btn-outline-primary" href="{{ route('management.records.edit',[$family->slug,'people',$person->id,'tree'=>$tree->slug]) }}">تعديل الأب والفروع</a></div>

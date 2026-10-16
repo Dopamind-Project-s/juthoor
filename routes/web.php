@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CrossFamilyLinkController;
 use App\Http\Controllers\GenealogyGraphController;
 use App\Http\Controllers\GenealogyTreeController;
 use App\Http\Controllers\InvitationController;
@@ -67,6 +68,8 @@ Route::prefix('families/{family}')->name('genealogy.')->group(function () {
     Route::get('/graph/search', [GenealogyGraphController::class, 'search'])->name('search');
 });
 
+Route::get('/shared-ancestry', [CrossFamilyLinkController::class, 'publicIndex'])->name('shared-ancestry.index');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
@@ -88,6 +91,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
 
     Route::middleware('verified')->group(function () {
+        Route::get('/manage/cross-family-links', [CrossFamilyLinkController::class, 'index'])->name('cross-links.index');
+        Route::get('/manage/cross-family-links/create', [CrossFamilyLinkController::class, 'create'])->name('cross-links.create');
+        Route::post('/manage/cross-family-links', [CrossFamilyLinkController::class, 'store'])->name('cross-links.store');
+        Route::get('/manage/cross-family-links/{link}', [CrossFamilyLinkController::class, 'show'])->name('cross-links.show');
+        Route::put('/manage/cross-family-links/{link}/evidence/{citation}', [CrossFamilyLinkController::class, 'evidence'])->whereNumber('citation')->name('cross-links.evidence');
+        Route::post('/manage/cross-family-links/{link}/review', [CrossFamilyLinkController::class, 'review'])->name('cross-links.review');
         Route::get('/manage/families', [ManagementFamilyController::class, 'index'])->name('management.families.index');
         Route::get('/manage/families/{family}/pages/{section}', [ManagementFamilyController::class, 'show'])->where('section', 'people|relationships|branches|trees|members|invitations|audit')->name('management.sections.index');
         Route::get('/manage/families/{family}/records/{section}/create', [RecordController::class, 'create'])->name('management.records.create');

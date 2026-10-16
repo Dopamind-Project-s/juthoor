@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Family;
 use App\Models\FamilyTree;
-use App\Models\Person;
 use App\Models\Source;
 use App\Services\Genealogy\GenealogyTraversalService;
+use App\Services\Genealogy\PublishedTreeTraversal;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
@@ -29,7 +29,7 @@ class GenealogyTreeController extends Controller
     {
         [$familyModel, $tree] = $this->publicTree($family);
         $branchModel = $tree->branches()->active()
-            ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->publiclyVisible()))
+            ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
             ->where('slug', $branch)->firstOrFail();
 
         return $this->treeView($familyModel, $tree, $branchModel);
@@ -38,29 +38,16 @@ class GenealogyTreeController extends Controller
     public function person(string $family, int $person): View
     {
         [$familyModel, $tree] = $this->publicTree($family);
-        $personModel = $tree->people()->when(! request()->boolean('private'), fn ($query) => $query->publiclyVisible())->whereKey($person)->firstOrFail();
-        $ancestorPath = $this->traversal->getAncestorPath($personModel->id, null, ! request()->boolean('private'))
-            ->filter(fn (Person $ancestor): bool => request()->boolean('private') || ($ancestor->status === Person::STATUS_HISTORICAL && ! $ancestor->is_living
-                && in_array($ancestor->verification_status, $this->publicVerificationStatuses(), true)))
-            ->values();
-        $descendantIds = $this->traversal->getDescendantIds($personModel->id, 2, ! request()->boolean('private'));
-        $descendants = $tree->people()->when(! request()->boolean('private'), fn ($query) => $query->publiclyVisible())
-            ->whereKey(array_values(array_diff($descendantIds, [$personModel->id])))
-            ->orderBy('id')->get();
+        $personModel = $tree->people()->when(! request()->boolean('private'), fn ($query) => $query->treeVisible())->whereKey($person)->firstOrFail();
+        $profile = app(PublishedTreeTraversal::class)->profile($tree, $personModel, request()->boolean('private'));
 
         return view('genealogy.person', [
             'family' => $familyModel,
             'tree' => $tree,
             'person' => $personModel,
-            'father' => $personModel->outgoingRelationships()->where('relationship_type', 'father')->where('is_primary', true)
-                ->when(! request()->boolean('private'), fn ($query) => $query->verified()->whereHas('relatedPerson', fn ($person) => $person->publiclyVisible()))->with('relatedPerson')->first()?->relatedPerson,
-            'directChildren' => $personModel->incomingRelationships()->where('relationship_type', 'father')->where('is_primary', true)
-                ->when(! request()->boolean('private'), fn ($query) => $query->verified()->whereHas('person', fn ($person) => $person->publiclyVisible()))->with('person')->get()->pluck('person'),
-
-            'ancestorPath' => $ancestorPath,
-            'descendants' => $descendants,
+            ...$profile,
             'foundedBranches' => $tree->branches()->active()
-                ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->publiclyVisible()))
+                ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
                 ->where('root_person_id', $personModel->id)->get(),
         ]);
     }
@@ -73,7 +60,7 @@ class GenealogyTreeController extends Controller
             'trees' => $family->familyTrees()->active()->get(),
             'focusedBranch' => $focusedBranch,
             'branches' => $tree->branches()->active()
-                ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->publiclyVisible()))
+                ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
                 ->orderBy('sort_order')->get(),
         ]);
     }

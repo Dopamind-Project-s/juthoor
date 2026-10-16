@@ -3,18 +3,24 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Citation;
+use App\Models\CrossFamilyLink;
 use App\Models\Family;
 use App\Models\Person;
+use App\Models\Source;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class AuditLogger
 {
     /** @param array<string, mixed>|null $before @param array<string, mixed>|null $after */
-    public function record(User $user, ?Family $family, Model $record, string $action, ?array $before, ?array $after): AuditLog
+    public function record(?User $user, ?Family $family, Model $record, string $action, ?array $before, ?array $after): AuditLog
     {
         return AuditLog::query()->create([
-            'user_id' => $user->id,
+            'reviewers_only' => $record instanceof CrossFamilyLink
+                || ($record instanceof Source && $record->citations()->whereNotNull('cross_family_link_id')->exists())
+                || ($record instanceof Citation && $record->cross_family_link_id !== null),
+            'user_id' => $user?->id,
             'family_id' => $family?->id,
             'auditable_type' => $record->getMorphClass(),
             'auditable_id' => $record->getKey(),
