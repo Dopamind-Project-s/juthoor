@@ -5,15 +5,17 @@
 <div class="d-flex flex-wrap justify-content-between gap-3 mb-4"><h1 class="h3">{{ ['create'=>'إضافة','edit'=>'تعديل','show'=>'تفاصيل'][$mode] }} — {{ $title }}</h1><a class="btn btn-outline-primary" href="{{ route('management.sections.index',[$family->slug,$section,'tree'=>$tree->slug]) }}">العودة للقائمة</a></div>
 <section class="management-panel">
 @if($mode==='show')
+@if($section==='people')<h2 class="h4">{{ $record->display_name }}</h2><x-person-descriptors :person="$record" />@endif
 <dl class="row">
 @foreach(['id'=>'الرقم','full_name_ar'=>'الاسم الكامل','name_ar'=>'الاسم','canonical_key'=>'المفتاح المرجعي','slug'=>'الرابط','description'=>'الوصف','notes'=>'ملاحظات','status'=>'الحالة','verification_status'=>'التوثيق','email'=>'البريد الإلكتروني','role'=>'الدور','is_active'=>'نشط','is_primary'=>'أساسي','created_at'=>'تاريخ الإنشاء','expires_at'=>'انتهاء الدعوة','accepted_at'=>'قبول الدعوة','cancelled_at'=>'إلغاء الدعوة'] as $key=>$label)
 @if($record->$key!==null)<dt class="col-sm-4">{{ $label }}</dt><dd class="col-sm-8">{{ is_bool($record->$key) ? ($record->$key ? 'نعم' : 'لا') : $record->$key }}</dd>@endif
 @endforeach
-@if($section==='relationships')<dt class="col-sm-4">الابن</dt><dd class="col-sm-8">{{ $record->person->full_name_ar }}</dd><dt class="col-sm-4">الأب</dt><dd class="col-sm-8">{{ $record->relatedPerson->full_name_ar }}</dd>@endif
+@if($section==='relationships')<dt class="col-sm-4">الابن</dt><dd class="col-sm-8">{{ $record->person->display_name }}</dd><dt class="col-sm-4">الأب</dt><dd class="col-sm-8">{{ $record->relatedPerson->display_name }}</dd>@endif
 @if($section==='members')<dt class="col-sm-4">العضو</dt><dd class="col-sm-8">{{ $record->user->name }} · {{ $record->user->email }}</dd>@endif
-@if(in_array($section,['trees','branches']))<dt class="col-sm-4">الجذر / المؤسس</dt><dd class="col-sm-8">{{ $record->rootPerson?->full_name_ar ?? 'غير محدد' }}</dd>@endif
+@if(in_array($section,['trees','branches']))<dt class="col-sm-4">الجذر / المؤسس</dt><dd class="col-sm-8">{{ $record->rootPerson?->display_name ?? 'غير محدد' }}</dd>@endif
 </dl>
 @if($canEdit)<a class="btn btn-primary" href="{{ route('management.records.edit',[$family->slug,$section,$record->id,'tree'=>$tree->slug]) }}">تعديل وإدارة</a>@endif
+@if($section==='people' && $canEdit)<a class="btn btn-primary" href="{{ route('management.records.create',[$family->slug,'people','tree'=>$tree->slug,'father_id'=>$record->id]) }}">إضافة ابن / ابنة</a>@endif
 @if($section==='people')<a class="btn btn-outline-primary" href="{{ route('management.people.show',[$family->slug,$record->id,'tree'=>$tree->slug]) }}">العلاقات والمصادر</a>@endif
 @else
 @php
@@ -35,11 +37,12 @@ default => $record ? route('management.'.$routeSection.'.update',[$family->slug,
 $selectedChild = old('person_id') ? $tree->people()->find(old('person_id')) : $record?->person;
 $selectedFather = old('father_id') ? $tree->people()->find(old('father_id')) : $record?->relatedPerson;
 @endphp
-<label>الابن<select name="person_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الابن</option>@if($selectedChild)<option selected value="{{ $selectedChild->id }}">{{ $selectedChild->full_name_ar }}</option>@endif</select></label>
-<label>الأب<select name="father_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الأب</option>@if($selectedFather)<option selected value="{{ $selectedFather->id }}">{{ $selectedFather->full_name_ar }}</option>@endif</select></label>
+<label>الابن<select name="person_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الابن</option>@if($selectedChild)<option selected value="{{ $selectedChild->id }}">{{ $selectedChild->display_name }}</option>@endif</select></label>
+<label>الأب<select name="father_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الأب</option>@if($selectedFather)<option selected value="{{ $selectedFather->id }}">{{ $selectedFather->display_name }}</option>@endif</select></label>
 <label>حالة التوثيق<select name="verification_status" class="form-select">@foreach(['pending_review'=>'قيد المراجعة','sourced'=>'مسند','verified'=>'موثق'] as $value=>$label)<option value="{{ $value }}" @selected(old('verification_status',$record?->verification_status)===$value)>{{ $label }}</option>@endforeach</select></label>
 @endif
 @if($section==='trees')
+@include('management.trees.root-fields',['rootTree'=>$record])
 <label>اسم الشجرة<input class="form-control" name="name_ar" value="{{ old('name_ar',$record?->name_ar) }}" placeholder="اسم الشجرة بالعربية" required></label>
 @if(!$record)<label>الرابط المختصر<input class="form-control" name="slug" value="{{ old('slug') }}" placeholder="main" required></label>@endif
 <label><input type="checkbox" name="is_primary" value="1" @checked(old('is_primary',$record?->is_primary))> الشجرة الأساسية</label>

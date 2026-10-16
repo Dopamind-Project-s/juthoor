@@ -5,7 +5,6 @@ namespace App\Services\Genealogy;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
-use App\Models\Source;
 use DomainException;
 
 class RelationshipIntegrityService
@@ -48,7 +47,7 @@ class RelationshipIntegrityService
             throw new DomainException('A person cannot have more than one primary father.');
         }
 
-        if ($this->isVerifiedPrimaryFather($relationship)
+        if ($relationship->relationship_type === PersonRelationship::TYPE_FATHER
             && FamilyTree::query()
                 ->whereKey($relationship->family_tree_id)
                 ->where('root_person_id', $relationship->person_id)
@@ -71,16 +70,6 @@ class RelationshipIntegrityService
             ->where('is_primary', true)
             ->when($relationship->exists, fn ($query) => $query->whereKeyNot($relationship->getKey()))
             ->exists();
-    }
-
-    private function isVerifiedPrimaryFather(PersonRelationship $relationship): bool
-    {
-        return $relationship->relationship_type === PersonRelationship::TYPE_FATHER
-            && $relationship->is_primary
-            && in_array($relationship->verification_status, [
-                Source::VERIFICATION_VERIFIED,
-                Source::VERIFICATION_SOURCED,
-            ], true);
     }
 
     private function wouldCreateCycle(PersonRelationship $relationship): bool

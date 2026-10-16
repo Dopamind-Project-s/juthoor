@@ -102,3 +102,11 @@ details:not([open])>:not(summary){display:none}
 .management-content .field-error{color:#a32222;font-size:.85rem}
 .management-sidebar{overflow-y:auto}
 @media(max-width:767px){.management-grid{grid-template-columns:1fr!important}.management-content{padding:1rem}.management-topbar{gap:.5rem;flex-wrap:wrap}.management-list article>form{width:100%;flex-wrap:wrap}.management-cards{grid-template-columns:1fr}.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.connected-fields{grid-column:1/-1;min-width:0;border:1px solid #d9dfd6;border-radius:12px;padding:1.2rem;margin-block:.75rem;display:grid;gap:.8rem}
+.connected-fields legend{float:none;width:auto;padding-inline:.4rem}
+.connected-fields label{display:block}
+.connected-fields [hidden]{display:none!important}
+.connected-fields .form-control,.connected-fields .form-select{margin-top:.4rem}
+.person-descriptors{display:inline-flex;gap:.35rem;flex-wrap:wrap;margin-inline:.3rem}
+.person-attribute{display:inline-block;background:var(--attribute-color);color:var(--attribute-ink);border-radius:.5rem;padding:.2rem .6rem;font-size:.8rem;font-weight:700;line-height:1.7;white-space:normal}
+.tree-person-panel [data-person-attributes]{display:flex;gap:.4rem;flex-wrap:wrap;margin-block:.5rem}

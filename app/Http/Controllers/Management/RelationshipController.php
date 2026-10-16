@@ -9,6 +9,7 @@ use App\Models\FamilyTree;
 use App\Models\PersonRelationship;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
+use App\Services\Genealogy\GenealogyMutationService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -66,7 +67,9 @@ class RelationshipController extends Controller
                 FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
                 $model->refresh();
                 if ($model->person_id !== $request->integer('person_id') || $model->related_person_id !== $request->integer('father_id')) {
-                    $this->deletion->assertRelationshipCanBeDeleted($model);
+                    if ($model->citations()->exists()) {
+                        throw ValidationException::withMessages(['relationship' => 'راجع الاستشهادات وأزل الربط قبل تغيير طرفي العلاقة.']);
+                    }
                 }
                 $before = $this->audit->snapshot($model);
                 $model->update([
@@ -74,6 +77,7 @@ class RelationshipController extends Controller
                     'related_person_id' => $request->integer('father_id'),
                     'verification_status' => (string) $request->string('verification_status'),
                 ]);
+                app(GenealogyMutationService::class)->validateBranches($tree);
                 $this->audit->record($request->user(), $familyModel, $model, 'updated', $before, $this->audit->snapshot($model));
             });
         } catch (DomainException $exception) {
@@ -96,6 +100,7 @@ class RelationshipController extends Controller
             $this->deletion->assertRelationshipCanBeDeleted($relationshipModel);
             $before = $this->audit->snapshot($relationshipModel);
             $relationshipModel->delete();
+            app(GenealogyMutationService::class)->validateBranches($relationshipModel->familyTree);
             $this->audit->record(auth()->user(), $familyModel, $relationshipModel, 'deleted', $before, null);
         });
 

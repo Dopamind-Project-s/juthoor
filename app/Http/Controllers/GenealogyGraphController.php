@@ -56,10 +56,10 @@ class GenealogyGraphController extends Controller
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
         $people = $tree->people()->when(! $private, fn ($query) => $query->publiclyVisible())
             ->where('name_search', 'like', '%'.$normalizer->normalize($data['q']).'%')
-            ->orderBy('full_name_ar')->limit(20)->get(['id', 'full_name_ar', 'verification_status']);
+            ->orderBy('full_name_ar')->limit(20)->get(['id', 'full_name_ar', 'title', 'honorific', 'verification_status']);
 
         return response()->json(['data' => $people->map(fn ($person) => [
-            'id' => $person->id, 'text' => $person->full_name_ar, 'verification' => $person->verification_status,
+            'id' => $person->id, 'text' => $person->display_name, 'verification' => $person->verification_status,
         ])]);
     }
 }

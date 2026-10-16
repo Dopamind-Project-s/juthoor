@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'status', 'verification_status'])]
+#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'title', 'honorific', 'status', 'verification_status'])]
 class Person extends Model
 {
     public const STATUS_ACTIVE = 'active';
@@ -32,6 +32,22 @@ class Person extends Model
             'death_date' => 'date',
             'is_living' => 'boolean',
         ];
+    }
+
+    public function personAttributes(): BelongsToMany
+    {
+        return $this->belongsToMany(PersonAttribute::class, 'person_attribute_assignments')->withTimestamps();
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return collect([$this->full_name_ar, $this->honorific, $this->title])->filter()->implode(' — ');
+    }
+
+    public function displayAttributes()
+    {
+        return $this->personAttributes->filter(fn (PersonAttribute $attribute) => $attribute->is_active
+            && ($attribute->family_id === null || $attribute->family_id === $this->familyTree->family_id))->values();
     }
 
     public function citations(): HasMany

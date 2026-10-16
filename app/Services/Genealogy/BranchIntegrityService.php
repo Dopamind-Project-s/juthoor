@@ -45,7 +45,7 @@ class BranchIntegrityService
         $this->assertHierarchyIsAcyclic($branch, $parent);
 
         if ($root && $parent->root_person_id !== null
-            && ! $this->traversal->isDescendantOf($root->id, $parent->root_person_id)) {
+            && ! $this->traversal->isDescendantOf($root->id, $parent->root_person_id, false)) {
             throw new DomainException('A nested branch founder must descend from the parent branch founder.');
         }
     }

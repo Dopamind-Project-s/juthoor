@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Family;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,6 +27,11 @@ class AuditLogger
     /** @return array<string, mixed> */
     public function snapshot(Model $record): array
     {
-        return collect($record->getAttributes())->except(['created_at', 'updated_at', 'password', 'remember_token', 'token_hash'])->all();
+        $snapshot = collect($record->getAttributes())->except(['created_at', 'updated_at', 'password', 'remember_token', 'token_hash'])->all();
+        if ($record instanceof Person) {
+            $snapshot['attribute_ids'] = $record->personAttributes()->orderBy('person_attributes.id')->pluck('person_attributes.id')->all();
+        }
+
+        return $snapshot;
     }
 }

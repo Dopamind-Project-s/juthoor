@@ -11,6 +11,7 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
+use App\Services\Genealogy\GenealogyMutationService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -62,6 +63,7 @@ class BranchController extends Controller
                 $this->ensureSlugIsUnique($branchModel->family_tree_id, $attributes['slug'], $branchModel->id);
                 $before = $this->audit->snapshot($branchModel);
                 $branchModel->update($attributes);
+                app(GenealogyMutationService::class)->validateBranches($branchModel->familyTree);
                 $this->audit->record($request->user(), $familyModel, $branchModel, 'updated', $before, $this->audit->snapshot($branchModel));
             });
         } catch (DomainException $exception) {

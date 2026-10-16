@@ -59,7 +59,7 @@ class ChangeRequestController extends Controller
         $page = $query->paginate(20);
 
         return response()->json(['data' => $page->map(fn ($r) => ['id' => $r->id, 'text' => match ($data['kind']) {
-            'person' => $r->full_name_ar,'branch' => $r->name_ar,'relationship' => $r->person->full_name_ar.' ← '.$r->relatedPerson->full_name_ar
+            'person' => $r->display_name,'branch' => $r->name_ar,'relationship' => $r->person->display_name.' ← '.$r->relatedPerson->display_name
         }]), 'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null]);
     }
 

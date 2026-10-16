@@ -22,7 +22,6 @@ class FamilyTreeIntegrityService
         }
 
         if ($root->outgoingRelationships()
-            ->verified()
             ->where('relationship_type', PersonRelationship::TYPE_FATHER)
             ->exists()) {
             throw new DomainException('A confirmed family tree root cannot have a verified primary father.');

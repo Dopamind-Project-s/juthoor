@@ -7,8 +7,12 @@
 @if(!$section || $section === "trees")
 <section class="management-panel" aria-label="الشجرة المختارة">
 <form method="get" class="management-grid"><label for="managementTree">الشجرة الحالية</label><select id="managementTree" class="form-select" name="tree" onchange="this.form.submit()">@foreach($trees as $item)<option value="{{ $item->slug }}" @selected($tree->is($item))>{{ $item->name_ar }}{{ $item->is_primary ? ' — الأساسية' : '' }}{{ !$item->is_active ? ' — معطلة' : '' }}</option>@endforeach</select><button class="btn btn-outline-primary">اختيار</button></form>
-@if($isAdmin)<form method="post" action="{{ route('management.trees.update', [$family->slug, $tree->id, 'tree' => $tree->slug]) }}" class="management-grid mt-3">@csrf @method('PUT')<label>جذر الشجرة<select name="root_person_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people', [$family->slug, 'tree' => $tree->slug]) }}"><option value="">لم يُحدد بعد</option>@if($tree->rootPerson)<option value="{{ $tree->root_person_id }}" selected>{{ $tree->rootPerson->full_name_ar }}</option>@endif</select></label><button class="btn btn-primary">حفظ الجذر</button></form>@endif
-@if(!$tree->root_person_id)<p class="alert alert-info mt-3">ابدأ بإضافة الجذر كشخص، ثم اختره هنا. للنشر العام، اختر حالة تاريخي وغير حي وتوثيق موثق أو مسند للأشخاص والعلاقات والفروع.</p>@endif
+@if($isAdmin)<form method="post" action="{{ route('management.trees.update', [$family->slug, $tree->id, 'tree' => $tree->slug]) }}" class="management-grid mt-3">@csrf @method('PUT')
+@include('management.trees.root-fields',['rootTree'=>$tree])
+<button class="btn btn-primary">حفظ الجذر</button></form>@endif
+@if(!$tree->root_person_id)
+@can('update',$family)<a class="btn btn-primary mt-3" href="{{ route('management.records.create',[$family->slug,'people','tree'=>$tree->slug,'make_root'=>1]) }}">إضافة جذر الشجرة الآن</a>@endcan
+<p class="alert alert-info mt-3">ابدأ بإضافة الجذر كشخص، ثم اختره هنا. للنشر العام، اختر حالة تاريخي وغير حي وتوثيق موثق أو مسند للأشخاص والعلاقات والفروع.</p>@endif
 </section>
 @endif
 @if(!$section)

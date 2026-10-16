@@ -8,6 +8,7 @@ use App\Models\FamilyMembership;
 use App\Models\User;
 use App\Notifications\FamilyInvitationNotification;
 use App\Services\AuditLogger;
+use App\Services\Genealogy\TreeRootService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,15 +29,16 @@ class FamilyController extends Controller
             'slug' => ['required', 'alpha_dash', 'max:255', 'unique:families,slug'],
             'tree_name_ar' => ['required', 'string', 'max:255'],
             'manager_email' => ['nullable', 'email'],
-        ]);
+        ] + TreeRootService::rules());
 
         DB::transaction(function () use ($data, $request): void {
             $family = Family::query()->create([
                 'name_ar' => $data['name_ar'], 'slug' => $data['slug'], 'is_active' => true,
             ]);
-            $family->familyTrees()->create([
+            $tree = $family->familyTrees()->create([
                 'name_ar' => $data['tree_name_ar'], 'slug' => 'main', 'is_primary' => true, 'is_active' => true,
             ]);
+            app(TreeRootService::class)->configure($tree, $request->user(), $data);
             if (! empty($data['manager_email'])) {
                 $email = Str::lower($data['manager_email']);
                 $manager = User::query()->where('email', $email)->first();

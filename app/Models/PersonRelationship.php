@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['family_tree_id', 'person_id', 'related_person_id', 'relationship_type', 'is_primary', 'source_id', 'verification_status'])]
+#[Fillable(['family_tree_id', 'canonical_key', 'person_id', 'related_person_id', 'relationship_type', 'is_primary', 'source_id', 'verification_status'])]
 class PersonRelationship extends Model
 {
     public const TYPE_FATHER = 'father';

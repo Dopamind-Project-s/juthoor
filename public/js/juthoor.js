@@ -96,3 +96,41 @@ if (document.body.classList.contains('management-shell')) {
         document.querySelectorAll('[data-original-text]').forEach(button => { button.removeAttribute('aria-disabled'); button.textContent = button.dataset.originalText; });
     });
 }
+
+// Connected genealogy fields remain ordinary server-validated form inputs.
+document.querySelectorAll('[data-founder-fields]').forEach(fieldset => {
+    const toggle = fieldset.querySelector('[data-founder-toggle]');
+    const fields = fieldset.querySelector('[data-founder-inputs]');
+    const update = () => {
+        fields.hidden = !toggle.checked;
+        fields.querySelectorAll('input,select,textarea,button').forEach(field => field.disabled = !toggle.checked);
+        ['branch_name_ar','branch_slug'].forEach(name => fields.querySelector('[name="'+name+'"]').required = toggle.checked);
+    };
+    toggle.addEventListener('change', update); update();
+    fieldset.querySelector('[data-founded-branch]')?.addEventListener('change', event => {
+        const data = event.target.selectedOptions[0].dataset.branch;
+        if (!data) return;
+        const branch = JSON.parse(data);
+        for (const [field,key] of [['branch_name_ar','name_ar'],['branch_slug','slug'],['branch_description','description'],['branch_verification_status','verification']]) {
+            fields.querySelector('[name="'+field+'"]').value = branch[key] || '';
+        }
+        fields.querySelector('[name="branch_is_active"]').checked = branch.is_active;
+        const parent = fields.querySelector('[name="branch_parent_id"]');
+        if (branch.parent_id && ![...parent.options].some(option => option.value === String(branch.parent_id))) parent.add(new Option(branch.parent_name, branch.parent_id));
+        parent.value = branch.parent_id || '';
+    });
+});
+document.querySelectorAll('[data-root-fields]').forEach(fieldset => {
+    const mode = fieldset.querySelector('[data-root-mode]');
+    const update = () => {
+        for (const kind of ['existing','new']) {
+            const group = fieldset.querySelector('[data-root-'+kind+']');
+            if (!group) continue;
+            group.hidden = mode.value !== kind;
+            group.querySelectorAll('input,select,textarea,button').forEach(field => field.disabled = mode.value !== kind);
+        }
+        const name = fieldset.querySelector('[name="root_name_ar"]');
+        if (name) name.required = mode.value === 'new';
+    };
+    mode.addEventListener('change', update); update();
+});

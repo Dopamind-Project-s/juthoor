@@ -108,7 +108,7 @@
             parents.set(edge.child_id, edge.parent_id);
             children.set(edge.parent_id, [...(children.get(edge.parent_id) || []), edge.child_id]);
         });
-        nodes.forEach(node => { const lines = nameLines(node.name); boxes.set(node.id, {lines, height: 42+lines.length*19}); });
+        nodes.forEach(node => { const lines = nameLines(node.name); boxes.set(node.id, {lines, height: 42+lines.length*19+(node.attributes || []).length*25}); });
         const widths = new Map(), levelHeights = [], depths = new Map();
         const width = (id, depth = 0, seen = new Set()) => {
             if (seen.has(id)) return 240;
@@ -147,6 +147,21 @@
                 text.setAttribute('x', 120); text.setAttribute('y', 24+index*19); text.setAttribute('text-anchor', 'middle'); text.setAttribute('direction', 'rtl');
                 text.textContent = line; group.append(text);
             });
+            (node.attributes || []).forEach((attribute, index) => {
+                const row = document.createElementNS(ns, 'g');
+                const background = document.createElementNS(ns, 'rect');
+                const label = document.createElementNS(ns, 'text');
+                const top = 30 + boxes.get(node.id).lines.length*19 + index*25;
+                background.setAttribute('x', 12); background.setAttribute('y', top-13);
+                background.setAttribute('width', 216); background.setAttribute('height', 22); background.setAttribute('rx', 6);
+                background.style.fill = attribute.color;
+                label.setAttribute('x', 120); label.setAttribute('y', top+2);
+                label.setAttribute('text-anchor', 'middle'); label.setAttribute('direction', 'rtl');
+                label.style.fill = attribute.text_color; label.style.fontSize = '11px';
+                label.textContent = attribute.label.length > 28 ? attribute.label.slice(0,28)+'…' : attribute.label;
+                const full = document.createElementNS(ns, 'title'); full.textContent = attribute.label;
+                row.append(full, background, label); group.append(row);
+            });
             const badge = document.createElementNS(ns, 'text'); badge.setAttribute('x', 120); badge.setAttribute('y', p.height-12);
             badge.setAttribute('text-anchor', 'middle'); badge.setAttribute('class', 'tree-node-meta');
             badge.textContent = collapsed.has(node.id) ? 'ذرية مطوية' : node.has_more_children ? 'لديه ذرية إضافية +' : 'فتح الملخص';
@@ -175,6 +190,22 @@
         $('[data-person-name]').textContent = node.name;
         $('[data-person-status]').textContent = ({verified: 'موثق', sourced: 'مسند إلى مصدر', pending_review: 'قيد المراجعة', disputed: 'مختلف عليه', rejected: 'مرفوض'})[node.verification] || 'غير موثق';
         $('[data-person-link]').href = node.url;
+        const descriptors = $('[data-person-attributes]');
+        if (descriptors) {
+            descriptors.replaceChildren();
+            (node.attributes || []).forEach(attribute => {
+                const badge = document.createElement('span');
+                badge.className = 'person-attribute'; badge.textContent = attribute.label;
+                badge.style.setProperty('--attribute-color', attribute.color);
+                badge.style.setProperty('--attribute-ink', attribute.text_color);
+                descriptors.append(badge);
+            });
+        }
+
+        for (const [selector, url] of [['[data-person-add-child]', node.add_child_url], ['[data-person-edit]', node.edit_url]]) {
+            const link = $(selector);
+            if (link) { link.hidden = !url; if (url) link.href = url; else link.removeAttribute('href'); }
+        }
         const more = $('[data-person-load]'); more.hidden = !node.has_more_children;
         more.onclick = () => {
             const ids = graph.edges.filter(edge => edge.parent_id === node.id).map(edge => edge.child_id);
@@ -257,4 +288,7 @@
     document.fonts?.ready.then(() => { if (graph.nodes.length) render(); });
     new ResizeObserver(() => transform()).observe(stage);
     load();
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) { contexts.clear(); load({fresh: true}); }
+    });
 })();

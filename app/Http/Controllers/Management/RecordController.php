@@ -48,7 +48,15 @@ class RecordController extends Controller
             'invitations' => $family->invitations(),
         };
         $record = $id ? $query->findOrFail($id) : null;
+        $prefillFather = null;
+        if ($section === 'people' && $mode === 'create' && request()->filled('father_id')) {
+            request()->validate(['father_id' => ['integer']]);
+            $prefillFather = $tree->people()->findOrFail(request()->integer('father_id'));
+        }
+        if ($section === 'people' && request()->boolean('make_root')) {
+            Gate::authorize('update', $family);
+        }
 
-        return view('management.records.page', compact('family', 'tree', 'section', 'title', 'mode', 'record', 'canEdit', 'isAdmin'));
+        return view('management.records.page', compact('family', 'tree', 'section', 'title', 'mode', 'record', 'canEdit', 'isAdmin', 'prefillFather'));
     }
 }

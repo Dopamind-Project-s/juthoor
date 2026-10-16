@@ -79,6 +79,7 @@ class ProgressiveGraphService
             }
         }
 
+        (new \Illuminate\Database\Eloquent\Collection($nodes->values()->all()))->loadMissing('personAttributes');
         $childCounts = $this->relationships($tree, $publicOnly)
             ->whereIn('related_person_id', $nodes->keys())
             ->when($after > 0, fn ($query) => $query->where(fn ($query) => $query->where('related_person_id', '!=', $rootId)->orWhere('person_id', '>', $after)))
@@ -92,10 +93,19 @@ class ProgressiveGraphService
             'root_id' => $rootId,
             'nodes' => $nodes->values()->map(fn (Person $person): array => [
                 'id' => $person->id,
-                'name' => $person->full_name_ar,
+                'name' => $person->display_name,
+                'title' => $person->title, 'honorific' => $person->honorific,
+                'attributes' => $person->setRelation('familyTree', $tree)->displayAttributes()->map(fn ($attribute) => [
+                    'id' => $attribute->id, 'label' => $attribute->label,
+                    'color' => $attribute->color, 'text_color' => $attribute->text_color,
+                ])->all(),
                 'status' => $states[$person->id] ?? 'visible',
                 'verification' => $person->verification_status,
                 'has_more_children' => ! ($mode === 'isolated' && ($states[$person->id] ?? '') === 'ancestor_path') && (int) ($childCounts[$person->id] ?? 0) > (int) ($loadedCounts[$person->id] ?? 0),
+                'add_child_url' => auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($tree->family)
+                    ? route('management.records.create', [$tree->family->slug, 'people', 'tree' => $tree->slug, 'father_id' => $person->id]) : null,
+                'edit_url' => auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($tree->family)
+                    ? route('management.records.edit', [$tree->family->slug, 'people', $person->id, 'tree' => $tree->slug]) : null,
                 'url' => route('genealogy.person', [$tree->family->slug, $person->id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
             ])->all(),
             'edges' => $edges->map(fn (PersonRelationship $edge): array => [

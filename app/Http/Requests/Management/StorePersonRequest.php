@@ -17,6 +17,11 @@ class StorePersonRequest extends FormRequest
         return [
             'first_name_ar' => ['required', 'string', 'max:255'],
             'full_name_ar' => ['required', 'string', 'max:255'],
+            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'honorific' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'attribute_ids' => ['sometimes', 'array'],
+            'attribute_ids.*' => ['integer', 'distinct'],
+            'attributes_present' => ['sometimes', 'boolean'],
             'canonical_key' => ['nullable', 'string', 'max:255'],
             'gender' => ['nullable', 'in:male,female'],
             'birth_year' => ['nullable', 'integer', 'between:1,9999'],

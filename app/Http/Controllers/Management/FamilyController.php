@@ -33,7 +33,11 @@ class FamilyController extends Controller
             Gate::authorize('manageMembers', $familyModel);
         }
         $tree = app(SelectedFamilyTree::class)->resolve($familyModel);
-        $peopleQuery = $tree->people()->orderBy('full_name_ar');
+        $peopleQuery = $tree->people()->with(['personAttributes', 'familyTree'])->orderBy('full_name_ar');
+        if ($request->query('parentage') === 'unknown') {
+            $peopleQuery->when($tree->root_person_id, fn ($query) => $query->whereKeyNot($tree->root_person_id))
+                ->whereDoesntHave('outgoingRelationships', fn ($query) => $query->where('relationship_type', 'father')->where('is_primary', true));
+        }
         if ($request->filled('q')) {
             $peopleQuery->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
         }

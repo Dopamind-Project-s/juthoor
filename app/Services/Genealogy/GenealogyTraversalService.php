@@ -65,7 +65,7 @@ class GenealogyTraversalService
         );
     }
 
-    public function isDescendantOf(int $personId, int $ancestorId): bool
+    public function isDescendantOf(int $personId, int $ancestorId, bool $verifiedOnly = true): bool
     {
         if ($personId === $ancestorId) {
             return false;
@@ -79,7 +79,7 @@ class GenealogyTraversalService
             return false;
         }
 
-        return in_array($personId, $this->getDescendantIds($ancestorId), true);
+        return in_array($personId, $this->getDescendantIds($ancestorId, null, $verifiedOnly), true);
     }
 
     /**

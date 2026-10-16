@@ -1,2 +1,3 @@
-@props(['name','years'=>null,'state'=>'','type'=>'person'])
-<div class="tree-node {{ $state }} {{ $type === 'branch' ? 'branch' : '' }}">@if($type === 'person')<span class="node-avatar"><i class="bi bi-person-fill"></i></span>@else<span class="node-avatar"><i class="bi bi-diagram-3-fill"></i></span>@endif<div class="node-name">{{ $name }}</div>@if($years)<div class="node-years">{{ $years }}</div>@endif</div>
+@props(['person'=>null,'name'=>'','years'=>null,'state'=>'','type'=>'person'])
+<div class="tree-node {{ $state }} {{ $type === 'branch' ? 'branch' : '' }}">@if($type === 'person')<span class="node-avatar"><i class="bi bi-person-fill"></i></span>@else<span class="node-avatar"><i class="bi bi-diagram-3-fill"></i></span>@endif<div class="node-name">{{ $person?->display_name ?? $name }}</div>@if($years)<div class="node-years">{{ $years }}</div>@endif</div>
+@if($person)<x-person-descriptors :person="$person" />@endif

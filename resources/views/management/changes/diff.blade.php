@@ -14,6 +14,7 @@ if(in_array($key,$integerFields)){ $left=$left===null?null:(int)$left;$right=$ri
 $value=$values[$key] ?? null;
 if(in_array($key,$booleanFields) && $value!==null){$value=(bool)$value;}
 if(is_bool($value)){$display=$value?'نعم':'لا';}
+elseif($key==='attribute_ids' && is_array($value)){$display=collect($value)->map(fn($id)=>$referenceLabels['attribute_ids'][$id] ?? '#'.$id)->implode('، ') ?: '—';}
 elseif(is_array($value)){$display=json_encode($value,JSON_UNESCAPED_UNICODE);}
 elseif(isset(($referenceLabels[$key] ?? [])[$value ?? ''])){$display=$referenceLabels[$key][$value];}
 elseif(in_array($key,['verification_status','status','gender','relationship_type','branch_type','membership_mode']) && is_string($value) && \Illuminate\Support\Facades\Lang::has('genealogy.values.'.$value)){$display=__('genealogy.values.'.$value);}

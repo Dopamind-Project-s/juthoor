@@ -8,13 +8,14 @@
 <a href="{{ route('management.sections.index',[$family->slug,$key,'tree'=>$tree->slug ?? null]) }}">{{ $label }}</a>
 @endif
 @endforeach
+@can('manageMembers',$family)<a href="{{ route('management.attributes.index',$family->slug) }}">صفات الأشخاص</a>@endcan
 @can('manageSources',$family)<a href="{{ route('management.imports.index',[$family->slug,'tree'=>$tree->slug ?? null]) }}">استيراد CSV ومعاينة</a>@endcan
 <a href="{{ route('management.sources.index',[$family->slug,'tree'=>$tree->slug ?? null]) }}">المصادر والاستشهادات</a>
 <a href="{{ route('management.changes.index',[$family->slug,'tree'=>$tree->slug ?? null]) }}">طلبات التغيير والمراجعة</a>
 <a href="{{ route('genealogy.tree',[$family->slug,'tree'=>$tree->slug ?? null,'private'=>1]) }}">الشجرة التفاعلية</a>
 @endif
 @if(auth()->user()->isSuperAdmin())
-<hr><a href="{{ route('site-admin.dashboard') }}"><i class="bi bi-shield-lock"></i> لوحة السوبر أدمن</a>
+<hr><a href="{{ route('site-admin.attributes.index') }}">صفات الأشخاص المشتركة</a><a href="{{ route('site-admin.dashboard') }}"><i class="bi bi-shield-lock"></i> لوحة السوبر أدمن</a>
 @foreach(['families'=>'العائلات','trees'=>'الأشجار','users'=>'المستخدمون','memberships'=>'العضويات','invitations'=>'الدعوات','audit'=>'سجل التدقيق'] as $key=>$label)
 <a href="{{ route('site-admin.resources.index',$key) }}">{{ $label }}</a>
 @endforeach

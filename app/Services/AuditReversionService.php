@@ -41,6 +41,9 @@ class AuditReversionService
                 $this->mutations->reject('القيم السابقة غير متاحة.');
             }
             $data = array_intersect_key($log->before, array_flip($record->getFillable()));
+            if ($record instanceof Person && array_key_exists('attribute_ids', $log->before)) {
+                $data['attribute_ids'] = $log->before['attribute_ids'];
+            }
             unset($data['family_tree_id']);
             $this->mutations->attributes($tree, $kind, $data, $record);
             $candidate = clone $record;

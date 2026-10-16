@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\FamilyTree;
 use App\Models\Person;
+use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -38,9 +39,12 @@ class GenealogyMutationService
         $result = [];
         foreach (['person_id', 'related_person_id', 'root_person_id'] as $field) {
             $ids = array_filter([$before[$field] ?? null, $after[$field] ?? null]);
-            $result[$field] = $tree->people()->whereKey($ids)->pluck('full_name_ar', 'id')->all();
+            $result[$field] = $tree->people()->whereKey($ids)->get()->pluck('display_name', 'id')->all();
         }
         $result['parent_branch_id'] = $tree->branches()->whereKey(array_filter([$before['parent_branch_id'] ?? null, $after['parent_branch_id'] ?? null]))->pluck('name_ar', 'id')->all();
+
+        $attributeIds = array_unique(array_merge($before['attribute_ids'] ?? [], $after['attribute_ids'] ?? []));
+        $result['attribute_ids'] = PersonAttribute::query()->availableFor($tree->family_id)->whereIn('id', $attributeIds)->pluck('label', 'id')->all();
 
         return $result;
     }
@@ -61,12 +65,19 @@ class GenealogyMutationService
         if (isset($input['related_person_id'])) {
             $input['father_id'] = $input['related_person_id'];
         }
+        if ($kind === 'person' && ! empty($input['attributes_present'])) {
+            $input['attribute_ids'] ??= [];
+        }
         $input = array_replace($current, $input);
         $request = match ($kind) {
             'person' => new StorePersonRequest,'branch' => new StoreBranchRequest,'relationship' => new StoreRelationshipRequest
         };
         $data = Validator::make($input, $request->rules(), $request->messages())->validate();
         if ($kind === 'person') {
+            unset($data['attributes_present']);
+            if (array_key_exists('attribute_ids', $data)) {
+                $data['attribute_ids'] = app(PersonAttributeService::class)->validateIds($tree->family_id, $data['attribute_ids'], $record);
+            }
             $data['is_living'] = (bool) ($data['is_living'] ?? false);
             $key = $data['canonical_key'] ?? null;
             if ($key && $tree->people()->where('canonical_key', $key)->when($record, fn ($q) => $q->whereKeyNot($record->id))->exists()) {
@@ -106,39 +117,51 @@ class GenealogyMutationService
         }
     }
 
-    public function apply(FamilyTree $tree, User $user, string $kind, string $operation, array $data, ?Model $record = null): AuditLog
+    public function apply(FamilyTree $tree, User $user, string $kind, string $operation, array $data, ?Model $record = null, bool $validateHierarchy = true): AuditLog
     {
         $before = $record ? $this->audit->snapshot($record) : null;
+        $attributeIds = $kind === 'person' && array_key_exists('attribute_ids', $data) ? $data['attribute_ids'] : null;
+        unset($data['attribute_ids']);
         if ($operation === 'delete') {
             $this->assertDeletable($record);
             $record->delete();
         } else {
             if ($record instanceof PersonRelationship && ((int) $record->related_person_id !== (int) ($data['related_person_id'] ?? $record->related_person_id) || (int) $record->person_id !== (int) ($data['person_id'] ?? $record->person_id))) {
-                $this->deletion->assertRelationshipCanBeDeleted($record);
+                if ($record->citations()->exists()) {
+                    $this->reject('العلاقة مرتبطة باستشهادات. راجع الاستشهادات وأزل الربط قبل تغيير طرفيها.');
+                }
             }
             $record ??= new ($this->modelClass($kind));
             $record->fill($data);
             $record->family_tree_id = $tree->id;
             $this->validateModel($record);
             $record->save();
+            if ($record instanceof Person && $attributeIds !== null) {
+                $ids = app(PersonAttributeService::class)->validateIds($tree->family_id, $attributeIds, $record);
+                $record->personAttributes()->sync($ids);
+                $record->unsetRelation('personAttributes');
+            }
             $record->refresh();
             // A changed ancestry must still satisfy every existing nested branch.
-            if ($kind === 'relationship' && $operation === 'update') {
-                foreach ($tree->branches()->get() as $branch) {
-                    $this->validateModel($branch);
-                }
+            if ($validateHierarchy && in_array($kind, ['relationship', 'branch']) && $operation === 'update') {
+                $this->validateBranches($tree);
             }
         }
 
-        if ($kind === 'relationship' && $operation === 'delete') {
-            foreach ($tree->branches()->get() as $branch) {
-                $this->validateModel($branch);
-            }
+        if ($validateHierarchy && $kind === 'relationship' && $operation === 'delete') {
+            $this->validateBranches($tree);
         }
 
         return $this->audit->record($user, $tree->family, $record, match ($operation) {
             'create' => 'created','update' => 'updated','delete' => 'deleted'
         }, $before, $operation === 'delete' ? null : $this->audit->snapshot($record));
+    }
+
+    public function validateBranches(FamilyTree $tree): void
+    {
+        foreach ($tree->branches()->get() as $branch) {
+            $this->validateModel($branch);
+        }
     }
 
     public function assertDeletable(Model $record): void

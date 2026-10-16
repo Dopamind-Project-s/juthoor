@@ -4,7 +4,9 @@ namespace App\Http\Controllers\SiteAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Family;
+use App\Models\FamilyTree;
 use App\Services\AuditLogger;
+use App\Services\Genealogy\TreeRootService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +26,7 @@ class FamilyTreeController extends Controller
             'name_ar' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'alpha_dash', 'max:255', Rule::unique('family_trees')->where('family_id', $familyModel->id)],
             'is_primary' => ['nullable', 'boolean'],
-        ]);
+        ] + TreeRootService::rules());
         DB::transaction(function () use ($data, $familyModel, $request): void {
             Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
             $tree = $familyModel->familyTrees()->create([
@@ -32,6 +34,7 @@ class FamilyTreeController extends Controller
                 'is_primary' => $request->boolean('is_primary'), 'is_active' => true,
             ]);
             $this->audit->record($request->user(), $familyModel, $tree, 'created', null, $this->audit->snapshot($tree));
+            app(TreeRootService::class)->configure($tree, $request->user(), $data);
         });
 
         return back()->with('status', 'تم إنشاء الشجرة.');
@@ -48,15 +51,18 @@ class FamilyTreeController extends Controller
         $data = $request->validate([
             'name_ar' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'], 'is_primary' => ['nullable', 'boolean'],
-        ]);
+        ] + TreeRootService::rules());
         DB::transaction(function () use ($data, $familyModel, $treeModel, $request): void {
             Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
+            FamilyTree::query()->whereKey($treeModel->id)->lockForUpdate()->firstOrFail();
+            $treeModel->refresh();
             $before = $this->audit->snapshot($treeModel);
             $treeModel->update([
                 'name_ar' => $data['name_ar'], 'is_active' => $request->boolean('is_active'),
                 'is_primary' => $request->boolean('is_primary'),
             ]);
             $this->audit->record($request->user(), $familyModel, $treeModel, 'updated', $before, $this->audit->snapshot($treeModel));
+            app(TreeRootService::class)->configure($treeModel, $request->user(), $data);
         });
 
         return back()->with('status', 'تم تحديث الشجرة.');

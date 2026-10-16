@@ -57,6 +57,9 @@ $action = match($resource) {
 @if(!$record)<label>البريد الإلكتروني<input type="email" name="email" class="form-control" value="{{ old('email') }}" placeholder="name@example.com" required></label>@else<p>{{ $record->email ?? $record->user->email }}</p>@endif
 <label>الدور<select name="role" class="form-select">@foreach(['reader'=>'قارئ','editor'=>'محرر','admin'=>'مدير'] as $value=>$label)<option value="{{ $value }}" @selected(old('role',$record?->role)===$value)>{{ $label }}</option>@endforeach</select></label>
 @endif
+@if($resource==='trees' || ($resource==='families' && !$record))
+@include('management.trees.root-fields',['rootTree'=>$resource==='trees' ? $record : null])
+@endif
 <div><button class="btn btn-primary">حفظ البيانات</button></div>
 </form>
 @endif

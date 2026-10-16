@@ -18,13 +18,18 @@ class LookupController extends Controller
         Gate::authorize('view', $familyModel);
         $tree = app(SelectedFamilyTree::class)->resolve($familyModel);
         $query = $tree->people()->orderBy('full_name_ar');
+        if ($request->filled('exclude')) {
+            $request->validate(['exclude' => ['integer']]);
+            $excluded = $tree->people()->findOrFail($request->integer('exclude'));
+            $query->whereKeyNot($excluded->id);
+        }
         if ($request->filled('q')) {
             $query->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
         }
-        $page = $query->paginate(20, ['id', 'full_name_ar'], 'page');
+        $page = $query->paginate(20, ['id', 'full_name_ar', 'title', 'honorific'], 'page');
 
         return response()->json([
-            'data' => collect($page->items())->map(fn ($person) => ['id' => $person->id, 'text' => $person->full_name_ar]),
+            'data' => collect($page->items())->map(fn ($person) => ['id' => $person->id, 'text' => $person->display_name]),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total()],
         ]);
     }

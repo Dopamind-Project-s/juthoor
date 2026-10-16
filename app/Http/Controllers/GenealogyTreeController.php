@@ -52,6 +52,11 @@ class GenealogyTreeController extends Controller
             'family' => $familyModel,
             'tree' => $tree,
             'person' => $personModel,
+            'father' => $personModel->outgoingRelationships()->where('relationship_type', 'father')->where('is_primary', true)
+                ->when(! request()->boolean('private'), fn ($query) => $query->verified()->whereHas('relatedPerson', fn ($person) => $person->publiclyVisible()))->with('relatedPerson')->first()?->relatedPerson,
+            'directChildren' => $personModel->incomingRelationships()->where('relationship_type', 'father')->where('is_primary', true)
+                ->when(! request()->boolean('private'), fn ($query) => $query->verified()->whereHas('person', fn ($person) => $person->publiclyVisible()))->with('person')->get()->pluck('person'),
+
             'ancestorPath' => $ancestorPath,
             'descendants' => $descendants,
             'foundedBranches' => $tree->branches()->active()
