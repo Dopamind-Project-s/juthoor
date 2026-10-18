@@ -108,7 +108,7 @@ test('anchor parentage root source checksums and duplicate manifest keys block w
     $anchor = $tree->people()->where('canonical_key', 'ROOT-078')->sole();
     $anchor->outgoingRelationships()->sole()->update(['related_person_id' => $tree->people()->where('canonical_key', 'ROOT-076')->sole()->id]);
     expect(fn () => $importer->import())->toThrow(DomainException::class, 'parentage conflict');
-    $tree->update(['root_person_id' => $anchor->id]);
+    FamilyTree::query()->whereKey($tree->id)->update(['root_person_id' => $anchor->id]);
     expect(fn () => $importer->import())->toThrow(DomainException::class, 'root conflict');
 });
 
