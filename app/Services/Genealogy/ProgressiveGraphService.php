@@ -61,7 +61,7 @@ class ProgressiveGraphService
         $ancestorNodes = collect();
         $ancestorEdges = collect();
         if ($branch) {
-            [$ancestorNodes, $ancestorEdges] = $this->ancestors($tree, $branch->root_person_id, $publicOnly, min(20, $limit));
+            [$ancestorNodes, $ancestorEdges] = $this->ancestors($tree, $branch->root_person_id, $publicOnly, min(GenealogyTraversalService::DEFAULT_MAX_DEPTH, $limit));
             foreach ($ancestorNodes as $person) {
                 $nodes->put($person->id, $person);
             }

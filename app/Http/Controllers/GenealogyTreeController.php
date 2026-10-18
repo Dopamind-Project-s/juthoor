@@ -28,7 +28,7 @@ class GenealogyTreeController extends Controller
     public function branch(string $family, string $branch): View
     {
         [$familyModel, $tree] = $this->publicTree($family);
-        $branchModel = $tree->branches()->active()
+        $branchModel = $tree->branches()->when(request()->boolean('private'), fn ($query) => $query->whereNotNull('root_person_id'), fn ($query) => $query->active())
             ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
             ->where('slug', $branch)->firstOrFail();
 
@@ -46,7 +46,7 @@ class GenealogyTreeController extends Controller
             'tree' => $tree,
             'person' => $personModel,
             ...$profile,
-            'foundedBranches' => $tree->branches()->active()
+            'foundedBranches' => $tree->branches()->when(request()->boolean('private'), fn ($query) => $query->whereNotNull('root_person_id'), fn ($query) => $query->active())
                 ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
                 ->where('root_person_id', $personModel->id)->get(),
         ]);
@@ -59,7 +59,7 @@ class GenealogyTreeController extends Controller
             'tree' => $tree,
             'trees' => $family->familyTrees()->active()->get(),
             'focusedBranch' => $focusedBranch,
-            'branches' => $tree->branches()->active()
+            'branches' => $tree->branches()->when(request()->boolean('private'), fn ($query) => $query->whereNotNull('root_person_id'), fn ($query) => $query->active())
                 ->when(! request()->boolean('private'), fn ($query) => $query->whereIn('verification_status', $this->publicVerificationStatuses())->whereHas('rootPerson', fn ($query) => $query->treeVisible()))
                 ->orderBy('sort_order')->get(),
         ]);
