@@ -183,7 +183,7 @@ async function login(page) {
         await phone.locator('[data-sidebar-toggle]').tap();assert.equal(await phone.locator('.management-sidebar').evaluate(el=>el.classList.contains('is-open')),true);
         await screenshot(phone,'sidebar-mobile');
         await phone.keyboard.press('Escape');assert.equal(await phone.locator('[data-sidebar-toggle]').getAttribute('aria-expanded'),'false');
-        await phone.locator('[data-sidebar-toggle]').tap();await Promise.all([phone.waitForURL('**/manage/families/browser-new'),phone.locator('#familySwitch').selectOption(`${base}/manage/families/browser-new`)]);await settle(phone);
+        await phone.locator('[data-sidebar-toggle]').tap();await Promise.all([phone.waitForURL('**/manage/families/browser-new/dashboard'),phone.locator('#familySwitch').selectOption(`${base}/manage/families/browser-new/dashboard`)]);await settle(phone);
         assert.match(phone.url(),/browser-new/);await overflow(phone);await screenshot(phone,'management-mobile');
     });
     await check('touch pan/pinch, cancellation and mobile tree forms', async () => {

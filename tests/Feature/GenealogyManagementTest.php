@@ -106,7 +106,7 @@ test('an editor can create and update a person and every change is audited', fun
     ])->assertSessionHasNoErrors();
 
     expect($person->refresh()->full_name_ar)->toBe('الاسم بعد التحديث');
-    $logs = AuditLog::query()->where('auditable_type', Person::class)->where('auditable_id', $person->id)->get();
+    $logs = AuditLog::query()->where('auditable_type', Person::class)->where('auditable_id', $person->id)->orderBy('id')->get();
     expect($logs)->toHaveCount(2)
         ->and($logs->first()->user_id)->toBe($editor->id)
         ->and($logs->first()->family_id)->toBe($graph['family']->id)

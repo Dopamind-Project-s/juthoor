@@ -1,0 +1,106 @@
+{
+  "founder": "QW-0003",
+  "sources": [
+    {
+      "file": "قواسمه.png",
+      "reference": "qawasmeh:قواسمه.png",
+      "sha256": "1cdd079e2d35fa0fc8fca858da42d17dcdccc40df6e406bd1d78c4c344be17bb"
+    },
+    {
+      "file": "قواسمه1.png",
+      "reference": "qawasmeh:قواسمه1.png",
+      "sha256": "60f0af9fa747b8cf7c5ab005a85d11f2de0e1b105e85685da79435ad938d7a8a"
+    },
+    {
+      "file": "قواسمه2.png",
+      "reference": "qawasmeh:قواسمه2.png",
+      "sha256": "266124b9536fa79fbda885925e5849587504e5fffb4ca8142a320f4526fde2d0"
+    },
+    {
+      "file": "قواسمه3.png",
+      "reference": "qawasmeh:قواسمه3.png",
+      "sha256": "46a57bea26ec36545c2f343e5c8dee82416dd24ffd821e8a35c930f0378b60cf"
+    },
+    {
+      "file": "قواسمه4.png",
+      "reference": "qawasmeh:قواسمه4.png",
+      "sha256": "2e8ef4a9945a5a24ee037ace7cfa7db016eef9fd8949f3679df1e247b4034e03"
+    },
+    {
+      "file": "قواسمه5.png",
+      "reference": "qawasmeh:قواسمه5.png",
+      "sha256": "f1058860a71610fcbe9cf019be732fe360d751716a0aa6c68c0eb8e73db112fd"
+    },
+    {
+      "file": "قواسمه6.png",
+      "reference": "qawasmeh:قواسمه6.png",
+      "sha256": "c433ec7cdbc394828072e6a4ba157a172300420619cee663b7ed3f02db2f7ee4"
+    },
+    {
+      "file": "قواسمه7.png",
+      "reference": "qawasmeh:قواسمه7.png",
+      "sha256": "83a7d158737e7ffdfd4744e19b49457a85d512e63a126c98600f52787de03fb0"
+    },
+    {
+      "file": "قواسمه.pdf",
+      "reference": "qawasmeh:قواسمه.pdf",
+      "sha256": "0a78e3c44aea7de3ceab6100fabc7699262ee321911ff0d642902c0638ab1a7a"
+    }
+  ],
+  "people": [
+    {"key":"QW-0001","name":"زين العابدين","father":"ROOT-078","source":"submission","locator":"user-supplied continuation: سليمان → زين العابدين","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0002","name":"سليمان","father":"QW-0001","source":"submission","locator":"user-supplied continuation: زين العابدين → سليمان","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0003","name":"قاسم","father":"QW-0002","source":"submission","locator":"user-supplied continuation: سليمان → قاسم; branch/fakhd founder","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0004","name":"محمد","father":"QW-0003","source":"submission","locator":"user-supplied parentage: قاسم → محمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0005","name":"اعمر","father":"QW-0004","source":"submission","locator":"user-supplied parentage: محمد → اعمر","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0006","name":"قاسم","father":"QW-0004","source":"submission","locator":"user-supplied parentage: محمد → قاسم","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0007","name":"حمدان","father":"QW-0004","source":"submission","locator":"user-supplied parentage: محمد → حمدان","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0008","name":"سمرين","father":"QW-0004","source":"submission","locator":"user-supplied parentage: محمد → سمرين","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0009","name":"طعيمة","father":"QW-0008","source":"submission","locator":"user-supplied parentage: سمرين → طعيمة","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0010","name":"مسعود","father":"QW-0008","source":"submission","locator":"user-supplied parentage: سمرين → مسعود","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0011","name":"عبدالكريم","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → عبدالكريم","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0012","name":"محمد","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → محمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0013","name":"احمد","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → احمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0014","name":"حسن","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → حسن","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0015","name":"علي","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → علي","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0016","name":"عبد","father":"QW-0009","source":"submission","locator":"user-supplied parentage: طعيمة → عبد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0017","name":"عبدالمجيد","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → عبدالمجيد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0018","name":"عبدالفتاح","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → عبدالفتاح","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0019","name":"عبدالحليم","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → عبدالحليم","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0020","name":"عبدالله","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → عبدالله","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0021","name":"حسن","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → حسن","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0022","name":"حسين","father":"QW-0012","source":"submission","locator":"user-supplied parentage: محمد بن طعيمة → حسين","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0023","name":"وحيد","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → وحيد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0024","name":"مفيد","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → مفيد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0025","name":"وليد","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → وليد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0026","name":"مامون","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → مامون","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0027","name":"تيسير","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → تيسير","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0028","name":"منير","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → منير","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0029","name":"خالد","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → خالد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0030","name":"محمد","father":"QW-0017","source":"submission","locator":"user-supplied parentage: عبدالمجيد → محمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0031","name":"مصعب","father":"QW-0024","source":"submission","locator":"user-supplied parentage: مفيد → مصعب","confidence":"explicit_user_supplied","title":"مؤسس النظام"},
+    {"key":"QW-0032","name":"محمد","father":"QW-0024","source":"submission","locator":"user-supplied parentage: مفيد → محمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0033","name":"احمد","father":"QW-0024","source":"submission","locator":"user-supplied parentage: مفيد → احمد","confidence":"explicit_user_supplied","title":null},
+    {"key":"QW-0034","name":"عبد الرحمن","father":"QW-0024","source":"submission","locator":"user-supplied parentage: مفيد → عبد الرحمن","confidence":"explicit_user_supplied","title":null}
+  ],
+  "observations": [
+    {"key":"chart-overview","file":"قواسمه.png","region":"صفحة كاملة","text":"الشجرة تعرض أسماء وتفرعات إضافية متعددة؛ رُبطت بعض العقد بمسارات أبوة لا تطابق الامتداد المقدم صراحة. يلزم تفريغ ومراجعة كل فرع قبل إنشاء سجلات أشخاص.","status":"unresolved"},
+    {"key":"chart-1-lineage","file":"قواسمه1.png","region":"الرأس وصف الأبوة حتى قاسم ومحمد؛ اللوحة الموسومة (1)","text":"يعرض الرسم مساراً بديلاً: يوسف → ذيبان → [عقدة فارغة] → سليمان → عبد القادر → عقيل → سليمان → [عقدة فارغة] → قاسم → محمد. لا يطابق المسار المقدم زين العابدين؛ لا دمج.","status":"unresolved"},
+    {"key":"chart-2-lineage","file":"قواسمه2.png","region":"الرأس وصف الأبوة؛ اللوحة الموسومة (3)","text":"تكرار للمسار البديل مع عقد فارغة قبل سليمان وقاسم. ترتيب/ترقيم اللوحات غير متسق مع أسماء الملفات.","status":"unresolved"},
+    {"key":"chart-3-lineage","file":"قواسمه3.png","region":"الرأس وصف الأبوة؛ اللوحة الموسومة (2)","text":"تكرار للمسار البديل نفسه، ثم أبناء محمد: سمرين، حمدان، قاسم، اعمر. الأسماء ظاهرة لكن سلسلة الآباء السابقة مختلفة عن الادعاء المقدم.","status":"unresolved"},
+    {"key":"chart-descendants-1","file":"قواسمه1.png","region":"أسفل اللوحة (1)","text":"تظهر تفرعات إضافية لأبناء حمدان وقاسم وغيرهما، مع عقد فارغة ووسوم إلى الصفحة التالية. لا تربط هذه التفرعات تلقائياً بسجلات المسار المقدم.","status":"unresolved"},
+    {"key":"chart-descendants-2","file":"قواسمه2.png","region":"أسفل اللوحة (3)","text":"تظهر أسماء وتفرعات إضافية، وبعض الأبناء مرسومون بخطوط مشتركة أو متقاطعة يصعب منها تعيين الأب الفردي بثقة.","status":"unresolved"},
+    {"key":"chart-descendants-3","file":"قواسمه3.png","region":"أسفل اللوحة (2)","text":"تظهر أبناء إضافيون لعدة فروع وأسماء متكررة؛ بعض الوصلات غير كافية لتحديد النسب الفردي دون مطابقة الصفحات الأخرى.","status":"unresolved"},
+    {"key":"chart-overview-4","file":"قواسمه4.png","region":"صفحة كاملة","text":"مخطط واسع بأسماء إضافية كثيرة وتفرعات غير مفروغة فردياً؛ يتضمن سياقاً مشتركاً وأقساماً متداخلة تحتاج مراجعة قبل اعتماد parentage.","status":"unresolved"},
+    {"key":"chart-overview-5","file":"قواسمه5.png","region":"صفحة كاملة","text":"مخطط واسع متداخل؛ أسماء كثيرة وعلاقات لا يمكن نسبتها بأمان إلى المسار المطلوب دون تحديد حدود الفروع ومقارنة النسخ.","status":"unresolved"},
+    {"key":"chart-overview-6","file":"قواسمه6.png","region":"صفحة كاملة","text":"مخطط واسع متداخل؛ أسماء كثيرة وعلاقات لا يمكن نسبتها بأمان إلى المسار المطلوب دون تحديد حدود الفروع ومقارنة النسخ.","status":"unresolved"},
+    {"key":"chart-overview-7","file":"قواسمه7.png","region":"صفحة كاملة","text":"نسخة إضافية غير مذكورة في الطلب، تعرض امتداداً مختلفاً من ذيبان عبر سليمان وعبد القادر إلى سليمان وقاسم؛ غير متسق مع السلسلة المقدمة.","status":"unresolved"},
+    {"key":"pdf-page-1","file":"قواسمه.pdf","region":"صفحة 1 كاملة","text":"صفحة PDF مصورة بلا طبقة نص؛ تطابق المخطط الواسع. لا يظهر منها نص OCR قابل للاستخراج.","status":"unresolved"}
+  ],
+  "reviews": [
+    {"key":"alternate-ancestry-path","file":"قواسمه1.png","status":"unresolved","reason":"تعارض المسار المصور مع الاستمرار المحدد من المستخدم، إضافة إلى عقد بلا أسماء؛ يلزم قرار مراجع مخول قبل ربطه بالمسار المشترك."},
+    {"key":"untranscribed-descendant-charts","file":"قواسمه4.png","status":"unresolved","reason":"الصور تعرض مئات العقد المتكررة والمتداخلة؛ لم تُنشأ هويات أو علاقات مستنتجة من قرب بصري غير حاسم. يلزم تفريغ بشري لكل اسم وأب مع مرجع الموضع."},
+    {"key":"missing-requested-image","file":null,"status":"unresolved","reason":"الملف شجرة عيلتنا.jpg غير موجود في public/docs أو مساحة العمل، لذلك تعذر فحصه أو توثيق أسماء منه."},
+    {"key":"blank-nodes-and-continuations","file":"قواسمه1.png","status":"unresolved","reason":"توجد عقد فارغة ووسوم إلى الصفحة التالية؛ لم تُخمن الأسماء أو آباءها."}
+  ]
+}

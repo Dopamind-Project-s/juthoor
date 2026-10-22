@@ -24,11 +24,11 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
         $status = Password::sendResetLink($request->only('email'));
-        if ($status !== Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages(['email' => 'تعذر إرسال رابط الاستعادة.']);
+        if ($status === Password::RESET_THROTTLED) {
+            throw ValidationException::withMessages(['email' => 'طلبت رابطًا قبل قليل؛ انتظر دقيقة ثم أعد المحاولة.']);
         }
 
-        return back()->with('status', 'أُضيف رابط استعادة كلمة المرور إلى طابور البريد.');
+        return back()->with('status', 'إذا كان البريد مسجلًا لدينا فسيصلك رابط استعادة كلمة المرور.');
     }
 
     public function reset(Request $request, string $token): View

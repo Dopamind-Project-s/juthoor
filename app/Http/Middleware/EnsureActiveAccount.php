@@ -11,14 +11,15 @@ class EnsureActiveAccount
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && ! $request->user()->fresh()?->is_active) {
+        $user = $request->user();
+        $current = $user?->fresh();
+        if ($user && ! $current?->is_active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             abort(403, 'هذا الحساب معطل.');
         }
-
-        $request->user()?->refresh();
+        $user?->setRawAttributes($current->getAttributes(), true);
 
         return $next($request);
     }

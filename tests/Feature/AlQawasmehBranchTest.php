@@ -56,6 +56,76 @@ test('Qawasmeh import reuses the shared anchors and imports every declared edge 
     expect($path)->toBe(['ROOT-076', 'ROOT-077', 'ROOT-078', 'QW-0001', 'QW-0002', 'QW-0003']);
 });
 
+test('the supplied Qawasmeh lineage keeps repeated names positional and preserves every stated father', function () {
+    app(AlQawasmehBranchSeeder::class)->run();
+    $tree = FamilyTree::query()->sole();
+    $expected = [
+        'QW-0001' => ['زين العابدين', 'ROOT-078'],
+        'QW-0002' => ['سليمان', 'QW-0001'],
+        'QW-0003' => ['قاسم', 'QW-0002'],
+        'QW-0004' => ['محمد', 'QW-0003'],
+        'QW-0005' => ['اعمر', 'QW-0004'],
+        'QW-0006' => ['قاسم', 'QW-0004'],
+        'QW-0007' => ['حمدان', 'QW-0004'],
+        'QW-0008' => ['سمرين', 'QW-0004'],
+        'QW-0009' => ['طعيمة', 'QW-0008'],
+        'QW-0010' => ['مسعود', 'QW-0008'],
+        'QW-0011' => ['عبدالكريم', 'QW-0009'],
+        'QW-0012' => ['محمد', 'QW-0009'],
+        'QW-0013' => ['احمد', 'QW-0009'],
+        'QW-0014' => ['حسن', 'QW-0009'],
+        'QW-0015' => ['علي', 'QW-0009'],
+        'QW-0016' => ['عبد', 'QW-0009'],
+        'QW-0017' => ['عبدالمجيد', 'QW-0012'],
+        'QW-0018' => ['عبدالفتاح', 'QW-0012'],
+        'QW-0019' => ['عبدالحليم', 'QW-0012'],
+        'QW-0020' => ['عبدالله', 'QW-0012'],
+        'QW-0021' => ['حسن', 'QW-0012'],
+        'QW-0022' => ['حسين', 'QW-0012'],
+        'QW-0023' => ['وحيد', 'QW-0017'],
+        'QW-0024' => ['مفيد', 'QW-0017'],
+        'QW-0025' => ['وليد', 'QW-0017'],
+        'QW-0026' => ['مامون', 'QW-0017'],
+        'QW-0027' => ['تيسير', 'QW-0017'],
+        'QW-0028' => ['منير', 'QW-0017'],
+        'QW-0029' => ['خالد', 'QW-0017'],
+        'QW-0030' => ['محمد', 'QW-0017'],
+        'QW-0031' => ['مصعب', 'QW-0024'],
+        'QW-0032' => ['محمد', 'QW-0024'],
+        'QW-0033' => ['احمد', 'QW-0024'],
+        'QW-0034' => ['عبد الرحمن', 'QW-0024'],
+    ];
+
+    foreach ($expected as $key => [$name, $fatherKey]) {
+        $person = $tree->people()->where('canonical_key', $key)->sole();
+        $edge = $person->outgoingRelationships()->sole();
+        $father = $tree->people()->where('canonical_key', $fatherKey)->sole();
+
+        expect($person->full_name_ar)->toBe($name)
+            ->and($edge->related_person_id)->toBe($father->id)
+            ->and($edge->canonical_key)->toBe($key.'-father-'.$fatherKey)
+            ->and($edge->verification_status)->toBe('pending_review');
+    }
+
+    expect($tree->people()->where('full_name_ar', 'سليمان')->count())->toBe(2)
+        ->and($tree->people()->where('full_name_ar', 'قاسم')->count())->toBe(2)
+        ->and($tree->people()->where('full_name_ar', 'محمد')->count())->toBe(6)
+        ->and($tree->people()->where('canonical_key', 'QW-0031')->value('title'))->toBe('مؤسس النظام');
+});
+
+test('all available attachment files are cited and contradictory or missing records remain unresolved', function () {
+    app(AlQawasmehBranchSeeder::class)->run();
+
+    foreach (['قواسمه.png', 'قواسمه1.png', 'قواسمه2.png', 'قواسمه3.png', 'قواسمه4.png', 'قواسمه5.png', 'قواسمه6.png', 'قواسمه7.png', 'قواسمه.pdf'] as $file) {
+        $source = Source::query()->where('reference', 'qawasmeh:'.$file)->sole();
+        expect($source->verification_status)->toBe('pending_review')
+            ->and($source->citations()->where('field_key', 'source_observation')->where('verification_status', 'unresolved')->exists())->toBeTrue();
+    }
+
+    expect(Citation::query()->where('field_key', 'source_observation')->where('verification_status', 'unresolved')->count())->toBeGreaterThanOrEqual(12)
+        ->and(Citation::query()->where('field_key', 'source_observation')->where('notes', 'like', '%شجرة عيلتنا.jpg%')->exists())->toBeTrue();
+});
+
 test('Qawasmeh reruns preserve manual names titles approvals citations and audit counts', function () {
     $importer = app(AlQawasmehBranchImporter::class);
     $importer->import();

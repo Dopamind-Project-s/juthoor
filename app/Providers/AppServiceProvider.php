@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Models\Citation;
-use App\Models\CrossFamilyLink;
 use App\Models\Family;
 use App\Models\FamilyTree;
 use App\Models\Person;
@@ -11,10 +10,10 @@ use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\Source;
 use App\Models\User;
-use App\Services\Genealogy\CrossFamilyLinkService;
+use App\Services\Dashboards\FamilyDashboardService;
+use App\Services\Genealogy\CrossFamilyLinkInvalidator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CrossFamilyLinkInvalidator::class);
     }
 
     /**
@@ -35,14 +34,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
         foreach ([Person::class, PersonRelationship::class, FamilyTree::class, Family::class, Source::class, Citation::class, PersonAttribute::class] as $model) {
-            $invalidate = function (): void {
-                if (! Schema::hasTable('cross_family_links')) {
-                    return;
-                }
-                foreach (CrossFamilyLink::query()->where('status', 'approved')->get() as $link) {
-                    app(CrossFamilyLinkService::class)->current($link);
-                }
-            };
+            $invalidate = fn ($record) => app(CrossFamilyLinkInvalidator::class)->changed($record);
             $model::saved($invalidate);
             $model::deleted($invalidate);
         }
@@ -57,11 +49,7 @@ class AppServiceProvider extends ServiceProvider
             return $user->isSuperAdmin() ? true : null;
         });
         View::composer('layouts.management', function ($view): void {
-            $user = auth()->user();
-            $families = ! $user ? collect() : ($user->isSuperAdmin()
-                ? Family::query()->orderBy('name_ar')->get(['name_ar', 'slug'])
-                : $user->families()->active()->orderBy('name_ar')->get(['families.name_ar', 'families.slug']));
-            $view->with('accessibleFamilies', $families);
+            $view->with('accessibleFamilies', FamilyDashboardService::accessibleFamilies(auth()->user()));
         });
     }
 }

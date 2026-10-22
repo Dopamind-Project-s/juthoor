@@ -27,6 +27,7 @@ class BranchMembershipService
         return Person::query()
             ->where('family_tree_id', $branch->family_tree_id)
             ->whereKey($this->memberIds($branch, $depth))
+            ->orderBy('id')
             ->get();
     }
 

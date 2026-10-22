@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Services\ArabicNameNormalizer;
+use App\Services\Dashboards\FamilyHealthService;
 use App\Services\Genealogy\BranchMembershipService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class FamilyController extends Controller
@@ -24,7 +26,7 @@ class FamilyController extends Controller
         return view('management.families.index', compact('families'));
     }
 
-    public function show(Request $request, string $family, ArabicNameNormalizer $normalizer, BranchMembershipService $membership): View
+    public function show(Request $request, string $family, ArabicNameNormalizer $normalizer, BranchMembershipService $membership, FamilyHealthService $health): View
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('view', $familyModel);
@@ -37,6 +39,10 @@ class FamilyController extends Controller
         if ($request->query('parentage') === 'unknown') {
             $peopleQuery->when($tree->root_person_id, fn ($query) => $query->whereKeyNot($tree->root_person_id))
                 ->whereDoesntHave('outgoingRelationships', fn ($query) => $query->where('relationship_type', 'father')->where('is_primary', true));
+        }
+        if ($request->filled('issue')) {
+            $issue = $request->validate(['issue' => ['string', Rule::in(array_keys(FamilyHealthService::ISSUES))]])['issue'];
+            $peopleQuery->whereKey($health->people($tree, $issue)->select('people.id'));
         }
         if ($request->filled('q')) {
             $peopleQuery->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
@@ -73,7 +79,7 @@ class FamilyController extends Controller
                 ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
                 ->latest()->paginate(15, ['*'], 'invitations_page')->withQueryString(),
             'auditLogs' => $familyModel->auditLogs()->with('user')
-                ->when(! $request->user()->isSuperAdmin() && $request->user()->roleFor($familyModel) !== 'admin', fn ($q) => $q->where('reviewers_only', false))
+                ->visibleToMember($request->user(), $familyModel)
                 ->when($section === 'audit' && $request->filled('q'), fn ($query) => $query->where('action', 'like', '%'.$request->query('q').'%'))
                 ->latest()->paginate(20, ['*'], 'audit_page')->withQueryString(),
             'statistics' => [
