@@ -96,13 +96,13 @@ test('an editor can create and update a person and every change is audited', fun
     $editor = User::factory()->create();
     giveFamilyRole($editor, $graph['family'], FamilyMembership::ROLE_EDITOR);
 
-    $this->actingAs($editor)->post(route('management.people.store', $graph['family']->slug), personPayload())
+    $this->actingAs($editor)->post(route('management.people.store', $graph['family']->slug), [...personPayload(), 'verification_status' => Source::VERIFICATION_PENDING_REVIEW])
         ->assertSessionHasNoErrors()
         ->assertSessionHas('status', 'تمت إضافة الشخص بنجاح.');
     $person = $graph['tree']->people()->where('canonical_key', 'new-person')->sole();
 
     $this->actingAs($editor)->put(route('management.people.update', [$graph['family']->slug, $person->id]), [
-        ...personPayload(), 'full_name_ar' => 'الاسم بعد التحديث',
+        ...personPayload(), 'verification_status' => Source::VERIFICATION_PENDING_REVIEW, 'full_name_ar' => 'الاسم بعد التحديث',
     ])->assertSessionHasNoErrors();
 
     expect($person->refresh()->full_name_ar)->toBe('الاسم بعد التحديث');
@@ -149,17 +149,17 @@ test('relationship integrity rejects a second father and genealogy cycles with A
     $this->actingAs($editor)->post(route('management.relationships.store', $graph['family']->slug), [
         'person_id' => $graph['child']->id,
         'father_id' => $graph['root']->id,
-        'verification_status' => Source::VERIFICATION_VERIFIED,
+        'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
     ])->assertSessionHasNoErrors();
     $this->actingAs($editor)->post(route('management.relationships.store', $graph['family']->slug), [
         'person_id' => $graph['child']->id,
         'father_id' => $otherFather->id,
-        'verification_status' => Source::VERIFICATION_VERIFIED,
+        'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
     ])->assertSessionHasErrors(['relationship' => 'للشخص أب أساسي مسجل بالفعل.']);
     $this->actingAs($editor)->post(route('management.relationships.store', $graph['family']->slug), [
         'person_id' => $graph['root']->id,
         'father_id' => $graph['child']->id,
-        'verification_status' => Source::VERIFICATION_VERIFIED,
+        'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
     ])->assertSessionHasErrors(['relationship']);
 });
 
@@ -173,7 +173,7 @@ test('branch management reuses founder integrity and records changes', function 
         'slug' => 'example',
         'root_person_id' => $graph['child']->id,
         'is_active' => '1',
-        'verification_status' => Source::VERIFICATION_VERIFIED,
+        'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
     ])->assertSessionHasNoErrors();
 
     $branch = $graph['tree']->branches()->sole();

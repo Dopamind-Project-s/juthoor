@@ -145,3 +145,4 @@ details:not([open])>:not(summary){display:none}
 .site-checks td,.site-checks th{vertical-align:middle}
 @media(max-width:991.98px){.dashboard-columns{grid-template-columns:1fr;gap:0}}
 @media(max-width:575.98px){.family-dashboard-tree{min-width:0;width:100%}.workspace-chip{display:none}.dashboard-facts{grid-template-columns:1fr}.dashboard-facts dd{margin-bottom:.4rem}}
+.duplicate-confirmation{grid-column:1/-1;padding:.75rem;border:1px solid #f0c36d;border-radius:.6rem;background:#fff8e6}

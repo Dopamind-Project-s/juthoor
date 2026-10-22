@@ -12,6 +12,7 @@ use App\Models\Person;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
 use App\Services\Genealogy\GenealogyMutationService;
+use App\Services\Genealogy\PublicationGuard;
 use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -38,7 +39,9 @@ class BranchController extends Controller
             DB::transaction(function () use ($attributes, $familyModel, $tree, $request): void {
                 FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
                 $this->ensureSlugIsUnique($tree->id, $attributes['slug']);
-                $branch = $tree->branches()->create($attributes);
+                $branch = $tree->branches()->make($attributes);
+                app(PublicationGuard::class)->assertAllowed($request->user(), $familyModel, $branch);
+                $branch->save();
                 $this->audit->record($request->user(), $familyModel, $branch, 'created', null, $this->audit->snapshot($branch));
             });
         } catch (DomainException $exception) {
@@ -62,7 +65,9 @@ class BranchController extends Controller
                 $branchModel->refresh();
                 $this->ensureSlugIsUnique($branchModel->family_tree_id, $attributes['slug'], $branchModel->id);
                 $before = $this->audit->snapshot($branchModel);
-                $branchModel->update($attributes);
+                $branchModel->fill($attributes);
+                app(PublicationGuard::class)->assertAllowed($request->user(), $familyModel, $branchModel);
+                $branchModel->save();
                 app(GenealogyMutationService::class)->validateBranches($branchModel->familyTree);
                 $this->audit->record($request->user(), $familyModel, $branchModel, 'updated', $before, $this->audit->snapshot($branchModel));
             });
@@ -79,6 +84,7 @@ class BranchController extends Controller
         $branchModel = $tree->branches()->whereKey($branch)->firstOrFail();
         Gate::authorize('delete', $branchModel);
         $this->deletion->assertBranchCanBeDeleted($branchModel);
+        app(PublicationGuard::class)->assertAllowed(auth()->user(), $familyModel, $branchModel, true);
 
         DB::transaction(function () use ($familyModel, $branchModel): void {
             FamilyTree::query()->whereKey($branchModel->family_tree_id)->lockForUpdate()->firstOrFail();
@@ -125,7 +131,7 @@ class BranchController extends Controller
             'root_person_id' => $request->integer('root_person_id'),
             'parent_branch_id' => $parentId,
             'description' => $request->input('description'),
-            'branch_type' => Branch::TYPE_FAMILY_GROUP,
+            'branch_type' => $request->input('branch_type') ?: Branch::TYPE_FAMILY_GROUP,
             'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
             'is_active' => $isActive,
             'verification_status' => (string) $request->string('verification_status'),

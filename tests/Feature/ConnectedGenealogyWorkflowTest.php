@@ -215,7 +215,7 @@ test('roles govern connected forms root setup graph actions and change review re
             ])->assertSessionHasNoErrors();
             expect(ChangeRequest::query()->count())->toBe(1);
         } else {
-            connectedAdd($this, $family, $tree, 'شخص '.$role, $adam);
+            connectedAdd($this, $family, $tree, 'شخص '.$role, $adam, $role === 'editor' ? ['verification_status' => 'pending_review', 'father_verification_status' => 'pending_review'] : []);
         }
         if ($role !== 'admin') {
             $this->put(route('management.trees.update', [$family->slug, $tree->id]), ['root_mode' => 'empty'])->assertForbidden();

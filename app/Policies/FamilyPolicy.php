@@ -28,6 +28,12 @@ class FamilyPolicy
         return $this->update($user, $family);
     }
 
+    /** Publishing genealogy (verified/sourced and visible) or changing a published record. */
+    public function publish(User $user, Family $family): bool
+    {
+        return $this->update($user, $family);
+    }
+
     public function update(User $user, Family $family): bool
     {
         return $user->roleFor($family) === FamilyMembership::ROLE_ADMIN;

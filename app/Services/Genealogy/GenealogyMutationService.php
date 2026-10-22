@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class GenealogyMutationService
 {
-    public function __construct(private AuditLogger $audit, private GenealogyDeletionService $deletion, private RelationshipIntegrityService $relationships, private BranchIntegrityService $branches) {}
+    public function __construct(private AuditLogger $audit, private GenealogyDeletionService $deletion, private RelationshipIntegrityService $relationships, private BranchIntegrityService $branches, private PublicationGuard $publication) {}
 
     public function modelClass(string $kind): string
     {
@@ -96,7 +96,8 @@ class GenealogyMutationService
             if ($tree->branches()->where('slug', $data['slug'])->when($record, fn ($q) => $q->whereKeyNot($record->id))->exists()) {
                 $this->reject('الرابط المختصر مستخدم داخل هذه الشجرة.');
             }
-            $data += ['branch_type' => 'family_group', 'membership_mode' => 'descendants'];
+            $data['branch_type'] = ($data['branch_type'] ?? null) ?: Branch::TYPE_FAMILY_GROUP;
+            $data += ['membership_mode' => 'descendants'];
             $data['is_active'] = (bool) ($data['is_active'] ?? false);
         }
 
@@ -124,6 +125,7 @@ class GenealogyMutationService
         unset($data['attribute_ids']);
         if ($operation === 'delete') {
             $this->assertDeletable($record);
+            $this->publication->assertAllowed($user, $tree->family, $record, true);
             $record->delete();
         } else {
             if ($record instanceof PersonRelationship && ((int) $record->related_person_id !== (int) ($data['related_person_id'] ?? $record->related_person_id) || (int) $record->person_id !== (int) ($data['person_id'] ?? $record->person_id))) {
@@ -134,6 +136,7 @@ class GenealogyMutationService
             $record ??= new ($this->modelClass($kind));
             $record->fill($data);
             $record->family_tree_id = $tree->id;
+            $this->publication->assertAllowed($user, $tree->family, $record);
             $this->validateModel($record);
             $record->save();
             if ($record instanceof Person && $attributeIds !== null) {

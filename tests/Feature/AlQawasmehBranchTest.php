@@ -152,10 +152,11 @@ test('same name under another father remains distinct while an unkeyed existing 
     $tree = FamilyTree::query()->sole();
     $tree->people()->create(['full_name_ar' => 'زين العابدين', 'first_name_ar' => 'زين العابدين']);
     $importer = app(AlQawasmehBranchImporter::class);
+    $existingMohammads = $tree->people()->where('full_name_ar', 'محمد')->count();
     $importer->import();
     expect($tree->people()->where('full_name_ar', 'زين العابدين')->count())->toBeGreaterThan(1)
         ->and($tree->people()->where('full_name_ar', 'سليمان')->count())->toBeGreaterThan(1)
-        ->and($tree->people()->where('full_name_ar', 'محمد')->count())->toBeGreaterThan(8);
+        ->and($tree->people()->where('full_name_ar', 'محمد')->count())->toBe($existingMohammads + collect($importer->manifest()['people'])->where('name', 'محمد')->count());
     $child = $tree->people()->where('canonical_key', 'QW-0001')->sole();
     $child->update(['canonical_key' => null]);
     $before = qawasmehCounts();
@@ -193,7 +194,8 @@ test('source observations render safely for authorized admins and stay inside th
     $otherTree = $family->familyTrees()->create(['name_ar' => 'اختبار', 'slug' => 'other', 'is_active' => true]);
     $this->get(route('management.sources.show', [$family->slug, $source->id, 'tree' => $otherTree->slug]))->assertOk()->assertDontSee('سجل مصدر ينتظر حسم الهوية والأبوة');
     $this->actingAs(User::factory()->create())->get(route('management.sources.show', [$family->slug, $source->id]))->assertForbidden();
-    expect(Citation::query()->where('field_key', 'source_observation')->where('verification_status', 'unresolved')->count())->toBeGreaterThan(300);
+    $manifest = app(AlQawasmehBranchImporter::class)->manifest();
+    expect(Citation::query()->where('field_key', 'source_observation')->where('verification_status', 'unresolved')->count())->toBe(count($manifest['observations']) + count($manifest['reviews']));
 });
 
 test('pending people remain private until reviewed and founder focus uses the approved shared path', function () {

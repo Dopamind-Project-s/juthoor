@@ -48,6 +48,11 @@ class AppServiceProvider extends ServiceProvider
 
             return $user->isSuperAdmin() ? true : null;
         });
+        // Static Al-Zoubi portal pages link to the database-backed branch focus when that branch is published.
+        View::composer(['families.al-zoubi.branches.index', 'families.al-zoubi.branches.show'], function ($view): void {
+            $tree = Family::query()->active()->where('slug', 'al-zoubi')->first()?->primaryTree()->active()->first();
+            $view->with('publishedBranchSlugs', $tree ? $tree->branches()->published()->pluck('slug')->all() : []);
+        });
         View::composer('layouts.management', function ($view): void {
             $view->with('accessibleFamilies', FamilyDashboardService::accessibleFamilies(auth()->user()));
         });

@@ -10,6 +10,7 @@ use App\Models\PersonRelationship;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\GenealogyDeletionService;
 use App\Services\Genealogy\GenealogyMutationService;
+use App\Services\Genealogy\PublicationGuard;
 use App\Services\Genealogy\SelectedFamilyTree;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -40,13 +41,15 @@ class RelationshipController extends Controller
         try {
             DB::transaction(function () use ($familyModel, $tree, $request): void {
                 FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
-                $relationship = $tree->personRelationships()->create([
+                $relationship = $tree->personRelationships()->make([
                     'person_id' => $request->integer('person_id'),
                     'related_person_id' => $request->integer('father_id'),
                     'relationship_type' => PersonRelationship::TYPE_FATHER,
                     'is_primary' => true,
                     'verification_status' => (string) $request->string('verification_status'),
                 ]);
+                app(PublicationGuard::class)->assertAllowed($request->user(), $familyModel, $relationship);
+                $relationship->save();
                 $this->audit->record($request->user(), $familyModel, $relationship, 'created', null, $this->audit->snapshot($relationship));
             });
         } catch (DomainException $exception) {
@@ -72,11 +75,13 @@ class RelationshipController extends Controller
                     }
                 }
                 $before = $this->audit->snapshot($model);
-                $model->update([
+                $model->fill([
                     'person_id' => $request->integer('person_id'),
                     'related_person_id' => $request->integer('father_id'),
                     'verification_status' => (string) $request->string('verification_status'),
                 ]);
+                app(PublicationGuard::class)->assertAllowed($request->user(), $familyModel, $model);
+                $model->save();
                 app(GenealogyMutationService::class)->validateBranches($tree);
                 $this->audit->record($request->user(), $familyModel, $model, 'updated', $before, $this->audit->snapshot($model));
             });
@@ -93,6 +98,7 @@ class RelationshipController extends Controller
         $relationshipModel = $tree->personRelationships()->whereKey($relationship)->firstOrFail();
         Gate::authorize('delete', $relationshipModel);
         $this->deletion->assertRelationshipCanBeDeleted($relationshipModel);
+        app(PublicationGuard::class)->assertAllowed(auth()->user(), $familyModel, $relationshipModel, true);
 
         DB::transaction(function () use ($familyModel, $relationshipModel): void {
             FamilyTree::query()->whereKey($relationshipModel->family_tree_id)->lockForUpdate()->firstOrFail();

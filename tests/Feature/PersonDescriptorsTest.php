@@ -34,7 +34,7 @@ test('reference attributes seed idempotently without resetting administrator cus
     $attribute = PersonAttribute::query()->where('key', 'prophet')->sole();
     $attribute->update(['label' => 'اسم مخصص', 'color' => '#112233', 'is_active' => false]);
     app(PersonAttributeSeeder::class)->run();
-    expect(PersonAttribute::query()->count())->toBe(6)
+    expect(PersonAttribute::query()->count())->toBe(10)
         ->and($attribute->fresh()->label)->toBe('اسم مخصص')
         ->and($attribute->fresh()->color)->toBe('#112233')
         ->and($attribute->fresh()->is_active)->toBeFalse();

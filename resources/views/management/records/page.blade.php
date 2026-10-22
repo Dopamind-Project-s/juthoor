@@ -39,7 +39,7 @@ $selectedFather = old('father_id') ? $tree->people()->find(old('father_id')) : $
 @endphp
 <label>الابن<select name="person_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الابن</option>@if($selectedChild)<option selected value="{{ $selectedChild->id }}">{{ $selectedChild->display_name }}</option>@endif</select></label>
 <label>الأب<select name="father_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug]) }}" required><option value="">اختر الأب</option>@if($selectedFather)<option selected value="{{ $selectedFather->id }}">{{ $selectedFather->display_name }}</option>@endif</select></label>
-<label>حالة التوثيق<select name="verification_status" class="form-select">@foreach(['pending_review'=>'قيد المراجعة','sourced'=>'مسند','verified'=>'موثق'] as $value=>$label)<option value="{{ $value }}" @selected(old('verification_status',$record?->verification_status)===$value)>{{ $label }}</option>@endforeach</select></label>
+<label>حالة التوثيق<select name="verification_status" class="form-select">@include('management.partials.verification-options',['selected'=>old('verification_status',$record?->verification_status ?? 'pending_review'),'statuses'=>['pending_review','sourced','verified']])</select></label>
 @endif
 @if($section==='trees')
 @include('management.trees.root-fields',['rootTree'=>$record])

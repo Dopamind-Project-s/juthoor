@@ -12,7 +12,7 @@ $editFounded = old('founded_branch_id') ? $founded->firstWhere('id',old('founded
 @else
 <label>الأب<select name="father_id" class="form-select" data-father-select data-remote-select data-remote-url="{{ route('management.lookups.people',[$family->slug,'tree'=>$tree->slug,'exclude'=>$person?->id]) }}"><option value="">الأب غير معروف / غير مرتبط بعد</option>@if($selectedFather)<option value="{{ $selectedFather->id }}" selected>{{ $selectedFather->display_name }}</option>@endif</select></label>
 @error('father_id')<p class="field-error">{{ $message }}</p>@enderror
-<label>توثيق علاقة الأبوة<select name="father_verification_status" class="form-select">@foreach(['pending_review'=>'قيد المراجعة','sourced'=>'مسند','verified'=>'موثق','unresolved'=>'غير محسوم'] as $value=>$label)<option value="{{ $value }}" @selected(old('father_verification_status',$fatherEdge?->verification_status ?? 'pending_review')===$value)>{{ $label }}</option>@endforeach</select></label>
+<label>توثيق علاقة الأبوة<select name="father_verification_status" class="form-select">@include('management.partials.verification-options',['selected'=>old('father_verification_status',$fatherEdge?->verification_status ?? 'pending_review')])</select></label>
 <p class="text-muted">يُحدد الموضع والذرية تلقائيًا من علاقة الأبوة؛ لا حاجة لتحديد الجيل. عند اختيار «غير معروف» يبقى الشخص للمراجعة دون أن يصبح جذرًا آخر.</p>
 @if($fatherEdge)<p class="text-muted">اختيار «غير مرتبط» يزيل علاقة الأبوة الحالية صراحةً بعد فحص حماية الفروع والاستشهادات.</p>@endif
 @endif
@@ -33,11 +33,12 @@ $editFounded = old('founded_branch_id') ? $founded->firstWhere('id',old('founded
 @foreach($founded as $foundedBranch)<option value="{{ $foundedBranch->id }}" @selected(old('founded_branch_id')==$foundedBranch->id) data-branch='{{ json_encode(["name_ar"=>$foundedBranch->name_ar,"slug"=>$foundedBranch->slug,"description"=>$foundedBranch->description,"parent_id"=>$foundedBranch->parent_branch_id,"parent_name"=>$foundedBranch->parentBranch?->name_ar,"is_active"=>$foundedBranch->is_active,"verification"=>$foundedBranch->verification_status]) }}'>{{ $foundedBranch->name_ar }}</option>@endforeach
 </select></label>@endif
 <label>اسم الفرع<input name="branch_name_ar" class="form-control" value="{{ old('branch_name_ar',$editFounded?->name_ar) }}" placeholder="مثال: فرع مصعب"></label>
+<label>نوع الكيان<select name="branch_type" class="form-select">@foreach(\App\Models\Branch::TYPES as $value=>$label)<option value="{{ $value }}" @selected(old('branch_type',$editFounded?->branch_type ?? \App\Models\Branch::TYPE_FAMILY_GROUP)===$value)>{{ $label }}</option>@endforeach</select></label>
 <label>الرابط المختصر<input name="branch_slug" class="form-control" value="{{ old('branch_slug',$editFounded?->slug) }}" placeholder="musab-branch"></label>
 @php($parentBranch = old('branch_parent_id') ? $tree->branches()->find(old('branch_parent_id')) : $editFounded?->parentBranch)
 <label>الفرع الأب (اختياري)<select name="branch_parent_id" class="form-select" data-remote-select data-remote-url="{{ route('management.lookups.branches',[$family->slug,'tree'=>$tree->slug]) }}"><option value="">فرع مستقل داخل الشجرة</option>@if($parentBranch)<option value="{{ $parentBranch->id }}" selected>{{ $parentBranch->name_ar }}</option>@endif</select></label>
 <label>وصف الفرع<textarea name="branch_description" class="form-control" placeholder="وصف مختصر">{{ old('branch_description',$editFounded?->description) }}</textarea></label>
-<label>توثيق الفرع<select name="branch_verification_status" class="form-select">@foreach(['pending_review'=>'قيد المراجعة','sourced'=>'مسند','verified'=>'موثق','unresolved'=>'غير محسوم'] as $value=>$label)<option value="{{ $value }}" @selected(old('branch_verification_status',$editFounded?->verification_status ?? 'pending_review')===$value)>{{ $label }}</option>@endforeach</select></label>
+<label>توثيق الفرع<select name="branch_verification_status" class="form-select">@include('management.partials.verification-options',['selected'=>old('branch_verification_status',$editFounded?->verification_status ?? 'pending_review')])</select></label>
 <label><input type="checkbox" name="branch_is_active" value="1" @checked(old('branch_is_active',$editFounded?->is_active ?? true))> فرع نشط</label>
 </div>
 </fieldset>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Family;
+use App\Models\FamilyTree;
 use App\Models\Source;
 use App\Services\ArabicNameNormalizer;
 use App\Services\Genealogy\ProgressiveGraphService;
@@ -62,8 +63,40 @@ class GenealogyGraphController extends Controller
             ->where('name_search', 'like', '%'.$normalizer->normalize($data['q']).'%')
             ->orderBy('full_name_ar')->limit(20)->get(['id', 'full_name_ar', 'title', 'honorific', 'verification_status']);
 
+        $lineage = $this->lineage($tree, $people->modelKeys(), $private);
+
         return response()->json(['data' => $people->map(fn ($person) => [
-            'id' => $person->id, 'text' => $person->display_name, 'verification' => $person->verification_status,
+            'id' => $person->id, 'text' => $person->display_name, 'lineage' => $lineage[$person->id] ?? null, 'verification' => $person->verification_status,
         ])]);
+    }
+
+    /**
+     * UC-11: a short "بن father بن grandfather" chain distinguishes repeated names.
+     * Public results only name visible ancestors through verified edges.
+     *
+     * @param  array<int, int>  $ids
+     * @return array<int, string>
+     */
+    private function lineage(FamilyTree $tree, array $ids, bool $private): array
+    {
+        $chains = array_fill_keys($ids, []);
+        $current = array_combine($ids, $ids);
+        for ($generation = 0; $generation < 2 && $current !== []; $generation++) {
+            $fathers = $tree->personRelationships()->where('relationship_type', 'father')->where('is_primary', true)
+                ->when(! $private, fn ($query) => $query->verified())
+                ->whereIn('person_id', array_values($current))->pluck('related_person_id', 'person_id');
+            $names = $tree->people()->when(! $private, fn ($query) => $query->treeVisible())->whereKey($fathers->values()->all())->pluck('full_name_ar', 'id');
+            $next = [];
+            foreach ($current as $origin => $personId) {
+                $fatherId = $fathers[$personId] ?? null;
+                if ($fatherId && isset($names[$fatherId])) {
+                    $chains[$origin][] = 'بن '.$names[$fatherId];
+                    $next[$origin] = $fatherId;
+                }
+            }
+            $current = $next;
+        }
+
+        return array_map(fn (array $chain) => implode(' ', $chain), array_filter($chains));
     }
 }

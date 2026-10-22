@@ -111,7 +111,7 @@
     <div class="d-flex justify-content-between align-items-center"><div><span class="eyebrow">الفروع الرئيسية</span><h2 class="h4" id="branchesHeading">ملخص الفروع</h2></div><a class="btn btn-sm btn-outline-primary" href="{{ route('management.sections.index',[$family->slug,'branches','tree'=>$tree->slug]) }}">كل الفروع</a></div>
     <div class="management-list">
     @forelse($branches as $branch)
-        <article><div><strong>{{ $branch->name_ar }}</strong><small>المؤسس: {{ $branch->rootPerson?->display_name ?? 'غير محدد' }} · {{ $branch->child_branches_count }} فرع فرعي · {{ $branch->is_active ? 'نشط' : 'غير نشط' }}</small></div><a class="btn btn-sm btn-outline-primary" href="{{ route('management.records.show',[$family->slug,'branches',$branch->id,'tree'=>$tree->slug]) }}">تفاصيل</a></article>
+        <article><div><strong>{{ $branch->name_ar }}</strong><small>{{ $branch->type_label }} · المؤسس: {{ $branch->rootPerson?->display_name ?? 'غير محدد' }} · {{ $branch->child_branches_count }} فرع فرعي · {{ $branch->is_active ? 'نشط' : 'غير نشط' }}</small></div><a class="btn btn-sm btn-outline-primary" href="{{ route('management.records.show',[$family->slug,'branches',$branch->id,'tree'=>$tree->slug]) }}">تفاصيل</a></article>
     @empty
         <p class="text-muted mb-0" role="status">لا توجد فروع في هذه الشجرة بعد.</p>
     @endforelse

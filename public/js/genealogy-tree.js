@@ -301,7 +301,7 @@
                 if (!response.ok) throw new Error('search');
                 const payload = await response.json(); if (ticket !== searchSequence) return;
                 results.replaceChildren(...payload.data.map(item => {
-                    const button = document.createElement('button'); button.type = 'button'; button.textContent = item.text;
+                    const button = document.createElement('button'); button.type = 'button'; button.textContent = item.lineage ? `${item.text} ${item.lineage}` : item.text;
                     button.onclick = () => {
                         clearSearch();
                         if (graph.nodes.some(node => node.id === item.id)) { reveal(item.id); select(item.id); center(item.id); }
