@@ -21,7 +21,7 @@
 @php
 $routeSection = $section==='members' ? 'memberships' : $section;
 $action = match($section) {
-'trees' => $record ? route('site-admin.trees.update',[$family->id,$record->id]) : route('site-admin.trees.store',$family->id),
+'trees' => $record ? route('management.trees.details',[$family->slug,$record->id]) : route('management.trees.store',$family->slug),
 'invitations' => $record ? route('invitations.update',[$family->slug,$record->id]) : route('invitations.store',$family->slug),
 default => $record ? route('management.'.$routeSection.'.update',[$family->slug,$record->id,'tree'=>$tree->slug]) : route('management.'.$routeSection.'.store',[$family->slug,'tree'=>$tree->slug]),
 };
@@ -49,7 +49,7 @@ $selectedFather = old('father_id') ? $tree->people()->find(old('father_id')) : $
 @if($record)<label><input type="checkbox" name="is_active" value="1" @checked(old('is_active',$record->is_active))> شجرة نشطة</label>@endif
 @endif
 @if(in_array($section,['members','invitations']))
-@if(!$record)<label>البريد الإلكتروني<input type="email" class="form-control" name="email" value="{{ old('email') }}" placeholder="name@example.com" required></label>@else<p>{{ $record->email ?? $record->user->email }}</p>@endif
+@if(!$record)<label>البريد الإلكتروني<input type="email" class="form-control" name="email" value="{{ old('email') }}" placeholder="name@example.com" required></label>@if($section==='members' && !auth()->user()->isSuperAdmin())<p class="text-muted small mb-0">تُرسل دعوة إلى هذا البريد، وتبدأ العضوية بعد قبول صاحبه لها.</p>@endif @else<p>{{ $record->email ?? $record->user->email }}</p>@endif
 <label>الدور<select class="form-select" name="role">@foreach(['reader'=>'قارئ','editor'=>'محرر','admin'=>'مدير'] as $value=>$label)<option value="{{ $value }}" @selected(old('role',$record?->role)===$value)>{{ $label }}</option>@endforeach</select></label>
 @endif
 <div><button class="btn btn-primary">حفظ البيانات</button></div>

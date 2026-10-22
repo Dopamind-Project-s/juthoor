@@ -43,7 +43,7 @@ class FamilyDashboardService
                 'tree_active' => $tree->is_active,
                 'family_active' => $family->is_active,
                 'has_root' => $tree->root_person_id !== null,
-                'public_people' => $tree->people()->treeVisible()->count(),
+                'public_people' => $tree->people()->publiclyVisible()->count(),
                 'living_people' => $tree->people()->where('is_living', true)->count(),
             ],
             'health' => $this->health->indicators($tree),

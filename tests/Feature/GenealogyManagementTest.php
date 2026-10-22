@@ -235,6 +235,8 @@ test('only an administrator can manage memberships and the last administrator is
     $this->actingAs($admin)->delete(route('management.memberships.destroy', [$graph['family']->slug, $adminMembership->id]))
         ->assertSessionHasErrors(['role' => 'يجب أن يبقى للعائلة مدير واحد على الأقل.']);
 
-    expect($newMember->roleFor($graph['family']))->toBe(FamilyMembership::ROLE_READER)
-        ->and(AuditLog::query()->where('auditable_type', FamilyMembership::class)->count())->toBe(1);
+    // Membership now starts only when the invited address accepts; the admin's request creates an invitation.
+    expect($newMember->roleFor($graph['family']))->toBeNull()
+        ->and($graph['family']->invitations()->where('email', strtolower($newMember->email))->where('role', FamilyMembership::ROLE_READER)->exists())->toBeTrue()
+        ->and(AuditLog::query()->where('auditable_type', FamilyMembership::class)->count())->toBe(0);
 });

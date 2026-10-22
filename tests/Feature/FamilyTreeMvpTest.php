@@ -202,3 +202,35 @@ test('tree search distinguishes repeated names by lineage without naming unpubli
     expect($results->pluck('text')->unique()->all())->toBe(['محمد'])
         ->and($results->pluck('lineage')->sort()->values()->all())->toBe([null, 'بن سليمان بن الجد المؤسس']);
 });
+
+test('person creation proposals require confirmation for same name records without a father, including recorded variants', function () {
+    $context = mvpFamily();
+    $context['tree']->people()->create(['first_name_ar' => 'ذيبان', 'full_name_ar' => 'ذيبان', 'alternate_names' => ['ذبيان'], 'status' => 'historical', 'verification_status' => 'pending_review']);
+    $proposal = fn (string $name, array $extra = []) => ['kind' => 'person', 'operation' => 'create', 'reason' => 'اقتراح', 'first_name_ar' => $name, 'full_name_ar' => $name, 'status' => 'historical', 'verification_status' => 'pending_review', ...$extra];
+    $this->actingAs($context['reader']);
+
+    $this->post(route('management.changes.store', 'mvp'), $proposal('ذَبيان'))->assertSessionHasErrors('confirm_distinct');
+    $this->post(route('management.changes.store', 'mvp'), $proposal('ذيبان'))->assertSessionHasErrors('confirm_distinct');
+    expect(ChangeRequest::query()->count())->toBe(0);
+
+    $this->post(route('management.changes.store', 'mvp'), $proposal('ذيبان', ['confirm_distinct' => 1]))->assertSessionHasNoErrors();
+    $change = ChangeRequest::query()->sole();
+    $this->actingAs($context['admin'])->get(route('management.changes.show', ['mvp', $change->id]))->assertOk()
+        ->assertSee('سجلات قائمة بالاسم نفسه')->assertSee('name="confirm_distinct"', false);
+
+    $this->post(route('management.changes.decide', ['mvp', $change->id]), ['decision' => 'accepted', 'decision_reason' => 'قبول'])->assertSessionHasErrors('confirm_distinct');
+    expect($change->fresh()->status)->toBe('pending')->and($context['tree']->people()->where('full_name_ar', 'ذيبان')->count())->toBe(1);
+
+    $this->post(route('management.changes.decide', ['mvp', $change->id]), ['decision' => 'accepted', 'decision_reason' => 'شخص مختلف بعد المراجعة', 'confirm_distinct' => 1])->assertSessionHasNoErrors();
+    expect($change->fresh()->status)->toBe('accepted')->and($context['tree']->people()->where('full_name_ar', 'ذيبان')->count())->toBe(2);
+});
+
+test('a proposal is not flagged when the same name exists only under a recorded father', function () {
+    $context = mvpFamily();
+    $this->actingAs($context['admin'])->post(route('management.people.store', 'mvp'), mvpPerson('سليمان', $context['root']))->assertSessionHasNoErrors();
+
+    $this->actingAs($context['reader'])->post(route('management.changes.store', 'mvp'), ['kind' => 'person', 'operation' => 'create', 'reason' => 'اقتراح', 'first_name_ar' => 'سليمان', 'full_name_ar' => 'سليمان', 'status' => 'historical', 'verification_status' => 'pending_review'])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($context['admin'])->post(route('management.changes.decide', ['mvp', ChangeRequest::query()->sole()->id]), ['decision' => 'accepted', 'decision_reason' => 'قبول'])->assertSessionHasNoErrors();
+    expect($context['tree']->people()->where('full_name_ar', 'سليمان')->count())->toBe(2);
+});

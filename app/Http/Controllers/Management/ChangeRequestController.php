@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChangeRequest;
 use App\Models\Family;
 use App\Services\ChangeReviewService;
+use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Genealogy\GenealogyMutationService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\JsonResponse;
@@ -79,8 +80,11 @@ class ChangeRequestController extends Controller
         $change = ChangeRequest::query()->where('family_tree_id', $tree->id)->findOrFail($change);
 
         $referenceLabels = $this->mutations->referenceLabels($tree, $change->base ?? [], $change->payload);
+        $possibleDuplicates = $change->status === 'pending' && $change->target_type === 'person' && $change->operation === 'create'
+            ? app(DuplicatePersonDetector::class)->matches($tree, (string) ($change->payload['full_name_ar'] ?? ''), null)
+            : collect();
 
-        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels'));
+        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels', 'possibleDuplicates'));
     }
 
     public function decide(Request $request, string $family, int $change): RedirectResponse
@@ -88,8 +92,8 @@ class ChangeRequestController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('review', $family);
         $change = ChangeRequest::query()->where('family_tree_id', $tree->id)->findOrFail($change);
-        $data = $request->validate(['decision' => ['required', 'in:accepted,rejected'], 'decision_reason' => ['required', 'string', 'max:2000']]);
-        $this->reviews->decide($tree, $change, $request->user(), $data['decision'], $data['decision_reason']);
+        $data = $request->validate(['decision' => ['required', 'in:accepted,rejected'], 'decision_reason' => ['required', 'string', 'max:2000'], 'confirm_distinct' => ['nullable', 'boolean']]);
+        $this->reviews->decide($tree, $change, $request->user(), $data['decision'], $data['decision_reason'], (bool) ($data['confirm_distinct'] ?? false));
 
         return back()->with('status', 'حُفظ قرار المراجعة وسجل التدقيق.');
     }

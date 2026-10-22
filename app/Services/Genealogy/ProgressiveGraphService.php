@@ -14,16 +14,16 @@ class ProgressiveGraphService
 {
     public function batch(FamilyTree $tree, int $after, int $limit, bool $publicOnly): array
     {
-        $query = $tree->people()->when($publicOnly, fn ($query) => $query->treeVisible());
+        $query = $tree->people()->when($publicOnly, fn ($query) => $query->publiclyVisible());
         $total = (clone $query)->count();
         $people = $query->where('id', '>', $after)->orderBy('id')->limit($limit + 1)->with('personAttributes')->get();
         $complete = $people->count() <= $limit;
         $people = $people->take($limit);
         $edges = $tree->personRelationships()->where('relationship_type', 'father')->where('is_primary', true)
             ->whereIn('person_id', $people->modelKeys())
-            ->when($publicOnly, fn ($query) => $query->treeVisible()->whereHas('relatedPerson', fn ($query) => $query->treeVisible()))->get();
+            ->when($publicOnly, fn ($query) => $query->publiclyVisible()->whereHas('relatedPerson', fn ($query) => $query->publiclyVisible()))->get();
         $states = [];
-        $rootId = $tree->people()->when($publicOnly, fn ($q) => $q->treeVisible())->whereKey($tree->root_person_id)->value('id');
+        $rootId = $tree->people()->when($publicOnly, fn ($q) => $q->publiclyVisible())->whereKey($tree->root_person_id)->value('id');
 
         $canEdit = auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($tree->family);
 
@@ -164,7 +164,7 @@ class ProgressiveGraphService
     {
         $query = $tree->personRelationships()->where('relationship_type', PersonRelationship::TYPE_FATHER)->where('is_primary', true);
 
-        return $publicOnly ? $query->verified() : $query;
+        return $publicOnly ? $query->publiclyVisible() : $query;
     }
 
     /** @return array{Collection<int, Person>, Collection<int, PersonRelationship>} */

@@ -5,6 +5,7 @@ namespace App\Services\Imports;
 use App\Models\Branch;
 use App\Models\Citation;
 use App\Models\Family;
+use App\Models\Person;
 use App\Models\PersonAttribute;
 use App\Models\Source;
 use App\Services\AuditLogger;
@@ -19,6 +20,24 @@ class AlQawasmehBranchImporter
 {
     public const REFERENCE = 'qawasmeh:submission:2026-10-18';
 
+    /**
+     * Working decision of 2026-10-22: «ذيبان» is the provisional display spelling for this reference dataset and the
+     * legacy «ذبيان» of the base Al-Zoubi dataset is kept as a recorded variant. It is not a historical verification.
+     */
+    public const SPELLING_DECISION = 'قرار عمل مؤقت 2026-10-22: «ذيبان» تهجئة العرض المؤقتة لمرجع القواسمة، و«ذبيان» تهجئة بديلة محفوظة. ليس تحققًا تاريخيًا.';
+
+    /** @var array<string, array<int, string>> Legacy spellings an anchor may carry; reconciled in place on the same record. */
+    public const ANCHOR_VARIANTS = ['ROOT-077' => ['ذبيان']];
+
+    /**
+     * Stable keys in the base Al-Zoubi dataset that hold a shared-ancestry anchor identity. AZ-RAHAYMEH-SULAYMAN is the
+     * only سليمان with ROOT-077 as primary father, and base sources SRC-16/17/18 trace both the عبد القادر and the
+     * زين العابدين lines through him. His own key is kept so the base seeders stay idempotent.
+     *
+     * @var array<string, string>
+     */
+    public const ANCHOR_ALIASES = ['ROOT-078' => 'AZ-RAHAYMEH-SULAYMAN'];
+
     public function manifest(): array
     {
         return json_decode(file_get_contents(resource_path('data/al-qawasmeh/manifest.json')), true, flags: JSON_THROW_ON_ERROR);
@@ -30,7 +49,8 @@ class AlQawasmehBranchImporter
         $manifest ??= $this->manifest();
 
         return DB::transaction(function () use ($manifest, $reviewedAnchors): array {
-            $family = Family::query()->where('slug', FamilySeeder::SLUG)->sole();
+            $family = Family::query()->where('slug', FamilySeeder::SLUG)->first()
+                ?? throw new DomainException('Qawasmeh: seed the Al-Zoubi family first (db:seed or AlZoubiSharedAncestrySeeder).');
             Family::query()->whereKey($family->id)->lockForUpdate()->firstOrFail();
             $tree = $family->familyTrees()->where('slug', FamilyTreeSeeder::SLUG)->lockForUpdate()->sole();
             $root = $tree->people()->where('canonical_key', 'ROOT-001')->sole();
@@ -38,8 +58,13 @@ class AlQawasmehBranchImporter
                 throw new DomainException('Qawasmeh: shared root conflict.');
             }
             $people = [];
+            $aliased = [];
             foreach (['ROOT-077' => 'ذيبان', 'ROOT-078' => 'سليمان'] as $key => $name) {
                 $person = $tree->people()->where('canonical_key', $key)->first();
+                if (! $person && isset(self::ANCHOR_ALIASES[$key])) {
+                    $person = $tree->people()->where('canonical_key', self::ANCHOR_ALIASES[$key])->first();
+                    $aliased[$key] = $person;
+                }
                 if (! $person) {
                     $review = $reviewedAnchors[$key] ?? null;
                     if (! $review || empty($review['review_reference']) || empty($review['person_id'])) {
@@ -52,6 +77,9 @@ class AlQawasmehBranchImporter
                     $before = app(AuditLogger::class)->snapshot($person);
                     $person->update(['canonical_key' => $key]);
                     app(AuditLogger::class)->record(null, $family, $person, 'qawasmeh_anchor_reconciled', $before, array_merge(app(AuditLogger::class)->snapshot($person), ['review_reference' => $review['review_reference']]));
+                }
+                if ($person->full_name_ar !== $name && in_array($person->full_name_ar, self::ANCHOR_VARIANTS[$key] ?? [], true)) {
+                    $this->reconcileSpelling($person, $name, $family);
                 }
                 if ($person->full_name_ar !== $name) {
                     throw new DomainException("Qawasmeh: anchor identity conflict $key.");
@@ -81,6 +109,10 @@ class AlQawasmehBranchImporter
                 'notes' => 'ادعاءات مقدمة للمراجعة؛ لا تمنح صفة مؤسس النظام أية صلاحية نسبية أو إدارية.',
                 'verification_status' => 'pending_review',
             ]), $family)];
+            foreach (array_filter($aliased) as $key => $person) {
+                $this->cite($sources['submission'], $family, ['family_tree_id' => $tree->id, 'person_id' => $person->id, 'field_key' => 'anchor', 'locator' => 'anchor:'.$key],
+                    "مرسى {$key} في التسلسل المقدم هو السجل القائم {$person->canonical_key} (الابن الوحيد المسمى سليمان لـ ROOT-077)؛ لم يُنشأ شخص جديد. قيد المراجعة.");
+            }
             foreach ($manifest['sources'] as $row) {
                 $path = public_path('docs/'.$row['file']);
                 if (! is_file($path) || ! hash_equals($row['sha256'], hash_file('sha256', $path))) {
@@ -181,6 +213,21 @@ class AlQawasmehBranchImporter
 
             return $counts;
         });
+    }
+
+    /** Same record, same key and verification state; only the display spelling changes and the old one is kept. */
+    private function reconcileSpelling(Person $person, string $spelling, Family $family): void
+    {
+        $before = app(AuditLogger::class)->snapshot($person);
+        $legacy = $person->full_name_ar;
+        $person->alternate_names = array_values(array_unique([...($person->alternate_names ?? []), $legacy]));
+        $person->full_name_ar = $spelling;
+        if ($person->first_name_ar === $legacy) {
+            $person->first_name_ar = $spelling;
+        }
+        $person->save();
+        app(AuditLogger::class)->record(null, $family, $person, 'spelling_reconciled', $before, app(AuditLogger::class)->snapshot($person))
+            ->update(['reason' => self::SPELLING_DECISION]);
     }
 
     private function created(Model $record, Family $family): Model

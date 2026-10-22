@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
 use App\Models\Family;
-use App\Services\ArabicNameNormalizer;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 
 class LookupController extends Controller
 {
-    public function people(Request $request, string $family, ArabicNameNormalizer $normalizer): JsonResponse
+    public function people(Request $request, string $family): JsonResponse
     {
         $familyModel = Family::query()->where('slug', $family)->firstOrFail();
         Gate::authorize('view', $familyModel);
@@ -24,7 +23,7 @@ class LookupController extends Controller
             $query->whereKeyNot($excluded->id);
         }
         if ($request->filled('q')) {
-            $query->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
+            $query->nameMatches((string) $request->query('q'));
         }
         $page = $query->paginate(20, ['id', 'full_name_ar', 'title', 'honorific'], 'page');
 

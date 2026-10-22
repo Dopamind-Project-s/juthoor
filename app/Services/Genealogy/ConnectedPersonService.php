@@ -6,7 +6,6 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\User;
-use App\Services\ArabicNameNormalizer;
 use App\Services\AuditLogger;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +29,7 @@ class ConnectedPersonService
 
             $input['is_living'] = (bool) ($input['is_living'] ?? false);
             if (! $person && empty($input['confirm_distinct'])) {
-                $this->assertNotLikelyDuplicate($tree, (string) ($input['full_name_ar'] ?? ''), empty($input['father_id']) ? null : (int) $input['father_id']);
+                app(DuplicatePersonDetector::class)->assertDistinct($tree, (string) ($input['full_name_ar'] ?? ''), empty($input['father_id']) ? null : (int) $input['father_id']);
             }
             $attributes = $this->mutations->attributes($tree, 'person', Arr::only($input, [
                 'first_name_ar', 'full_name_ar', 'canonical_key', 'gender', 'birth_year', 'title', 'honorific', 'attribute_ids', 'attributes_present',
@@ -94,24 +93,5 @@ class ConnectedPersonService
 
             return $person->fresh();
         });
-    }
-
-    /**
-     * UC-03: a new person whose normalized name matches a sibling under the same father (or another
-     * fatherless record) needs explicit confirmation. Name similarity alone never merges records.
-     */
-    private function assertNotLikelyDuplicate(FamilyTree $tree, string $fullName, ?int $fatherId): void
-    {
-        $matches = $tree->people()
-            ->where('name_search', app(ArabicNameNormalizer::class)->normalize($fullName))
-            ->when($fatherId, fn ($query) => $query->whereHas('outgoingRelationships', fn ($edge) => $edge->where('relationship_type', PersonRelationship::TYPE_FATHER)->where('is_primary', true)->where('related_person_id', $fatherId)),
-                fn ($query) => $query->whereDoesntHave('outgoingRelationships', fn ($edge) => $edge->where('relationship_type', PersonRelationship::TYPE_FATHER)->where('is_primary', true)))
-            ->limit(5)->get(['id', 'full_name_ar', 'canonical_key']);
-
-        if ($matches->isNotEmpty()) {
-            throw ValidationException::withMessages(['confirm_distinct' => 'يوجد في هذه الشجرة شخص بالاسم نفسه '.($fatherId ? 'وللأب نفسه' : 'ودون أب مسجل').': '
-                .$matches->map(fn (Person $match) => $match->full_name_ar.' (#'.$match->id.($match->canonical_key ? ' · '.$match->canonical_key : '').')')->implode('، ')
-                .'. افتح السجل القائم بدل إنشاء نسخة، أو أكّد أنه شخص مختلف.']);
-        }
     }
 }

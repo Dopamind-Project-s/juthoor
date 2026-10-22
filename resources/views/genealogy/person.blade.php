@@ -5,6 +5,7 @@
     <div class="family-breadcrumb"><a href="{{ route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null]) }}">{{ $tree->name_ar }}</a><i class="bi bi-chevron-left"></i><span>صفحة شخص</span></div>
     <span class="status-badge verified">{{ request()->boolean('private') ? 'معاينة خاصة' : (in_array($person->verification_status,['verified','sourced']) ? 'سجل تاريخي مراجع' : 'رواية مقدمة؛ قيد المراجعة') }}</span>
     <h1>{{ $person->display_name }}</h1><x-person-descriptors :person="$person" />
+    @if($person->alternate_names)<p class="mb-1">تهجئات بديلة مسجلة: {{ implode('، ', $person->alternate_names) }}</p>@endif
     <p>مسار هذا الشخص داخل شجرة {{ $family->name_ar }} الموحدة.</p>
 </div></section>
 

@@ -5,12 +5,13 @@ namespace App\Services;
 use App\Models\ChangeRequest;
 use App\Models\FamilyTree;
 use App\Models\User;
+use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Genealogy\GenealogyMutationService;
 use Illuminate\Support\Facades\DB;
 
 class ChangeReviewService
 {
-    public function __construct(private GenealogyMutationService $mutations, private AuditLogger $audit) {}
+    public function __construct(private GenealogyMutationService $mutations, private AuditLogger $audit, private DuplicatePersonDetector $duplicates) {}
 
     public function submit(FamilyTree $tree, User $user, string $kind, string $operation, ?int $targetId, array $input, string $reason): ChangeRequest
     {
@@ -18,6 +19,9 @@ class ChangeReviewService
             FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
             $record = $operation === 'update' ? $this->mutations->target($tree, $kind, $targetId) : null;
             $payload = $this->mutations->attributes($tree, $kind, $input, $record);
+            if ($kind === 'person' && $operation === 'create' && empty($input['confirm_distinct'])) {
+                $this->duplicates->assertDistinct($tree, $payload['full_name_ar'], null);
+            }
             $candidate = $record ? clone $record : new ($this->mutations->modelClass($kind));
             $candidate->fill($payload);
             $candidate->family_tree_id = $tree->id;
@@ -29,9 +33,10 @@ class ChangeReviewService
         });
     }
 
-    public function decide(FamilyTree $tree, ChangeRequest $change, User $user, string $decision, string $reason): void
+    /** A reviewer accepting a person proposal that now matches existing records must confirm it is a distinct person. */
+    public function decide(FamilyTree $tree, ChangeRequest $change, User $user, string $decision, string $reason, bool $confirmDistinct = false): void
     {
-        DB::transaction(function () use ($tree, $change, $user, $decision, $reason): void {
+        DB::transaction(function () use ($tree, $change, $user, $decision, $reason, $confirmDistinct): void {
             FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
             $change = ChangeRequest::query()->where('family_tree_id', $tree->id)->lockForUpdate()->findOrFail($change->id);
             if ($change->status !== 'pending') {
@@ -51,6 +56,9 @@ class ChangeReviewService
                     $this->mutations->reject('تغير السجل منذ تقديم المقترح. أعد تقديمه بناءً على النسخة الحالية.');
                 }
                 $data = $this->mutations->attributes($tree, $change->target_type, $change->payload, $record);
+                if ($change->target_type === 'person' && $change->operation === 'create' && ! $confirmDistinct) {
+                    $this->duplicates->assertDistinct($tree, $data['full_name_ar'], null);
+                }
                 $log = $this->mutations->apply($tree, $user, $change->target_type, $change->operation, $data, $record);
             }
             $change->update(['status' => $decision, 'decision_reason' => $reason, 'reviewed_by' => $user->id, 'decided_at' => now(), 'applied_audit_id' => $log?->id]);

@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Family;
 use App\Models\FamilyTree;
-use App\Models\Source;
-use App\Services\ArabicNameNormalizer;
 use App\Services\Genealogy\ProgressiveGraphService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\JsonResponse;
@@ -35,7 +33,7 @@ class GenealogyGraphController extends Controller
         $branch = null;
         if (! empty($data['branch'])) {
             $branch = $tree->branches()->where('slug', $data['branch'])
-                ->when(! $private, fn ($query) => $query->active()->whereIn('verification_status', [Source::VERIFICATION_VERIFIED, Source::VERIFICATION_SOURCED]))
+                ->when(! $private, fn ($query) => $query->published())
                 ->firstOrFail();
         }
         $rootId = (int) ($data['root'] ?? $branch?->root_person_id ?? $tree->root_person_id);
@@ -49,7 +47,7 @@ class GenealogyGraphController extends Controller
         ));
     }
 
-    public function search(Request $request, string $family, ArabicNameNormalizer $normalizer): JsonResponse
+    public function search(Request $request, string $family): JsonResponse
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         $tree = app(SelectedFamilyTree::class)->resolve($familyModel, true);
@@ -59,8 +57,8 @@ class GenealogyGraphController extends Controller
             abort_unless($request->user()?->hasVerifiedEmail(), 403);
         }
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
-        $people = $tree->people()->when(! $private, fn ($query) => $query->treeVisible())
-            ->where('name_search', 'like', '%'.$normalizer->normalize($data['q']).'%')
+        $people = $tree->people()->when(! $private, fn ($query) => $query->publiclyVisible())
+            ->nameMatches($data['q'])
             ->orderBy('full_name_ar')->limit(20)->get(['id', 'full_name_ar', 'title', 'honorific', 'verification_status']);
 
         $lineage = $this->lineage($tree, $people->modelKeys(), $private);
@@ -83,9 +81,9 @@ class GenealogyGraphController extends Controller
         $current = array_combine($ids, $ids);
         for ($generation = 0; $generation < 2 && $current !== []; $generation++) {
             $fathers = $tree->personRelationships()->where('relationship_type', 'father')->where('is_primary', true)
-                ->when(! $private, fn ($query) => $query->verified())
+                ->when(! $private, fn ($query) => $query->publiclyVisible())
                 ->whereIn('person_id', array_values($current))->pluck('related_person_id', 'person_id');
-            $names = $tree->people()->when(! $private, fn ($query) => $query->treeVisible())->whereKey($fathers->values()->all())->pluck('full_name_ar', 'id');
+            $names = $tree->people()->when(! $private, fn ($query) => $query->publiclyVisible())->whereKey($fathers->values()->all())->pluck('full_name_ar', 'id');
             $next = [];
             foreach ($current as $origin => $personId) {
                 $fatherId = $fathers[$personId] ?? null;

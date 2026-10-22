@@ -134,6 +134,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/manage/families/{family}/lookups/branches', [LookupController::class, 'branches'])->name('management.lookups.branches');
 
         Route::put('/manage/families/{family}/trees/{treeId}/root', [TreeController::class, 'update'])->whereNumber('treeId')->name('management.trees.update');
+        Route::post('/manage/families/{family}/trees', [TreeController::class, 'store'])->name('management.trees.store');
+        Route::put('/manage/families/{family}/trees/{treeId}', [TreeController::class, 'details'])->whereNumber('treeId')->name('management.trees.details');
         Route::post('/manage/families/{family}/invitations/{invitation}/resend', [InvitationController::class, 'resend'])->middleware('throttle:20,1')->whereNumber('invitation')->name('invitations.resend');
         Route::post('/manage/families/{family}/people', [PersonController::class, 'store'])->name('management.people.store');
         Route::get('/manage/families/{family}/people/{person}', [PersonController::class, 'show'])->whereNumber('person')->name('management.people.show');

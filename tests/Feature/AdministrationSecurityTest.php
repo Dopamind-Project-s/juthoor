@@ -7,9 +7,11 @@ use App\Models\FamilyInvitation;
 use App\Models\FamilyMembership;
 use App\Models\Person;
 use App\Models\User;
+use App\Notifications\FamilyInvitationNotification;
 use App\Services\Genealogy\CrossFamilyLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -112,4 +114,83 @@ test('genealogy writes re-check only shared ancestry links of the changed family
         }
     });
     expect($checked)->toBe([$link->id]);
+});
+
+test('family administrators invite instead of enrolling accounts and the reply never reveals registration', function () {
+    Notification::fake();
+    [$family, $admin] = securityFamily('consent', 'admin');
+    $registered = User::factory()->create(['email' => 'registered@example.test']);
+
+    $known = $this->actingAs($admin)->post(route('management.memberships.store', 'consent'), ['email' => 'registered@example.test', 'role' => 'editor']);
+    $unknown = $this->post(route('management.memberships.store', 'consent'), ['email' => 'nobody@example.test', 'role' => 'editor']);
+
+    $known->assertSessionHasNoErrors();
+    $unknown->assertSessionHasNoErrors()->assertSessionHas('status', $known->getSession()->get('status'));
+    expect($registered->roleFor($family))->toBeNull()
+        ->and($family->invitations()->whereIn('email', ['registered@example.test', 'nobody@example.test'])->count())->toBe(2);
+    Notification::assertSentOnDemand(FamilyInvitationNotification::class, fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'registered@example.test');
+});
+
+test('an invited account becomes a member only by accepting the invitation', function () {
+    [$family, $admin] = securityFamily('accept', 'admin');
+    $registered = User::factory()->create(['email' => 'joiner@example.test']);
+    $token = null;
+    Notification::fake();
+    $this->actingAs($admin)->post(route('management.memberships.store', 'accept'), ['email' => 'joiner@example.test', 'role' => 'editor'])->assertSessionHasNoErrors();
+    Notification::assertSentOnDemand(FamilyInvitationNotification::class, function ($notification) use (&$token) {
+        $token = $notification->token;
+
+        return true;
+    });
+
+    $this->actingAs($registered)->post(route('invitations.accept', $token))->assertRedirect();
+    expect($registered->fresh()->roleFor($family))->toBe('editor');
+});
+
+test('membership enrollment is refused across families, to editors and for disabled families', function () {
+    [$family, $admin] = securityFamily('own', 'admin');
+    [$other] = securityFamily('foreign', 'admin');
+    $editor = User::factory()->create();
+    FamilyMembership::query()->create(['family_id' => $family->id, 'user_id' => $editor->id, 'role' => 'editor']);
+    $payload = ['email' => 'target@example.test', 'role' => 'admin'];
+
+    $this->actingAs($admin)->post(route('management.memberships.store', 'foreign'), $payload)->assertForbidden();
+    $this->actingAs($editor)->post(route('management.memberships.store', 'own'), $payload)->assertForbidden();
+    $family->update(['is_active' => false]);
+    $this->actingAs($admin)->post(route('management.memberships.store', 'own'), $payload)->assertForbidden();
+    expect($other->invitations()->count() + $family->invitations()->count())->toBe(0);
+});
+
+test('super admins keep direct enrollment of existing accounts', function () {
+    [$family] = securityFamily('direct', 'admin');
+    $super = User::factory()->create()->forceFill(['is_super_admin' => true]);
+    $super->save();
+    $account = User::factory()->create();
+
+    $this->actingAs($super)->post(route('management.memberships.store', 'direct'), ['email' => $account->email, 'role' => 'reader'])->assertSessionHasNoErrors();
+    expect($account->roleFor($family))->toBe('reader')->and($family->invitations()->count())->toBe(0);
+});
+
+test('site-admin tree routes are reserved for super admins while family admins use family-scoped routes', function () {
+    [$family, $admin] = securityFamily('trees', 'admin');
+    [$other] = securityFamily('trees-other', 'admin');
+    $tree = $family->primaryTree;
+    $super = User::factory()->create()->forceFill(['is_super_admin' => true]);
+    $super->save();
+
+    $this->actingAs($admin)->post(route('site-admin.trees.store', $family->id), ['name_ar' => 'مباشر', 'slug' => 'direct'])->assertForbidden();
+    $this->put(route('site-admin.trees.update', [$family->id, $tree->id]), ['name_ar' => 'تعديل', 'is_active' => 0, 'is_primary' => 1])->assertForbidden();
+    $this->post(route('management.trees.store', 'trees-other'), ['name_ar' => 'عبر العائلات', 'slug' => 'cross'])->assertForbidden();
+    $this->put(route('management.trees.details', ['trees', $other->primaryTree->id]), ['name_ar' => 'عبر العائلات', 'is_active' => 1, 'is_primary' => 1])->assertNotFound();
+    expect($tree->fresh()->name_ar)->toBe('شجرة')->and($other->familyTrees()->count())->toBe(1);
+
+    $this->post(route('management.trees.store', 'trees'), ['name_ar' => 'شجرة العائلة الثانية', 'slug' => 'second'])->assertSessionHasNoErrors();
+    $this->actingAs($super)->post(route('site-admin.trees.store', $other->id), ['name_ar' => 'من الموقع', 'slug' => 'site'])->assertSessionHasNoErrors();
+    expect($family->familyTrees()->count())->toBe(2)->and($other->familyTrees()->count())->toBe(2);
+
+    foreach (['reader', 'editor'] as $role) {
+        $member = User::factory()->create();
+        FamilyMembership::query()->create(['family_id' => $family->id, 'user_id' => $member->id, 'role' => $role]);
+        $this->actingAs($member)->post(route('management.trees.store', 'trees'), ['name_ar' => 'ممنوع', 'slug' => 'blocked-'.$role])->assertForbidden();
+    }
 });

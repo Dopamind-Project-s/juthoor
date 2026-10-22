@@ -91,7 +91,7 @@ class AlZoubiSharedAncestrySeeder extends Seeder
                     'title' => $titles[$position] ?? null,
                     'honorific' => in_array($position, $prophets, true) ? 'عليه السلام' : ($position === 49 ? 'كرم الله وجهه' : null),
                     'status' => Person::STATUS_HISTORICAL, 'is_living' => false,
-                    'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
+                    'verification_status' => Source::VERIFICATION_PENDING_REVIEW, 'public_narrative' => true,
                 ]);
                 $ids = in_array($position, $prophets, true) ? [$attributes['prophet']->id] : [];
                 if ($position === 49) {
@@ -113,7 +113,7 @@ class AlZoubiSharedAncestrySeeder extends Seeder
                         'person_id' => $person->id, 'related_person_id' => $previous->id, 'relationship_type' => PersonRelationship::TYPE_FATHER,
                     ], [
                         'canonical_key' => $edgeKey, 'is_primary' => true,
-                        'source_id' => $source->id, 'verification_status' => Source::VERIFICATION_PENDING_REVIEW,
+                        'source_id' => $source->id, 'verification_status' => Source::VERIFICATION_PENDING_REVIEW, 'public_narrative' => true,
                     ]);
                     if ($edge->canonical_key !== null && $edge->canonical_key !== $edgeKey) {
                         throw new RuntimeException("Existing edge has another stable key: $edgeKey");

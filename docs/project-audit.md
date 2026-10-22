@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-22. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-22 (updated after Phase 1 finalization). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `45eede7` (session 1 dashboards committed by the maintainer, including the Qawasmeh manifest). Session 2 changes are uncommitted. |
-| Test baseline (start of session) | 151 passed, 2 failed (stale Qawasmeh assertions). |
-| Test result (end of session) | **194 passed, 0 failed, 2199 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `a0d25fe`; Phase 1 finalization changes (session 3) are uncommitted. |
+| Test baseline (start of session 3) | 194 passed on SQLite (re-verified, not assumed). |
+| Test result (end of session 3) | **218 passed, 0 failed, 2402 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -23,10 +23,10 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | People & father edges | `people`, `person_relationships` (father only, `is_primary`), `RelationshipIntegrityService` (self-parent, cycles, second primary father), `ConnectedPersonService` | Implemented (patrilineal only) |
 | Traversal | `GenealogyTraversalService` (ancestor path, descendants, side branches) | Implemented |
 | Branch / fakhd focus | `branches` (`parent_branch_id`, `root_person_id`, `branch_type`, `membership_mode=descendants`), `BranchIntegrityService`, `BranchMembershipService` (derived membership), `BranchFocusService` (focus/isolated) | Implemented; hierarchy types added this session |
-| Public tree | `GenealogyTreeController`, `GenealogyGraphController` (`all=1` batch, progressive, search), `ProgressiveGraphService`, `PublishedTreeTraversal`, `genealogy/tree|person.blade.php` | Implemented; see defect D-03 |
+| Public tree | `GenealogyTreeController`, `GenealogyGraphController` (`all=1` batch, progressive, search), `ProgressiveGraphService`, `PublishedTreeTraversal`, `genealogy/tree|person.blade.php`; one rule: `Person::publiclyVisible` / `PersonRelationship::publiclyVisible` / `Branch::published` | Implemented |
 | Static Al-Zoubi portal | `routes/web.php` closures over `resources/data/al-zoubi/*.php`; `families/al-zoubi/*` views | Static content; now links to DB branch focus when published |
 | Management | `Management\*` controllers, records pages, sections, lookups, family dashboard (`FamilyDashboardController`, `Services/Dashboards/*`) | Implemented |
-| Roles | `family_memberships` (reader/editor/admin), `users.is_super_admin`, `FamilyPolicy` (+ `publish`), Person/Branch/Relationship policies, `Gate::before` | Implemented |
+| Roles | `family_memberships` (reader/editor/admin), `users.is_super_admin`, `FamilyPolicy` (+ `publish`), Person/Branch/Relationship policies, `Gate::before`; membership by invitation (`FamilyInvitationService`); `/site-admin` super-admin only | Implemented |
 | Review / audit / revert | `change_requests` + `ChangeReviewService`; `audit_logs` + `AuditLogger`; `AuditReversionService` (latest change only) | Implemented (scope-limited) |
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
@@ -39,7 +39,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | ID | Requirement | Status | Evidence | Gap | Pri | Phase | Acceptance criteria |
 |---|---|---|---|---|---|---|---|
 | JTH-01 | Multi-family platform | Implemented | `Family`, memberships, `FamilyDashboardTest`, `AdminFrontendTest` isolation cases | — | P0 | 1 ✓ | Cross-family requests 403/404 (tested) |
-| JTH-02 | Unified tree without copies | Partial | Branch focus derives people (`FamilyTreeMvpTest` "derive members without copying"); Qawasmeh reuses ROOT anchors | Cross-family sharing uses link records, not shared person rows; base vs shared Al-Zoubi datasets conflict (D-01) | P0 | 1 | One person row per identity in a tree; reconciliation of D-01 |
+| JTH-02 | Unified tree without copies | Partial | Branch focus derives people; Qawasmeh reuses the existing ROOT-077 and `AZ-RAHAYMEH-SULAYMAN` records (`AlZoubiAnchorReconciliationTest`) | Cross-family sharing uses link records, not shared person rows; the user-supplied shared ancestry still differs from the base dataset in 39 names (D-06) | P1 | 2 | Reconciled ancestry with sources; one person row per identity |
 | JTH-03 | Fakhd & founders at any depth | Implemented | `BranchIntegrityService`, nested branches, `Branch::TYPES`, `FamilyTreeMvpTest` | — | P0 | 1 ✓ | Nested fakhd focus shows ancestors once (tested) |
 | JTH-04 | Independent family portals | Partial | Family admin workspace (done); public portal only static for Al-Zoubi | DB-driven public family portal | P1 | 3 | Each family has a public landing page from DB |
 | JTH-05 | Link families at verified common ancestor | Implemented | `CrossFamilyLinkController`, `CrossFamilyLinksTest` | Public page computes on GET (R-04) | P1 | 2 | Validity stored at write time |
@@ -48,9 +48,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-08 | Sources & assertion verification | Partial | `citations.field_key`, statuses, `SourceManagementTest` | Assertion model, competing narratives | P1 | 2 | Per-fact assertions with multiple citations |
 | JTH-09 | Review, audit, revert | Partial | `ChangeReviewTest`, `AuditReversionTest`; publication gate (this session) | Revert limited to latest change; no restore of deleted person | P1 | 2 | Revert any entry with conflict check |
 | JTH-10 | Duplicate detection & safe merge | Partial | Dashboard indicator, create-time confirmation, CSV similarity | Merge workflow with preview/undo | P1 | 2 | Merge event with before/after and undo |
-| JTH-11 | Arabic genealogical search | Partial | Normalized search + lineage (`FamilyTreeMvpTest`) | Search by father/fakhd filters, alternate names | P1 | 2 | Similar people distinguished (lineage done) |
+| JTH-11 | Arabic genealogical search | Partial | Normalized search over names and recorded variants (`alternate_names`), lineage in results; seeded records searchable (D-05 fixed) | Father/fakhd filters, phonetic matching | P1 | 2 | UC-11 filters |
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
-| JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, `AdministrationSecurityTest` | Finer per-module/branch roles | P1 | 2 | Branch/module-scoped permissions |
+| JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, `AdministrationSecurityTest` | Finer per-module/branch roles | P1 | 2 | Branch/module-scoped permissions |
 | JTH-14 | Dashboard per family | Implemented | `/manage/families/{family}/dashboard`, `FamilyDashboardTest` | Settings page | P1 | 1 ✓ | Role-aware, family-scoped (tested) |
 | JTH-15 | History, archive, media | Partial | Static history/archive pages; source files | DB archive and media | P2 | 3 | Archive items linked to person/fakhd |
 | JTH-16 | Pages for every clan level | Missing | Static Al-Zoubi pages only | Entity pages | P1 | 3 | UC-13 |
@@ -81,16 +81,16 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|---|
 | UC-01 View unified tree | Implemented | `FamilyTreeMvpTest`, `GenealogyGraphEndpointTest`, browser E2E |
 | UC-02 Focus on fakhd | Implemented | `BranchFocusService`, nested focus test |
-| UC-03 Add person (match check first) | Implemented | Duplicate confirmation + integrity tests |
+| UC-03 Add person (match check first) | Implemented | `DuplicatePersonDetector` on direct creation and on person proposals (submit and review) |
 | UC-04 Create fakhd | Implemented | Branch types, derived membership test |
 | UC-05 Link two families | Implemented | `CrossFamilyLinksTest` |
 | UC-06 Duplicate check & merge | Partial | Detection only |
-| UC-07 Propose correction; unapproved not published | Implemented | `PublicationGuard`, `FamilyTreeMvpTest` |
-| UC-08 Manage members | Implemented | Membership/invitation tests |
+| UC-07 Propose correction; unapproved not published | Implemented | `PublicationGuard` (covers published narratives), `FamilyTreeMvpTest`, `PublicVisibilityTest` |
+| UC-08 Manage members | Implemented | Invitation-only enrollment for family admins, identical replies for registered/unknown emails |
 | UC-09 Attributes & badges | Implemented | `PersonDescriptorsTest`, founder badge test |
 | UC-10 Import | Partial | CSV, not GEDCOM |
 | UC-11 Genealogical search | Partial | Lineage in results; no father/fakhd filters |
-| UC-12 Living-person privacy | Partial | Record level across page/graph/search; no field level |
+| UC-12 Living-person privacy | Partial | One record-level rule across page/graph/focus/search (`PublicVisibilityTest`, 5 roles); no field level; unknown `is_living` is treated as not living |
 | UC-13 – UC-22 | Missing | Phases 3–4 |
 
 ## 5. Completion dashboard
@@ -114,15 +114,19 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 | Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 2 | 15 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
 
-Phase 1 (tree MVP) readiness: UC-01–UC-05, UC-07–UC-09 implemented; Phase 1 is **not declared complete** because of blocker D-01 and open item D-03 (see roadmap).
+Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acceptance criteria met on 2026-10-22 (see roadmap). Overall weighted completion is unchanged because Phase 1 hardened existing requirements rather than adding new ones.
 
 ## 6. Known defects, discrepancies and risks
 
-| ID | Type | Description | Evidence | Action |
-|---|---|---|---|---|
-| D-01 | Data conflict (blocker) | Base Al-Zoubi seed spells ROOT-077 **ذبيان** and has no ROOT-078; shared-ancestry seed, Qawasmeh importer and v2.0 use **ذيبان ← سليمان (ROOT-078)**. `db:seed` followed by `AlQawasmehBranchSeeder` aborts: "anchor identity conflict ROOT-077". | Reproduced on a fresh database | Needs a reviewed decision on the canonical spelling and chain; the importer already supports a reviewed anchor reference. Not changed. |
-| D-02 | Static content | `/al-zoubi/branches/*` show a hard-coded "يوسف → ذبيان → branch" strip, independent of the DB. | `families/al-zoubi/branches/show.blade.php` | Bridged with a link to the DB branch focus; replacement belongs to Phase 3 entity pages. |
-| D-03 | Inconsistency | Public visibility uses `treeVisible` (batch, search, person page) and `publiclyVisible` (root-progressive graph, branch focus). With the shared dataset the progressive endpoint returns 404 while the UI's `all=1` endpoint shows 79 nodes. | Scratch database check | Unify into one visibility service (P1-07). |
-| D-04 | Coupling | `Person::scopeTreeVisible` hard-codes ROOT-001..079 plus an Al-Zoubi source reference as a publication exception. | `app/Models/Person.php` | Replace with an explicit "published narrative" flag (P1-07). |
-| R-04 | Performance | Public `/shared-ancestry` recomputes link fingerprints per request and can write on GET (now rate-limited). | `CrossFamilyLinkController::publicIndex` | Phase 2. |
-| R-05 | Policy | Family admins can add any registered user by email without consent and learn whether the email exists. | `MembershipController::store` | Decision needed (P1-18). |
+| ID | Type | Description | Status / resolution |
+|---|---|---|---|
+| D-01 | Data conflict | Base dataset spelled ROOT-077 **ذبيان** and had no ROOT-078; Qawasmeh, shared ancestry and v2.0 use **ذيبان ← سليمان**. | **Resolved** under the 2026-10-22 working decision: ROOT-077 keeps its id, key and `sourced` status; display spelling ذيبان, ذبيان kept in `alternate_names`; audited (`spelling_reconciled`, reason recorded). ROOT-078 is the existing `AZ-RAHAYMEH-SULAYMAN` (only سليمان son of ROOT-077; sources SRC-16/17/18) through an explicit alias with a pending citation — no person created. Not a historical verification. |
+| D-02 | Static content | `/al-zoubi/branches/*` show a hard-coded ancestry strip. | Bridged to the DB branch focus; replacement is Phase 3 (JTH-16). |
+| D-03 | Inconsistency | Two public rules (`treeVisible` vs `publiclyVisible`) gave different answers per endpoint. | **Resolved**: one rule for people, edges and branches on every public surface. |
+| D-04 | Coupling | Hard-coded ROOT-001..079 + source-reference exception in the visibility scopes. | **Resolved**: explicit `public_narrative` flag; migration backfill proven identical on an old-code database (79 people / 78 edges before and after; draft stayed hidden). |
+| D-05 | Defect (found in session 3) | `DatabaseSeeder` used `WithoutModelEvents`, so seeded people had no `name_search` (not searchable, invisible to duplicate checks) and seeding skipped model integrity validation. | **Resolved**: trait removed; migration `backfill_people_name_search` repairs existing databases (84 → 0 rows on a real seeded DB). |
+| D-06 | Data reconciliation | The user-supplied shared ancestry differs from the curated base dataset in 39 further ROOT names (e.g. ROOT-004 قينان/قيدان, ROOT-063). `db:seed` after the shared seeder is refused with nothing written. | Open — Phase 2 data review with sources; each variant can then be recorded the same way as D-01. |
+| R-04 | Performance | Public `/shared-ancestry` recomputes link fingerprints per request (rate-limited). | Open — Phase 2. |
+| R-05 | Policy | Family admins enrolled accounts without consent and could probe registration. | **Resolved**: invitation-only for family admins, identical replies; super admins keep direct enrollment. |
+| R-06 | Policy | Family admins used `/site-admin/families/{id}/trees*`. | **Resolved**: those routes are super-admin only; family admins use `/manage/families/{family}/trees*`. |
+| R-07 | Privacy | `is_living = null` is treated as not living by the public rule (pre-existing; base data relies on it). | Open — Phase 2 field-level privacy (JTH-28) with an explicit backfill of living status. |

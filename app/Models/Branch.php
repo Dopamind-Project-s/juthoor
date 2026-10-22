@@ -69,7 +69,7 @@ class Branch extends Model
     public function scopePublished($query)
     {
         return $query->active()->whereIn('verification_status', [Source::VERIFICATION_VERIFIED, Source::VERIFICATION_SOURCED])
-            ->whereHas('rootPerson', fn ($person) => $person->treeVisible());
+            ->whereHas('rootPerson', fn ($person) => $person->publiclyVisible());
     }
 
     public function scopeActive($query)

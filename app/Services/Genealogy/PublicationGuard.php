@@ -51,7 +51,8 @@ class PublicationGuard
     /** @param array<string, mixed> $attributes */
     public function isPublic(Model $record, array $attributes): bool
     {
-        $verified = in_array($attributes['verification_status'] ?? null, self::PUBLISHED_STATUSES, true);
+        $verified = in_array($attributes['verification_status'] ?? null, self::PUBLISHED_STATUSES, true)
+            || (($attributes['verification_status'] ?? null) === Source::VERIFICATION_PENDING_REVIEW && (bool) ($attributes['public_narrative'] ?? false));
 
         return match (true) {
             $record instanceof Person => $verified && ($attributes['status'] ?? null) === Person::STATUS_HISTORICAL && ! ($attributes['is_living'] ?? false),

@@ -121,12 +121,16 @@ test('new user tree membership invitation and relationship forms persist authori
     $this->put(route('site-admin.users.update', $new->id), ['name' => 'اسم محدث', 'email' => $new->email, 'is_active' => 1])->assertSessionHasNoErrors();
     expect($new->fresh()->name)->toBe('اسم محدث');
     $this->actingAs($admin)->post(route('management.memberships.store', $family->slug), ['email' => $new->email, 'role' => 'reader'])->assertSessionHasNoErrors();
-    $this->post(route('site-admin.trees.store', $family->id), ['name_ar' => 'شجرة جديدة', 'slug' => 'second'])->assertSessionHasNoErrors();
+    expect($new->roleFor($family))->toBeNull()->and(FamilyInvitation::query()->where('email', strtolower($new->email))->exists())->toBeTrue();
+    // Family admins manage their trees through the family-scoped routes; /site-admin is reserved for super admins.
+    $this->post(route('site-admin.trees.store', $family->id), ['name_ar' => 'شجرة جديدة', 'slug' => 'second'])->assertForbidden();
+    $this->post(route('management.trees.store', $family->slug), ['name_ar' => 'شجرة جديدة', 'slug' => 'second'])->assertSessionHasNoErrors();
     $second = $family->familyTrees()->where('slug', 'second')->sole();
-    $this->put(route('site-admin.trees.update', [$family->id, $second->id]), ['name_ar' => 'شجرة محدثة', 'is_active' => 1])->assertSessionHasNoErrors();
+    $this->put(route('site-admin.trees.update', [$family->id, $second->id]), ['name_ar' => 'شجرة محدثة', 'is_active' => 1])->assertForbidden();
+    $this->put(route('management.trees.details', [$family->slug, $second->id]), ['name_ar' => 'شجرة محدثة', 'is_active' => 1])->assertSessionHasNoErrors();
     expect($second->fresh()->name_ar)->toBe('شجرة محدثة');
     $this->post(route('invitations.store', $family->slug), ['email' => 'invited@example.test', 'role' => 'reader'])->assertSessionHasNoErrors();
-    $invitation = FamilyInvitation::query()->sole();
+    $invitation = FamilyInvitation::query()->where('email', 'invited@example.test')->sole();
     $this->put(route('invitations.update', [$family->slug, $invitation->id]), ['role' => 'editor'])->assertSessionHasNoErrors();
     expect($invitation->fresh()->role)->toBe('editor');
     $tree = $family->primaryTree;

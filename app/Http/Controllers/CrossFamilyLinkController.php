@@ -47,9 +47,9 @@ class CrossFamilyLinkController extends Controller
         $family = $this->context($request);
         $request->validate(['q_left' => ['nullable', 'string', 'max:100'], 'q_right' => ['nullable', 'string', 'max:100']]);
         $query = Person::query()->with('familyTree.family')->whereHas('familyTree', fn ($q) => $q->active()->whereHas('family', fn ($q) => $q->active()));
-        $leftPeople = (clone $query)->when($family, fn ($q) => $q->whereHas('familyTree', fn ($q) => $q->where('family_id', $family->id)), fn ($q) => $q->publiclyVisible())
+        $leftPeople = (clone $query)->when($family, fn ($q) => $q->whereHas('familyTree', fn ($q) => $q->where('family_id', $family->id)), fn ($q) => $q->verifiedHistorical())
             ->when($request->filled('q_left'), fn ($q) => $q->where('full_name_ar', 'like', '%'.$request->query('q_left').'%'))->orderBy('full_name_ar')->limit(200)->get();
-        $rightPeople = (clone $query)->publiclyVisible()->when($family, fn ($q) => $q->whereHas('familyTree', fn ($q) => $q->where('family_id', '!=', $family->id)))
+        $rightPeople = (clone $query)->verifiedHistorical()->when($family, fn ($q) => $q->whereHas('familyTree', fn ($q) => $q->where('family_id', '!=', $family->id)))
             ->when($request->filled('q_right'), fn ($q) => $q->where('full_name_ar', 'like', '%'.$request->query('q_right').'%'))->orderBy('full_name_ar')->limit(200)->get();
 
         return view('shared-ancestry.create', compact('family', 'leftPeople', 'rightPeople'));

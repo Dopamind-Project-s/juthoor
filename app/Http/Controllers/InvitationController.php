@@ -7,6 +7,7 @@ use App\Models\FamilyInvitation;
 use App\Models\User;
 use App\Notifications\FamilyInvitationNotification;
 use App\Services\AuditLogger;
+use App\Services\FamilyInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,27 +27,7 @@ class InvitationController extends Controller
         Gate::authorize('manageMembers', $familyModel);
         abort_unless($familyModel->is_active, 403);
         $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'in:reader,editor,admin']]);
-        $email = Str::lower($data['email']);
-        if ($familyModel->users()->where('email', $email)->exists()) {
-            throw ValidationException::withMessages(['email' => 'المستخدم عضو في العائلة بالفعل.']);
-        }
-        $token = Str::random(64);
-        $invitation = DB::transaction(function () use ($familyModel, $request, $data, $email, $token): FamilyInvitation {
-            Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
-            foreach ($familyModel->invitations()->where('email', $email)->whereNull('accepted_at')->whereNull('cancelled_at')->get() as $previous) {
-                $before = $this->audit->snapshot($previous);
-                $previous->update(['cancelled_at' => now()]);
-                $this->audit->record($request->user(), $familyModel, $previous, 'cancelled', $before, $this->audit->snapshot($previous));
-            }
-            $invitation = $familyModel->invitations()->create([
-                'invited_by' => $request->user()->id, 'email' => $email, 'role' => $data['role'],
-                'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7),
-            ]);
-            $this->audit->record($request->user(), $familyModel, $invitation, 'invited', null, $this->audit->snapshot($invitation));
-
-            return $invitation;
-        });
-        Notification::route('mail', $email)->notify(new FamilyInvitationNotification($invitation, $token));
+        app(FamilyInvitationService::class)->invite($familyModel, $request->user(), $data['email'], $data['role']);
 
         return back()->with('status', 'أُضيفت الدعوة إلى طابور البريد لمدة سبعة أيام.');
     }

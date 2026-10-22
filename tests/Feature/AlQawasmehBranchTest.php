@@ -202,8 +202,8 @@ test('pending people remain private until reviewed and founder focus uses the ap
     app(AlQawasmehBranchSeeder::class)->run();
     $tree = FamilyTree::query()->sole();
     $branch = Branch::query()->sole();
-    expect(Person::query()->treeVisible()->where('canonical_key', 'like', 'QW-%')->count())->toBe(0)
-        ->and(Person::query()->publiclyVisible()->where('canonical_key', 'like', 'QW-%')->count())->toBe(0);
+    expect(Person::query()->publiclyVisible()->where('canonical_key', 'like', 'QW-%')->count())->toBe(0)
+        ->and(Person::query()->verifiedHistorical()->where('canonical_key', 'like', 'QW-%')->count())->toBe(0);
     $admin = User::factory()->create();
     $submitter = User::factory()->create();
     foreach ([$admin, $submitter] as $user) {

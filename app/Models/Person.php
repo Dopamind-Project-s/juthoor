@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'title', 'honorific', 'status', 'verification_status'])]
+#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'title', 'honorific', 'status', 'verification_status', 'alternate_names', 'public_narrative'])]
 class Person extends Model
 {
     public const STATUS_ACTIVE = 'active';
@@ -21,7 +21,10 @@ class Person extends Model
     protected static function booted(): void
     {
         static::saving(function (Person $person): void {
-            $person->name_search = app(ArabicNameNormalizer::class)->normalize($person->full_name_ar);
+            $normalizer = app(ArabicNameNormalizer::class);
+            $person->name_search = $normalizer->normalize($person->full_name_ar);
+            $variants = collect($person->alternate_names ?? [])->map(fn ($name) => $normalizer->normalize((string) $name))->filter()->unique()->values();
+            $person->alternate_name_search = $variants->isEmpty() ? null : '|'.$variants->implode('|').'|';
         });
     }
 
@@ -31,7 +34,27 @@ class Person extends Model
             'birth_date' => 'date',
             'death_date' => 'date',
             'is_living' => 'boolean',
+            'alternate_names' => 'array',
+            'public_narrative' => 'boolean',
         ];
+    }
+
+    /** Arabic-normalized partial match on the display name or any recorded spelling variant. */
+    public function scopeNameMatches($query, string $term)
+    {
+        $normalized = app(ArabicNameNormalizer::class)->normalize($term);
+
+        return $query->where(fn ($query) => $query->where('name_search', 'like', '%'.$normalized.'%')
+            ->orWhere('alternate_name_search', 'like', '%'.$normalized.'%'));
+    }
+
+    /** Exact normalized match on the display name or a recorded variant (duplicate detection). */
+    public function scopeSameName($query, string $name)
+    {
+        $normalized = app(ArabicNameNormalizer::class)->normalize($name);
+
+        return $query->where(fn ($query) => $query->where('name_search', $normalized)
+            ->orWhere('alternate_name_search', 'like', '%|'.$normalized.'|%'));
     }
 
     public function personAttributes(): BelongsToMany
@@ -90,19 +113,21 @@ class Person extends Model
         ]);
     }
 
-    /** Explicitly published submitted foundation; verification is never changed. */
-    public function scopeTreeVisible($query)
+    /**
+     * The single public-display rule for people on every public surface (tree, graph, focus, person pages, search,
+     * branch listings): historical, not known to be living, and either verified/sourced or a submitted narrative that
+     * an administrator explicitly published while it remains pending review. Verification is never raised by this.
+     */
+    public function scopePubliclyVisible($query)
     {
         return $query->where('status', self::STATUS_HISTORICAL)
-            ->where(fn ($q) => $q->where('is_living', false)->orWhereNull('is_living'))
-            ->where(fn ($q) => $q->whereIn('verification_status', ['verified', 'sourced'])
-                ->orWhere(fn ($q) => $q->where('verification_status', 'pending_review')
-                    ->whereIn('canonical_key', array_map(fn ($n) => sprintf('ROOT-%03d', $n), range(1, 79)))
-                    ->whereHas('sources', fn ($source) => $source->where('reference', 'al-zoubi-shared-ancestry-user-2026-10-16'))
-                    ->whereHas('familyTree.family', fn ($family) => $family->where('slug', 'al-zoubi'))));
+            ->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'))
+            ->where(fn ($query) => $query->verified()
+                ->orWhere(fn ($query) => $query->where('verification_status', Source::VERIFICATION_PENDING_REVIEW)->where('public_narrative', true)));
     }
 
-    public function scopePubliclyVisible($query)
+    /** Stricter than public display: verified historical records only (shared-ancestry linking, JTH-05). */
+    public function scopeVerifiedHistorical($query)
     {
         return $query->verified()->where('status', self::STATUS_HISTORICAL)->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'));
     }

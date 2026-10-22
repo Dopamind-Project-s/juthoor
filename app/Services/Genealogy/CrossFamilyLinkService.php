@@ -19,7 +19,7 @@ class CrossFamilyLinkService
     public function path(Person $person, bool $public = false): Collection
     {
         $people = Person::query()->where('family_tree_id', $person->family_tree_id)
-            ->when($public, fn ($q) => $q->publiclyVisible())->with('personAttributes', 'familyTree.family', 'citations.source')->get()->keyBy('id');
+            ->when($public, fn ($q) => $q->verifiedHistorical())->with('personAttributes', 'familyTree.family', 'citations.source')->get()->keyBy('id');
         $edges = PersonRelationship::query()->where('family_tree_id', $person->family_tree_id)
             ->where('relationship_type', 'father')->where('is_primary', true)
             ->when($public, fn ($q) => $q->verified())->get()->keyBy('person_id');
@@ -37,7 +37,7 @@ class CrossFamilyLinkService
 
     public function eligible(?Person $person): bool
     {
-        return $person && Person::query()->publiclyVisible()->whereKey($person->id)
+        return $person && Person::query()->verifiedHistorical()->whereKey($person->id)
             ->whereHas('familyTree', fn ($q) => $q->active()->whereHas('family', fn ($q) => $q->active()))->exists();
     }
 
@@ -166,7 +166,7 @@ class CrossFamilyLinkService
     /** Public descendants stop at hidden/unverified records; no implied bridge across a gap. */
     public function descendants(Person $person): Collection
     {
-        $people = Person::query()->publiclyVisible()->where('family_tree_id', $person->family_tree_id)->with('personAttributes', 'familyTree.family')->get()->keyBy('id');
+        $people = Person::query()->verifiedHistorical()->where('family_tree_id', $person->family_tree_id)->with('personAttributes', 'familyTree.family')->get()->keyBy('id');
         $edges = PersonRelationship::query()->verified()->where('relationship_type', 'father')->where('family_tree_id', $person->family_tree_id)->get()->groupBy('related_person_id');
         $parents = $edges->flatten()->keyBy('person_id');
         $queue = [$person->id];

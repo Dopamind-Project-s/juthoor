@@ -45,7 +45,7 @@ class FamilyController extends Controller
             $peopleQuery->whereKey($health->people($tree, $issue)->select('people.id'));
         }
         if ($request->filled('q')) {
-            $peopleQuery->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%');
+            $peopleQuery->nameMatches((string) $request->query('q'));
         }
         if ($request->filled('verification')) {
             $peopleQuery->where('verification_status', $request->query('verification'));

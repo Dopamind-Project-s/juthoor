@@ -9,6 +9,7 @@ use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\FamilyInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -18,9 +19,20 @@ class MembershipController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
+    /**
+     * Family administrators cannot enroll an account directly: the address receives an invitation and membership starts
+     * only on acceptance. The reply is identical whether or not the address belongs to a registered account.
+     * Super admins keep direct enrollment of existing accounts as a platform-level operation.
+     */
     public function store(StoreMembershipRequest $request, string $family): RedirectResponse
     {
         $familyModel = $this->family($family);
+        if (! $request->user()->isSuperAdmin()) {
+            abort_unless($familyModel->is_active, 403);
+            app(FamilyInvitationService::class)->invite($familyModel, $request->user(), (string) $request->string('email'), (string) $request->string('role'));
+
+            return back()->with('status', 'أُرسلت دعوة إلى البريد المدخل؛ تبدأ العضوية بعد قبول صاحبه للدعوة.');
+        }
         $user = User::query()->where('email', $request->string('email'))->first();
 
         if (! $user) {

@@ -10,9 +10,9 @@ class PublishedTreeTraversal
     /** Profiles use the same visibility boundary as the complete tree, with no ancestor depth cap. */
     public function profile(FamilyTree $tree, Person $person, bool $private): array
     {
-        $people = $tree->people()->when(! $private, fn ($q) => $q->treeVisible())->with('personAttributes')->get()->keyBy('id');
+        $people = $tree->people()->when(! $private, fn ($q) => $q->publiclyVisible())->with('personAttributes')->get()->keyBy('id');
         $edges = $tree->personRelationships()->where('relationship_type', 'father')->where('is_primary', true)
-            ->when(! $private, fn ($q) => $q->treeVisible())->get()
+            ->when(! $private, fn ($q) => $q->publiclyVisible())->get()
             ->filter(fn ($edge) => $people->has($edge->person_id) && $people->has($edge->related_person_id));
         $parents = $edges->keyBy('person_id');
         $children = $edges->groupBy('related_person_id');
