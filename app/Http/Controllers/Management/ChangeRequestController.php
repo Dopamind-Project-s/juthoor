@@ -8,6 +8,7 @@ use App\Models\Family;
 use App\Services\ChangeReviewService;
 use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Genealogy\GenealogyMutationService;
+use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -80,6 +81,13 @@ class ChangeRequestController extends Controller
         $change = ChangeRequest::query()->where('family_tree_id', $tree->id)->findOrFail($change);
 
         $referenceLabels = $this->mutations->referenceLabels($tree, $change->base ?? [], $change->payload);
+        if ($change->target_type === 'person') {
+            $privacy = app(PersonPrivacy::class);
+            $current = $change->target_id ? $tree->people()->find($change->target_id) : null;
+            // In-memory only: the stored proposal is never altered.
+            $change->setAttribute('base', $change->base ? $privacy->redactSnapshot($change->base, $family, auth()->user(), $current) : null);
+            $change->setAttribute('payload', $privacy->redactSnapshot($change->payload, $family, auth()->user(), $current));
+        }
         $possibleDuplicates = $change->status === 'pending' && $change->target_type === 'person' && $change->operation === 'create'
             ? app(DuplicatePersonDetector::class)->matches($tree, (string) ($change->payload['full_name_ar'] ?? ''), null)
             : collect();

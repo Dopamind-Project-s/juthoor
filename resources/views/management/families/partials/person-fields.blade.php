@@ -16,10 +16,21 @@ $attributeOptions = \App\Models\PersonAttribute::query()->availableFor($family->
 <label>المفتاح المرجعي<input class="form-control" name="canonical_key" placeholder="المفتاح المرجعي" value="{{ old('canonical_key',$person?->canonical_key) }}">@error('canonical_key')<span class="field-error">{{ $message }}</span>@enderror</label>
 <label>حالة الشخص<select class="form-select" name="status"><option value="historical" @selected(old('status',$person?->status ?? 'historical')==='historical')>تاريخي</option><option value="active" @selected(old('status',$person?->status)==='active')>نشط/خاص</option><option value="unresolved" @selected(old('status',$person?->status)==='unresolved')>غير محسوم</option></select>@error('status')<span class="field-error">{{ $message }}</span>@enderror</label>
 <label>حالة التوثيق<select class="form-select" name="verification_status">@include('management.partials.verification-options',['selected'=>old('verification_status',$person?->verification_status ?? 'pending_review')])</select>@error('verification_status')<span class="field-error">{{ $message }}</span>@enderror</label>
-<label>سنة الميلاد<input class="form-control" type="number" name="birth_year" placeholder="سنة الميلاد" value="{{ old('birth_year',$person?->birth_year) }}">@error('birth_year')<span class="field-error">{{ $message }}</span>@enderror</label>
-<label>سنة الوفاة<input class="form-control" type="number" name="death_year" placeholder="سنة الوفاة" value="{{ old('death_year',$person?->death_year) }}">@error('death_year')<span class="field-error">{{ $message }}</span>@enderror</label>
-<label><input type="checkbox" name="is_living" value="1" @checked(old('is_living',$person?->is_living))> على قيد الحياة</label>
-<label>الجنس<select class="form-select" name="gender"><option value="">غير محدد</option><option value="male" @selected(old('gender',$person?->gender)==='male')>ذكر</option><option value="female" @selected(old('gender',$person?->gender)==='female')>أنثى</option></select>@error('gender')<span class="field-error">{{ $message }}</span>@enderror</label>
+@php
+    $privacy = app(\App\Services\Genealogy\PersonPrivacy::class);
+    $privacyAudience = $privacy->audience(auth()->user(), $family);
+    $fieldVisible = fn (string $field) => $privacy->allows($privacyAudience, $privacy->level($field, old('field_visibility', $person?->field_visibility), old('is_living', $person?->is_living)));
+    $restrictedNote = '<p class="text-muted mb-0"><i class="bi bi-lock"></i> %s: محجوب بحسب إعداد الخصوصية؛ تبقى قيمته دون تغيير.</p>';
+@endphp
+@if($fieldVisible('birth_year'))<label>سنة الميلاد<input class="form-control" type="number" name="birth_year" placeholder="سنة الميلاد" value="{{ old('birth_year',$person?->birth_year) }}">@error('birth_year')<span class="field-error">{{ $message }}</span>@enderror</label>@else{!! sprintf($restrictedNote, 'سنة الميلاد') !!}@endif
+@if($fieldVisible('death_year'))<label>سنة الوفاة<input class="form-control" type="number" name="death_year" placeholder="سنة الوفاة" value="{{ old('death_year',$person?->death_year) }}">@error('death_year')<span class="field-error">{{ $message }}</span>@enderror</label>@else{!! sprintf($restrictedNote, 'سنة الوفاة') !!}@endif
+@include('management.partials.living-status-select',['name'=>'is_living','selected'=>old('is_living',$person?->is_living)])
+@if($fieldVisible('gender'))<label>الجنس<select class="form-select" name="gender"><option value="">غير محدد</option><option value="male" @selected(old('gender',$person?->gender)==='male')>ذكر</option><option value="female" @selected(old('gender',$person?->gender)==='female')>أنثى</option></select>@error('gender')<span class="field-error">{{ $message }}</span>@enderror</label>@else{!! sprintf($restrictedNote, 'الجنس') !!}@endif
+@if(!request()->routeIs('management.changes.*') && auth()->user()->can('publish',$family))
+<fieldset class="connected-fields"><legend class="h5">خصوصية الحقول</legend><p class="text-muted">تحدد من يرى كل معلومة. لا تظهر أي معلومة للعامة إذا كان الشخص حيًا أو غير معروف الحالة.</p>
+@foreach(\App\Services\Genealogy\PersonPrivacy::FIELDS as $field=>$default)<label>{{ \App\Services\Genealogy\PersonPrivacy::LABELS[$field] }}<select class="form-select" name="field_visibility[{{ $field }}]">@foreach(\App\Services\Genealogy\PersonPrivacy::LEVELS as $level=>$levelLabel)<option value="{{ $level }}" @selected(old('field_visibility.'.$field, $person?->field_visibility[$field] ?? $default)===$level)>{{ $levelLabel }}</option>@endforeach</select></label>@endforeach
+</fieldset>
+@endif
 
 @if(!request()->routeIs('management.changes.*'))
 @include('management.families.partials.person-connections')

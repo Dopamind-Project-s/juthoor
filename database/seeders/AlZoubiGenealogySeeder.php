@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Family;
 use App\Models\Person;
 use App\Models\PersonRelationship;
+use App\Services\Genealogy\LivingStatusClassifier;
 use App\Services\Imports\AlZoubiDataset;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,8 @@ class AlZoubiGenealogySeeder extends Seeder
 
         $tree = Family::query()->where('slug', FamilySeeder::SLUG)->sole()
             ->familyTrees()->where('slug', FamilyTreeSeeder::SLUG)->sole();
+        // The curated dataset marks these records historical and sourced; classify them with that explicit basis.
+        app(LivingStatusClassifier::class)->classifyUnknown($tree->id);
         $peopleCreated = $tree->people()->count() - $peopleBefore;
         $relationshipsCreated = $tree->personRelationships()->count() - $relationshipsBefore;
         $sourceStatistics = $dataset->statistics();

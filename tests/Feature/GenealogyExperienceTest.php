@@ -30,7 +30,7 @@ function publicGenealogyExperience(string $familySlug = 'example-family'): array
         'canonical_key' => 'root',
         'first_name_ar' => 'الجد',
         'full_name_ar' => 'الجد المؤسس',
-        'status' => Person::STATUS_HISTORICAL,
+        'status' => Person::STATUS_HISTORICAL, 'is_living' => false,
         'verification_status' => Source::VERIFICATION_VERIFIED,
     ]);
     $founder = Person::query()->create([
@@ -38,7 +38,7 @@ function publicGenealogyExperience(string $familySlug = 'example-family'): array
         'canonical_key' => 'founder',
         'first_name_ar' => 'مؤسس',
         'full_name_ar' => 'مؤسس الفرع',
-        'status' => Person::STATUS_HISTORICAL,
+        'status' => Person::STATUS_HISTORICAL, 'is_living' => false,
         'verification_status' => Source::VERIFICATION_VERIFIED,
     ]);
     $child = Person::query()->create([
@@ -46,7 +46,7 @@ function publicGenealogyExperience(string $familySlug = 'example-family'): array
         'canonical_key' => 'child',
         'first_name_ar' => 'ابن',
         'full_name_ar' => 'ابن المؤسس',
-        'status' => Person::STATUS_HISTORICAL,
+        'status' => Person::STATUS_HISTORICAL, 'is_living' => false,
         'verification_status' => Source::VERIFICATION_SOURCED,
     ]);
 

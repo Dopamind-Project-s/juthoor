@@ -211,7 +211,7 @@ test('pending people remain private until reviewed and founder focus uses the ap
     }
     $founder = $branch->rootPerson;
     $reviews = app(ChangeReviewService::class);
-    $change = $reviews->submit($tree, $submitter, 'person', 'update', $founder->id, ['verification_status' => 'verified', 'status' => 'historical'], 'مراجعة المصدر');
+    $change = $reviews->submit($tree, $submitter, 'person', 'update', $founder->id, ['verification_status' => 'verified', 'status' => 'historical', 'is_living' => false], 'مراجعة المصدر');
     $reviews->decide($tree, $change, $admin, 'accepted', 'تحقق مستقل');
     expect($founder->fresh()->verification_status)->toBe('verified')->and(Person::query()->publiclyVisible()->whereKey($founder->id)->exists())->toBeTrue();
     // Reviewer approvals of the path are required for normal branch traversal.

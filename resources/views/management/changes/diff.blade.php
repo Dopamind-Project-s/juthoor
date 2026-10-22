@@ -5,7 +5,7 @@ $booleanFields=['is_living','is_active','is_primary'];
 $integerFields=['birth_year','death_year','person_id','related_person_id','root_person_id','parent_branch_id','sort_order'];
 $left=$before[$key] ?? null;$right=$after[$key] ?? null;
 if(in_array($key,$booleanFields)){ $left=$left===null?null:(bool)$left;$right=$right===null?null:(bool)$right; }
-if(in_array($key,$integerFields)){ $left=$left===null?null:(int)$left;$right=$right===null?null:(int)$right; }
+if(in_array($key,$integerFields)){ $left=is_numeric($left)?(int)$left:$left;$right=is_numeric($right)?(int)$right:$right; }
 @endphp
 @if(!in_array($key,['id','family_tree_id','name_search']) && $left!==$right)
 <tr><th>{{ __('genealogy.fields.'.$key) }}</th>

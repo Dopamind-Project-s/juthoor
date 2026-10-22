@@ -81,14 +81,25 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 
 ### Remaining (moved to Phase 2)
 - **D-06** reconcile the other 39 shared-ancestry spellings with sources before the shared and base datasets can coexist.
-- **R-07** explicit living status and field-level privacy (JTH-28).
 - **R-04** store shared-ancestry validity at write time.
 - Person proposals with a proposed father; father/fakhd search filters (UC-11).
 
 ## Phase 2 — first approved tasks (proposed order)
-1. Field-level privacy and living-status backfill (JTH-28, UC-12).
+1. ✅ Field-level privacy and living-status backfill (JTH-28, UC-12) — done 2026-10-22 as Phase 2.1, see below.
 2. Assertions with competing narratives and per-fact citations (JTH-08).
 3. Merge workflow with preview and undo, built on `DuplicatePersonDetector` (JTH-10, UC-06).
 4. Revert any audit entry; restore a deleted person (JTH-09).
 5. Shared-ancestry spelling reconciliation (D-06) and write-time link validity (R-04).
 6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
+
+## Phase 2.1 — Field-level privacy & living status (done 2026-10-22)
+
+- [x] **P2.1-01 Audit** — documented every place unknown meant deceased: `Person::publiclyVisible`/`verifiedHistorical`, `PublicationGuard::isPublic`, `GenealogyMutationService::attributes`, `ConnectedPersonService`, person form checkbox, `CsvImportService` default `'0'`, `TreeRootService` new roots.
+- [x] **P2.1-02 Tri-state living status** — strict `is_living = false` in public scopes and the publication guard; no coercion in write paths; tri-state select (`living-status-select` partial) in person and root forms; CSV blank → unknown; `living_status_basis` provenance.
+- [x] **P2.1-03 Migration** — `2026_10_22_102302_add_living_status_basis_and_field_visibility_to_people` with `LivingStatusClassifier` (narrow evidence rules); verified on old-code data; rollback/re-apply on PostgreSQL.
+- [x] **P2.1-04 Field privacy** — `PersonPrivacy`; `field_visibility`; admin-only privacy controls; editors cannot read restricted values or change levels; proposals cannot set levels.
+- [x] **P2.1-05 Enforcement** — public/management person pages, record page, forms, audit log, proposal diffs; JSON endpoints asserted free of sensitive fields.
+- [x] **P2.1-06 Dashboard** — `living_legacy` indicator and corrected publication text.
+- [x] **P2.1-07 Tests** — `PersonPrivacyTest` (17); existing fixtures that meant "public" now declare deceased explicitly (assertions unchanged).
+- [x] **P2.1-08 Verification** — 235/235 SQLite and PostgreSQL; Chrome privacy journeys 6/6.
+- Remaining: person-managed consent ("voluntary" privacy), contact/address/photo fields, member directory privacy, export (none exists yet).

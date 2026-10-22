@@ -2,15 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-22, after session 3)
+## Current state (2026-10-22, after session 4)
 
-- Branch `main` at `a0d25fe`; session 3 changes uncommitted (nothing committed by the assistant).
-- Suite: **218 passed / 0 failed (2402 assertions)** on SQLite and PostgreSQL 16.
-- **Phase 1 complete.** Open items moved to Phase 2: D-06 (39 shared-ancestry spellings), R-04, R-07 — see `docs/implementation-roadmap.md`.
+- Branch `main` at `3059fac`; session 4 (Phase 2.1) changes uncommitted (nothing committed by the assistant).
+- Suite: **235 passed / 0 failed (2549 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1 complete; Phase 2.1 (field-level privacy & living status) complete.
 
 ## Next task to execute
 
-Phase 2, item 1: field-level privacy and an explicit living-status backfill (JTH-28, UC-12, R-07).
+Phase 2, item 2: assertions with competing narratives and per-fact citations (JTH-08), reusing `citations.field_key` and `PersonPrivacy` for per-fact visibility.
 
 ## Work log
 
@@ -42,6 +42,15 @@ Phase 2, item 1: field-level privacy and an explicit living-status backfill (JTH
 | 5. Site-admin tree routes | Super-admin only; family-scoped `management.trees.store/details`; shared `FamilyTreeManager` | `SiteAdmin/FamilyTreeController.php`, `Management/TreeController.php`, `FamilyTreeManager.php`, `routes/web.php`, `records/page.blade.php` | 1 test (direct URLs, cross-family, roles); updated `AdminFrontendTest` |
 | Found: D-05 | `WithoutModelEvents` left seeded people without `name_search`; removed and backfilled | `DatabaseSeeder.php`, migration `2026_10_22_100207_backfill_people_name_search` | regression test (fails with the old seeder); backfill 84 → 0 on a real seeded DB |
 
+### Session 4 — Phase 2.1 field-level privacy & living status
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Living status | Tri-state, strict public rule, no coercion, provenance hook, tri-state select, CSV/root defaults unknown | `Person.php`, `PublicationGuard.php`, `GenealogyMutationService.php`, `ConnectedPersonService.php`, `TreeRootService.php`, `CsvImportService.php`, `living-status-select.blade.php`, `person-fields.blade.php`, `root-fields.blade.php` | `PersonPrivacyTest` (unknown private, form keeps unknown, CSV) |
+| Migration & classifier | `living_status_basis`, `field_visibility`; `LivingStatusClassifier`; seeders set provenance | migration `2026_10_22_102302`, `LivingStatusClassifier.php`, `AlZoubiGenealogySeeder.php`, `AlZoubiSharedAncestrySeeder.php` | classifier test; seeded-tree test (85 public, 34 Qawasmeh unknown); old-code database proof |
+| Field privacy | `PersonPrivacy` (audience, levels, `fields()`, `redactSnapshot()` stricter-of) | `PersonPrivacy.php`, `GenealogyTreeController.php`, `AuditLogController.php`, `ChangeRequestController.php`, `ChangeReviewService.php`, `Store/UpdatePersonRequest.php`, `person-private-fields.blade.php`, `genealogy/person.blade.php`, `management/people/show.blade.php`, `records/page.blade.php`, `changes/diff.blade.php` | role matrix (reader/editor/admin/super), cross-family, private preview, JSON and search leakage, audit/proposal redaction, editor restrictions |
+| Dashboard | `living_legacy` indicator; corrected text | `FamilyHealthService.php`, `dashboard.blade.php` | full suite |
+| Fixtures | Tests that intended public people now declare `is_living => false` | `GenealogyExperienceTest`, `GenealogyGraphEndpointTest`, `BetaReadinessTest`, `PersonDescriptorsTest`, `AlQawasmehBranchTest` | assertions unchanged |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -57,21 +66,25 @@ Phase 2, item 1: field-level privacy and an explicit living-status backfill (JTH
 | Cross-family linking keeps a stricter rule | JTH-05 requires verified common ancestors; publication is not verification |
 | Proposals compared with fatherless records | Person proposals carry no father yet; father links are proposed separately |
 | Super admins keep direct enrollment | Platform administration; family admins get the consent path |
+| Tri-state on the existing `is_living` column, provenance in `living_status_basis` | No duplicate status column; three states already representable |
+| Compatibility classification only with explicit evidence | Recorded death, or verified/sourced + curated `historical` with a 110-year birth guard; never from missing data alone |
+| `field_visibility` JSON on `people`, no new table | Six sensitive fields; levels travel with audit snapshots |
+| Restricted = family admins and super admins | Membership alone must not unlock restricted personal data |
+| Snapshot redaction uses the stricter of historical and current level | Tightening privacy also hides earlier audit/proposal values |
+| Public page omits hidden fields; management pages show a lock | Visitors should not learn that hidden data exists; members need to know it is withheld |
 
-## Verification evidence (session 3)
+## Verification evidence (session 4)
 
 | Check | Result |
 |---|---|
-| Full suite, SQLite | 218 passed |
-| Full suite, PostgreSQL 16 | 218 passed |
-| Pint (`app config database routes tests`) | pass (178 files) |
-| Blade compile, `node --check` (public JS + browser scripts), `git diff --check` | pass |
-| New migrations rollback and re-apply (PostgreSQL) | pass |
-| Seed order A: `db:seed` → Qawasmeh → repeat | 119 / 118 / 6 branches / 86 citations / 167 audits, identical on repeat; ROOT-077 same id; 0 duplicate siblings (SQLite and PostgreSQL) |
-| Seed order B: shared → Qawasmeh → `db:seed` | `db:seed` refused, nothing written (D-06); Qawasmeh repeat identical |
-| Seed order C: Qawasmeh on empty DB | refused with a clear prerequisite message |
-| Chrome E2E on real seeded data | 7/7: public tree + variant search with lineage; admin adds a published child; editor restrictions; reader duplicate proposal; reviewer confirmation; permissions + invitation; mobile RTL; no page errors |
-| Not run | Repository Playwright scripts (Playwright not installed); Safari/Firefox; real devices; real SMTP delivery |
+| Full suite, SQLite / PostgreSQL 16 | 235 / 235 passed |
+| Pint, Blade compile, `node --check`, `git diff --check` | pass |
+| Migration rollback and re-apply (PostgreSQL) | pass |
+| Migration on old-code data | public 86 → 85 (only the recent-birth unknown probe removed), nothing gained, 34 Qawasmeh unknown |
+| Seed orders on PostgreSQL | unchanged from session 3 (identical counts, ROOT-077 same id, 0 duplicates) |
+| Mutation check | restoring "null = deceased" fails `PersonPrivacyTest` |
+| Chrome privacy journeys (real seeded data) | 6/6: public tree, unknown Qawasmeh 404, admin privacy controls → public death year shown, reader masked notes (page and audit), editor form without restricted values, unknown new person private, mobile |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices |
 
 ## Blockers
 

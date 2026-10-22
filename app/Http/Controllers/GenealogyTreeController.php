@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Family;
 use App\Models\FamilyTree;
 use App\Services\Genealogy\GenealogyTraversalService;
+use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Genealogy\PublishedTreeTraversal;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Contracts\View\View;
@@ -43,6 +44,8 @@ class GenealogyTreeController extends Controller
             'family' => $familyModel,
             'tree' => $tree,
             'person' => $personModel,
+            // Public pages read with the public audience; the verified member preview reads with the member's.
+            'personFields' => collect(app(PersonPrivacy::class)->fields($personModel, request()->boolean('private') ? request()->user() : null))->where('visible', true)->all(),
             ...$profile,
             'foundedBranches' => $tree->branches()->when(request()->boolean('private'), fn ($query) => $query->whereNotNull('root_person_id'), fn ($query) => $query->published())
                 ->where('root_person_id', $personModel->id)->get(),

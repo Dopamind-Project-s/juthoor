@@ -17,6 +17,7 @@
 <div data-root-new>
 <label>الاسم الكامل للجذر<input name="root_name_ar" class="form-control" value="{{ old('root_name_ar') }}" placeholder="مثال: آدم" maxlength="255"></label>
 <label>توثيق شخص الجذر<select name="root_verification_status" class="form-select">@foreach(['pending_review'=>'قيد المراجعة','sourced'=>'مسند','verified'=>'موثق'] as $value=>$label)<option value="{{ $value }}" @selected(old('root_verification_status','pending_review')===$value)>{{ $label }}</option>@endforeach</select></label>
+@include('management.partials.living-status-select',['name'=>'root_is_living','selected'=>old('root_is_living')])
 @error('root_name_ar')<p class="field-error">{{ $message }}</p>@enderror
 </div>
 @if($rootTree?->root_person_id)<p class="text-muted">تغيير الجذر لا ينقل علاقات الأبوة أو يحذفها. اختر شخصًا بلا أب، ثم عدّل العلاقات صراحةً من صفحة الشخص.</p>@endif

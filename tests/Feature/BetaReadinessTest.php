@@ -47,7 +47,7 @@ test('a new family and manager invitation work without any seeded people', funct
     $tree = $family->primaryTree;
     $this->get(route('management.families.show', $family->slug))->assertSee('حفظ الجذر');
     $this->getJson(route('genealogy.graph', $family->slug))->assertJsonCount(0, 'nodes');
-    $this->post(route('management.people.store', $family->slug), ['first_name_ar' => 'جذر', 'full_name_ar' => 'جذر اصطناعي', 'status' => 'historical', 'verification_status' => 'verified'])->assertRedirect()->assertRedirect()->assertSessionHasNoErrors();
+    $this->post(route('management.people.store', $family->slug), ['first_name_ar' => 'جذر', 'full_name_ar' => 'جذر اصطناعي', 'status' => 'historical', 'verification_status' => 'verified', 'is_living' => '0'])->assertRedirect()->assertRedirect()->assertSessionHasNoErrors();
     $this->assertDatabaseCount('people', 1);
     $root = $tree->people()->sole();
     $this->put(route('management.trees.update', [$family->slug, $tree->id, 'tree' => 'main']), ['root_person_id' => $root->id])->assertRedirect()->assertSessionHasNoErrors();
@@ -67,7 +67,7 @@ test('selected trees scope person creation lookups graph search branches and rel
     $second->update(['root_person_id' => $secondRoot->id]);
     $parameters = [$family->slug, 'tree' => 'second'];
 
-    $this->actingAs($manager)->post(route('management.people.store', $parameters), ['first_name_ar' => 'طفل', 'full_name_ar' => 'طفل الشجرة الثانية', 'status' => 'historical', 'verification_status' => 'verified'])->assertRedirect()->assertSessionHasNoErrors();
+    $this->actingAs($manager)->post(route('management.people.store', $parameters), ['first_name_ar' => 'طفل', 'full_name_ar' => 'طفل الشجرة الثانية', 'status' => 'historical', 'is_living' => '0', 'verification_status' => 'verified'])->assertRedirect()->assertSessionHasNoErrors();
     $child = $second->people()->where('first_name_ar', 'طفل')->sole();
     $this->post(route('management.relationships.store', $parameters), ['person_id' => $child->id, 'father_id' => $secondRoot->id, 'verification_status' => 'verified'])->assertRedirect()->assertSessionHasNoErrors();
     $this->post(route('management.relationships.store', $parameters), ['person_id' => $child->id, 'father_id' => $firstRoot->id, 'verification_status' => 'verified'])->assertNotFound();

@@ -102,7 +102,7 @@ class CsvImportService
             $data = array_intersect_key($input, (new StorePersonRequest)->rules());
             $data = array_map(fn ($v) => $v === '' ? null : $v, $data);
             $data['canonical_key'] = $row['external_id'];
-            $data['is_living'] = $input['is_living'] ?? '0';
+            $data['is_living'] = ($input['is_living'] ?? '') === '' ? null : $input['is_living'];
             $rules = (new StorePersonRequest)->rules();
             $rules['canonical_key'] = ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'];
             $validator = Validator::make($data, $rules, (new StorePersonRequest)->messages());

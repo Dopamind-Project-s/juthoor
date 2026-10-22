@@ -18,6 +18,7 @@ class ChangeReviewService
         return DB::transaction(function () use ($tree, $user, $kind, $operation, $targetId, $input, $reason) {
             FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
             $record = $operation === 'update' ? $this->mutations->target($tree, $kind, $targetId) : null;
+            unset($input['field_visibility']); // privacy levels are set by administrators, never proposed
             $payload = $this->mutations->attributes($tree, $kind, $input, $record);
             if ($kind === 'person' && $operation === 'create' && empty($input['confirm_distinct'])) {
                 $this->duplicates->assertDistinct($tree, $payload['full_name_ar'], null);

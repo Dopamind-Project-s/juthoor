@@ -68,6 +68,9 @@ class GenealogyMutationService
         if ($kind === 'person' && ! empty($input['attributes_present'])) {
             $input['attribute_ids'] ??= [];
         }
+        if (isset($current['field_visibility']) && is_string($current['field_visibility'])) {
+            $current['field_visibility'] = json_decode($current['field_visibility'], true);
+        }
         $input = array_replace($current, $input);
         $request = match ($kind) {
             'person' => new StorePersonRequest,'branch' => new StoreBranchRequest,'relationship' => new StoreRelationshipRequest
@@ -78,7 +81,11 @@ class GenealogyMutationService
             if (array_key_exists('attribute_ids', $data)) {
                 $data['attribute_ids'] = app(PersonAttributeService::class)->validateIds($tree->family_id, $data['attribute_ids'], $record);
             }
-            $data['is_living'] = (bool) ($data['is_living'] ?? false);
+            // Tri-state: null stays unknown; it is never coerced to deceased.
+            $data['is_living'] = isset($data['is_living']) ? (bool) $data['is_living'] : null;
+            if (array_key_exists('field_visibility', $data)) {
+                $data['field_visibility'] = array_intersect_key((array) $data['field_visibility'], PersonPrivacy::FIELDS) ?: null;
+            }
             $key = $data['canonical_key'] ?? null;
             if ($key && $tree->people()->where('canonical_key', $key)->when($record, fn ($q) => $q->whereKeyNot($record->id))->exists()) {
                 $this->reject('المفتاح المرجعي مستخدم داخل هذه الشجرة.');
@@ -123,6 +130,10 @@ class GenealogyMutationService
         $before = $record ? $this->audit->snapshot($record) : null;
         $attributeIds = $kind === 'person' && array_key_exists('attribute_ids', $data) ? $data['attribute_ids'] : null;
         unset($data['attribute_ids']);
+        // Field privacy is an administrator decision; other roles keep the current levels.
+        if (! $this->publication->canPublish($user, $tree->family)) {
+            unset($data['field_visibility']);
+        }
         if ($operation === 'delete') {
             $this->assertDeletable($record);
             $this->publication->assertAllowed($user, $tree->family, $record, true);

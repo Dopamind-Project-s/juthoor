@@ -7,7 +7,8 @@
 @if($mode==='show')
 @if($section==='people')<h2 class="h4">{{ $record->display_name }}</h2><x-person-descriptors :person="$record" />@endif
 <dl class="row">
-@foreach(['id'=>'الرقم','full_name_ar'=>'الاسم الكامل','name_ar'=>'الاسم','canonical_key'=>'المفتاح المرجعي','slug'=>'الرابط','description'=>'الوصف','notes'=>'ملاحظات','status'=>'الحالة','verification_status'=>'التوثيق','email'=>'البريد الإلكتروني','role'=>'الدور','is_active'=>'نشط','is_primary'=>'أساسي','created_at'=>'تاريخ الإنشاء','expires_at'=>'انتهاء الدعوة','accepted_at'=>'قبول الدعوة','cancelled_at'=>'إلغاء الدعوة'] as $key=>$label)
+@if($section==='people')@include('management.partials.person-private-fields',['person'=>$record,'personFields'=>app(\App\Services\Genealogy\PersonPrivacy::class)->fields($record, auth()->user())])@endif
+@foreach(['id'=>'الرقم','full_name_ar'=>'الاسم الكامل','name_ar'=>'الاسم','canonical_key'=>'المفتاح المرجعي','slug'=>'الرابط','description'=>'الوصف','status'=>'الحالة','verification_status'=>'التوثيق','email'=>'البريد الإلكتروني','role'=>'الدور','is_active'=>'نشط','is_primary'=>'أساسي','created_at'=>'تاريخ الإنشاء','expires_at'=>'انتهاء الدعوة','accepted_at'=>'قبول الدعوة','cancelled_at'=>'إلغاء الدعوة'] as $key=>$label)
 @if($record->$key!==null)<dt class="col-sm-4">{{ $label }}</dt><dd class="col-sm-8">{{ is_bool($record->$key) ? ($record->$key ? 'نعم' : 'لا') : $record->$key }}</dd>@endif
 @endforeach
 @if($section==='relationships')<dt class="col-sm-4">الابن</dt><dd class="col-sm-8">{{ $record->person->display_name }}</dd><dt class="col-sm-4">الأب</dt><dd class="col-sm-8">{{ $record->relatedPerson->display_name }}</dd>@endif

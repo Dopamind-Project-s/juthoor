@@ -5,6 +5,7 @@ namespace App\Services\Dashboards;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
+use App\Services\Genealogy\LivingStatusClassifier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,8 @@ class FamilyHealthService
         'without_father' => 'أشخاص دون أب موثق',
         'without_sources' => 'أشخاص دون مصدر أو استشهاد',
         'possible_duplicates' => 'تكرار محتمل (الاسم نفسه والأب نفسه)',
-        'living_unknown' => 'حالة الحياة غير محددة',
+        'living_unknown' => 'حالة الحياة غير معروفة (غير منشورة)',
+        'living_legacy' => 'حالة حياة سابقة لنظام الحالات الثلاث تحتاج مراجعة',
         'unresolved' => 'سجلات غير محسومة',
     ];
 
@@ -35,6 +37,7 @@ class FamilyHealthService
             'without_sources' => $query->whereDoesntHave('citations')->whereDoesntHave('sources'),
             'possible_duplicates' => $query->whereIn('people.id', $this->duplicatePeopleIds($tree)),
             'living_unknown' => $query->whereNull('is_living'),
+            'living_legacy' => $query->where('living_status_basis', LivingStatusClassifier::BASIS_LEGACY),
             'unresolved' => $query->where(fn ($query) => $query->where('status', Person::STATUS_UNRESOLVED)->orWhere('verification_status', 'unresolved')),
             default => abort(422),
         };

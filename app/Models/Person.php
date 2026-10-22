@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Services\ArabicNameNormalizer;
+use App\Services\Genealogy\LivingStatusClassifier;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'title', 'honorific', 'status', 'verification_status', 'alternate_names', 'public_narrative'])]
+#[Fillable(['family_tree_id', 'canonical_key', 'first_name_ar', 'full_name_ar', 'full_name_en', 'gender', 'birth_date', 'birth_year', 'death_date', 'death_year', 'is_living', 'notes', 'title', 'honorific', 'status', 'verification_status', 'alternate_names', 'public_narrative', 'living_status_basis', 'field_visibility'])]
 class Person extends Model
 {
     public const STATUS_ACTIVE = 'active';
@@ -25,6 +26,10 @@ class Person extends Model
             $person->name_search = $normalizer->normalize($person->full_name_ar);
             $variants = collect($person->alternate_names ?? [])->map(fn ($name) => $normalizer->normalize((string) $name))->filter()->unique()->values();
             $person->alternate_name_search = $variants->isEmpty() ? null : '|'.$variants->implode('|').'|';
+            // Provenance of the tri-state living status: a value chosen by a user is "recorded"; unknown has no basis.
+            if ($person->isDirty('is_living') && ! $person->isDirty('living_status_basis')) {
+                $person->living_status_basis = $person->is_living === null ? null : LivingStatusClassifier::BASIS_RECORDED;
+            }
         });
     }
 
@@ -36,6 +41,7 @@ class Person extends Model
             'is_living' => 'boolean',
             'alternate_names' => 'array',
             'public_narrative' => 'boolean',
+            'field_visibility' => 'array',
         ];
     }
 
@@ -60,6 +66,18 @@ class Person extends Model
     public function personAttributes(): BelongsToMany
     {
         return $this->belongsToMany(PersonAttribute::class, 'person_attribute_assignments')->withTimestamps();
+    }
+
+    public const LIVING_STATUS_LABELS = ['living' => 'على قيد الحياة', 'deceased' => 'متوفى', 'unknown' => 'غير معروف'];
+
+    /** living | deceased | unknown — unknown is never treated as deceased. */
+    public function getLivingStatusAttribute(): string
+    {
+        return match ($this->is_living) {
+            true => 'living',
+            false => 'deceased',
+            default => 'unknown',
+        };
     }
 
     public function getDisplayNameAttribute(): string
@@ -115,13 +133,13 @@ class Person extends Model
 
     /**
      * The single public-display rule for people on every public surface (tree, graph, focus, person pages, search,
-     * branch listings): historical, not known to be living, and either verified/sourced or a submitted narrative that
+     * branch listings): historical, explicitly deceased (unknown is private), and either verified/sourced or a submitted narrative that
      * an administrator explicitly published while it remains pending review. Verification is never raised by this.
      */
     public function scopePubliclyVisible($query)
     {
         return $query->where('status', self::STATUS_HISTORICAL)
-            ->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'))
+            ->where('is_living', false)
             ->where(fn ($query) => $query->verified()
                 ->orWhere(fn ($query) => $query->where('verification_status', Source::VERIFICATION_PENDING_REVIEW)->where('public_narrative', true)));
     }
@@ -129,6 +147,6 @@ class Person extends Model
     /** Stricter than public display: verified historical records only (shared-ancestry linking, JTH-05). */
     public function scopeVerifiedHistorical($query)
     {
-        return $query->verified()->where('status', self::STATUS_HISTORICAL)->where(fn ($query) => $query->where('is_living', false)->orWhereNull('is_living'));
+        return $query->verified()->where('status', self::STATUS_HISTORICAL)->where('is_living', false);
     }
 }

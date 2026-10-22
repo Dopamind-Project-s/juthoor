@@ -19,6 +19,7 @@ class TreeRootService
             'root_person_id' => ['nullable', 'required_if:root_mode,existing', 'integer'],
             'root_name_ar' => ['nullable', 'required_if:root_mode,new', 'string', 'max:255'],
             'root_verification_status' => ['nullable', 'in:verified,sourced,pending_review,unresolved'],
+            'root_is_living' => ['nullable', 'boolean'],
         ];
     }
 
@@ -38,7 +39,7 @@ class TreeRootService
                 $root = app(ConnectedPersonService::class)->save($tree, $user, [
                     'first_name_ar' => explode(' ', $name)[0], 'full_name_ar' => $name,
                     'status' => 'historical', 'verification_status' => $data['root_verification_status'] ?? 'pending_review',
-                    'is_living' => false,
+                    'is_living' => isset($data['root_is_living']) ? (bool) $data['root_is_living'] : null,
                 ]);
                 $tree->root_person_id = $root->id;
             } else {

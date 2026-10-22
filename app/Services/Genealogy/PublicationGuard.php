@@ -55,7 +55,7 @@ class PublicationGuard
             || (($attributes['verification_status'] ?? null) === Source::VERIFICATION_PENDING_REVIEW && (bool) ($attributes['public_narrative'] ?? false));
 
         return match (true) {
-            $record instanceof Person => $verified && ($attributes['status'] ?? null) === Person::STATUS_HISTORICAL && ! ($attributes['is_living'] ?? false),
+            $record instanceof Person => $verified && ($attributes['status'] ?? null) === Person::STATUS_HISTORICAL && in_array($attributes['is_living'] ?? null, [false, 0, '0'], true),
             $record instanceof Branch => $verified && (bool) ($attributes['is_active'] ?? false),
             $record instanceof PersonRelationship => $verified,
             default => false,

@@ -7,6 +7,7 @@ use App\Models\Person;
 use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\Source;
+use App\Services\Genealogy\LivingStatusClassifier;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -92,6 +93,7 @@ class AlZoubiSharedAncestrySeeder extends Seeder
                     'honorific' => in_array($position, $prophets, true) ? 'عليه السلام' : ($position === 49 ? 'كرم الله وجهه' : null),
                     'status' => Person::STATUS_HISTORICAL, 'is_living' => false,
                     'verification_status' => Source::VERIFICATION_PENDING_REVIEW, 'public_narrative' => true,
+                    'living_status_basis' => LivingStatusClassifier::BASIS_SUPPLIED_ANCESTRY,
                 ]);
                 $ids = in_array($position, $prophets, true) ? [$attributes['prophet']->id] : [];
                 if ($position === 49) {

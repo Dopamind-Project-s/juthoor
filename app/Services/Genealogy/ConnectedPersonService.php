@@ -27,13 +27,12 @@ class ConnectedPersonService
                 Gate::forUser($user)->authorize('create', [Person::class, $tree->family]);
             }
 
-            $input['is_living'] = (bool) ($input['is_living'] ?? false);
             if (! $person && empty($input['confirm_distinct'])) {
                 app(DuplicatePersonDetector::class)->assertDistinct($tree, (string) ($input['full_name_ar'] ?? ''), empty($input['father_id']) ? null : (int) $input['father_id']);
             }
             $attributes = $this->mutations->attributes($tree, 'person', Arr::only($input, [
                 'first_name_ar', 'full_name_ar', 'canonical_key', 'gender', 'birth_year', 'title', 'honorific', 'attribute_ids', 'attributes_present',
-                'death_year', 'is_living', 'status', 'verification_status',
+                'death_year', 'is_living', 'status', 'verification_status', 'field_visibility',
             ]), $person);
             $log = $this->mutations->apply($tree, $user, 'person', $person ? 'update' : 'create', $attributes, $person);
             $person = $tree->people()->findOrFail($log->auditable_id);

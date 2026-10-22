@@ -83,6 +83,7 @@ test('branch focus preserves the ancestor path and isolated mode excludes side b
         'first_name_ar' => 'جانبي',
         'full_name_ar' => 'فرع جانبي',
         'status' => Person::STATUS_HISTORICAL,
+        'is_living' => false,
         'verification_status' => Source::VERIFICATION_VERIFIED,
     ]);
     PersonRelationship::query()->create([
@@ -137,6 +138,8 @@ test('a dense progressive graph remains bounded in queries and response size', f
                     'first_name_ar' => 'شخص',
                     'full_name_ar' => "شخص {$generation}-{$parent->id}-{$index}",
                     'status' => Person::STATUS_HISTORICAL,
+                    'is_living' => false,
+                    'is_living' => false,
                     'verification_status' => Source::VERIFICATION_VERIFIED,
                 ]);
                 PersonRelationship::query()->create([

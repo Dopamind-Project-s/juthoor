@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-22 (updated after Phase 1 finalization). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-22 (updated after Phase 2.1 — field-level privacy and living status). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `a0d25fe`; Phase 1 finalization changes (session 3) are uncommitted. |
-| Test baseline (start of session 3) | 194 passed on SQLite (re-verified, not assumed). |
-| Test result (end of session 3) | **218 passed, 0 failed, 2402 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `3059fac`; Phase 2.1 changes (session 4) are uncommitted. |
+| Test baseline (start of session 4) | 218 passed on SQLite (re-verified, not assumed). |
+| Test result (end of session 4) | **235 passed, 0 failed, 2549 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -28,6 +28,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Management | `Management\*` controllers, records pages, sections, lookups, family dashboard (`FamilyDashboardController`, `Services/Dashboards/*`) | Implemented |
 | Roles | `family_memberships` (reader/editor/admin), `users.is_super_admin`, `FamilyPolicy` (+ `publish`), Person/Branch/Relationship policies, `Gate::before`; membership by invitation (`FamilyInvitationService`); `/site-admin` super-admin only | Implemented |
 | Review / audit / revert | `change_requests` + `ChangeReviewService`; `audit_logs` + `AuditLogger`; `AuditReversionService` (latest change only) | Implemented (scope-limited) |
+| Person privacy | `people.is_living` tri-state + `living_status_basis`, `people.field_visibility`, `LivingStatusClassifier`, `PersonPrivacy` (audience, levels, snapshot redaction) used by public/management person pages, forms, audit and proposal views | Implemented for the fields in the schema |
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
@@ -65,7 +66,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-25 | Optional Facebook | Missing | — | — | P3 | 4 | UC-17 |
 | JTH-26 | Member directory | Missing | — | — | P2 | 4 | UC-18 |
 | JTH-27 | Professional profiles | Missing | — | — | P3 | 4 | — |
-| JTH-28 | Field-level voluntary privacy | Missing | Record-level living protection only | Field ACL | P1 | 2 | No leak via search/API/export (UC-12) |
+| JTH-28 | Field-level voluntary privacy | Partial | `PersonPrivacy` levels public / family / restricted on birth/death year and date, gender and notes; default-deny; `PersonPrivacyTest` (17) | Self-managed ("voluntary") consent by the person, member-directory and contact fields (not in schema yet), photos | P1 | 2 | Directory/contact fields reuse the same service when added |
 | JTH-29 | Operations, monitoring, backups | Partial | CI workflow, health dashboard, rate limits | Backups, restore drill, monitoring | P1 | 5 | RPO ≤ 24h, RTO ≤ 4h drill |
 | JTH-30 | Future extensions | Missing | — | — | P3 | 5 | — |
 | JTH-31 | Hierarchical filtering for all sections | Missing | Tree focus only | Content sections | P1 | 3 | UC-20 |
@@ -90,7 +91,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | UC-09 Attributes & badges | Implemented | `PersonDescriptorsTest`, founder badge test |
 | UC-10 Import | Partial | CSV, not GEDCOM |
 | UC-11 Genealogical search | Partial | Lineage in results; no father/fakhd filters |
-| UC-12 Living-person privacy | Partial | One record-level rule across page/graph/focus/search (`PublicVisibilityTest`, 5 roles); no field level; unknown `is_living` is treated as not living |
+| UC-12 Living-person privacy | Implemented | Unknown status is private; record rule across page/graph/focus/search; field levels enforced server-side on pages, forms, audit and proposal diffs; JSON endpoints carry no sensitive fields (`PersonPrivacyTest`). No export exists yet. |
 | UC-13 – UC-22 | Missing | Phases 3–4 |
 
 ## 5. Completion dashboard
@@ -100,16 +101,16 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 | Status | Count |
 |---|---|
 | Implemented | 7 (JTH-01, 03, 05, 07, 13, 14, 36) |
-| Partial | 11 (JTH-02, 04, 06, 08, 09, 10, 11, 15, 18, 29, 34) |
-| Missing | 18 |
+| Partial | 12 (JTH-02, 04, 06, 08, 09, 10, 11, 15, 18, 28, 29, 34) |
+| Missing | 17 |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(7 + 5.5) / 36 = 34.7 %** |
+| **Weighted completion** | **(7 + 6) / 36 = 36.1 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
 | Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 5 | 5 | 0 |
-| Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 1 | 2 | 2 |
+| Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 1 | 3 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
 | Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 2 | 15 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
@@ -129,4 +130,24 @@ Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acc
 | R-04 | Performance | Public `/shared-ancestry` recomputes link fingerprints per request (rate-limited). | Open — Phase 2. |
 | R-05 | Policy | Family admins enrolled accounts without consent and could probe registration. | **Resolved**: invitation-only for family admins, identical replies; super admins keep direct enrollment. |
 | R-06 | Policy | Family admins used `/site-admin/families/{id}/trees*`. | **Resolved**: those routes are super-admin only; family admins use `/manage/families/{family}/trees*`. |
-| R-07 | Privacy | `is_living = null` is treated as not living by the public rule (pre-existing; base data relies on it). | Open — Phase 2 field-level privacy (JTH-28) with an explicit backfill of living status. |
+| R-07 | Privacy | `is_living = null` was treated as not living (scopes, `PublicationGuard`), forms/CSV/roots coerced unknown to deceased. | **Resolved in Phase 2.1**: tri-state with provenance; narrowly scoped classification (see §7). |
+
+## 7. Privacy model (Phase 2.1)
+
+**Living status** — `people.is_living`: `true` living, `false` deceased, `null` unknown. Unknown is never treated as deceased and is never public. `living_status_basis` records why a value is set:
+
+| Basis | Meaning |
+|---|---|
+| `recorded` | Chosen by a user (form, proposal, CSV); set automatically when `is_living` changes |
+| `death_recorded` | Classified deceased because a death year/date is recorded |
+| `historical_record` | Classified deceased because the record is verified/sourced and explicitly classified `historical`, and no birth year/date falls within the last 110 years |
+| `legacy_recorded` | Value existed before tri-state support (may be an old checkbox default); listed in the family-dashboard indicator for review |
+| `supplied_ancestry` | Shared-ancestry seeder declares the supplied ancestors deceased |
+
+Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` and classifies unknown records only with the two evidence rules above (`LivingStatusClassifier`). Everything else stays unknown. Proven on a database built with the previous code: 86 → 85 public people; the only removal was a probe born in 1990 with unknown status; nothing gained; all 34 Qawasmeh records stay unknown. The base Al-Zoubi seed applies the same classifier, so fresh installs keep the 85-person public tree.
+
+**Field levels** — `people.field_visibility` (JSON) per field: `public` (anyone), `family` (members of the person's family), `restricted` (family admins and super admins). Defaults (default-deny): birth/death year and date and gender → `family`; notes → `restricted`. A living or unknown person never exposes a field publicly. The audience is derived from authorization (`FamilyPolicy` view/update, `Gate::before`), not from role names; other families get the public audience.
+
+**Enforcement** — `PersonPrivacy` is used by the public person page (public audience, or the member audience in the verified private preview), management person page and record page, the person form (restricted inputs are not rendered and stored values are kept), audit-log and proposal diffs (redacted with the stricter of the snapshot's and the current level; stored history is unchanged). Graph, search, lineage and lookup JSON carry only names and identifiers (asserted by tests). Only family admins and super admins can change `field_visibility`; proposals cannot set it.
+
+**Not in the schema** — contact information, addresses/locations and photos do not exist on people; they must use `PersonPrivacy` when introduced.

@@ -26,7 +26,7 @@ function descriptorContext(): array
 
 function descriptorPersonData(array $extra = []): array
 {
-    return array_replace(['first_name_ar' => 'شخص', 'full_name_ar' => 'شخص اختباري', 'status' => 'historical', 'verification_status' => 'verified'], $extra);
+    return array_replace(['first_name_ar' => 'شخص', 'full_name_ar' => 'شخص اختباري', 'status' => 'historical', 'verification_status' => 'verified', 'is_living' => '0'], $extra);
 }
 
 test('reference attributes seed idempotently without resetting administrator customization', function () {

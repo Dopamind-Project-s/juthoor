@@ -6,6 +6,7 @@
     <span class="status-badge verified">{{ request()->boolean('private') ? 'معاينة خاصة' : (in_array($person->verification_status,['verified','sourced']) ? 'سجل تاريخي مراجع' : 'رواية مقدمة؛ قيد المراجعة') }}</span>
     <h1>{{ $person->display_name }}</h1><x-person-descriptors :person="$person" />
     @if($person->alternate_names)<p class="mb-1">تهجئات بديلة مسجلة: {{ implode('، ', $person->alternate_names) }}</p>@endif
+    @if($personFields || request()->boolean('private'))<dl class="person-public-facts">@if(request()->boolean('private'))<dt>حالة الحياة</dt><dd>{{ \App\Models\Person::LIVING_STATUS_LABELS[$person->living_status] }}</dd>@endif @foreach($personFields as $field)<dt>{{ $field['label'] }}</dt><dd>{{ $field['value'] instanceof \DateTimeInterface ? $field['value']->format('Y-m-d') : (['male'=>'ذكر','female'=>'أنثى'][$field['value']] ?? $field['value']) }}</dd>@endforeach</dl>@endif
     <p>مسار هذا الشخص داخل شجرة {{ $family->name_ar }} الموحدة.</p>
 </div></section>
 

@@ -9,6 +9,7 @@
         'without_sources' => route('management.sections.index',[$family->slug,'people','tree'=>$tree->slug,'issue'=>'without_sources']),
         'possible_duplicates' => route('management.sections.index',[$family->slug,'people','tree'=>$tree->slug,'issue'=>'possible_duplicates']),
         'living_unknown' => route('management.sections.index',[$family->slug,'people','tree'=>$tree->slug,'issue'=>'living_unknown']),
+        'living_legacy' => route('management.sections.index',[$family->slug,'people','tree'=>$tree->slug,'issue'=>'living_legacy']),
         'unresolved' => route('management.sections.index',[$family->slug,'people','tree'=>$tree->slug,'issue'=>'unresolved']),
         'pending_relationships' => route('management.sections.index',[$family->slug,'relationships','tree'=>$tree->slug]),
         'branches_without_founder' => route('management.sections.index',[$family->slug,'branches','tree'=>$tree->slug]),
@@ -77,7 +78,7 @@
         <dt>أشخاص ظاهرون للعامة</dt><dd>{{ number_format($publication['public_people']) }} من {{ number_format($statistics['people']) }}</dd>
         <dt>أحياء محميون</dt><dd>{{ number_format($publication['living_people']) }} (لا يظهرون في العرض العام)</dd>
     </dl>
-    <p class="small text-muted mb-0">يظهر للعامة فقط الأشخاص التاريخيون غير الأحياء ذوو التوثيق المعتمد. الأشخاص الذين لم تُحدد حالة حياتهم يُعاملون كغير أحياء في العرض العام؛ راجعهم من مؤشر «حالة الحياة غير محددة».</p>
+    <p class="small text-muted mb-0">يظهر للعامة فقط الأشخاص التاريخيون المسجلة وفاتهم صراحةً ذوو التوثيق المعتمد. حالة الحياة غير المعروفة لا تعني الوفاة ولا تُنشر؛ راجعها من مؤشر «حالة الحياة غير معروفة». معلومات الميلاد والوفاة والملاحظات تخضع لإعداد خصوصية كل حقل.</p>
 </section>
 </div>
 
