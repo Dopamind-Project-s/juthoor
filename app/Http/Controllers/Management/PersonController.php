@@ -25,9 +25,12 @@ class PersonController extends Controller
         private readonly GenealogyDeletionService $deletion,
     ) {}
 
-    public function show(string $family, int $person): View
+    public function show(string $family, int $person): View|RedirectResponse
     {
         [$familyModel, $tree] = $this->familyTree($family);
+        if ($survivor = Person::survivorOf($tree->id, $person)) {
+            return redirect()->route('management.people.show', [$familyModel->slug, $survivor->id, 'tree' => $tree->slug])->with('status', 'دُمج السجل #'.$person.' في هذا السجل.');
+        }
         $personModel = $tree->people()->with(['outgoingRelationships.relatedPerson', 'incomingRelationships.person', 'foundedBranches', 'citations.source', 'outgoingRelationships.citations.source', 'sources'])->whereKey($person)->firstOrFail();
         Gate::authorize('view', $personModel);
 

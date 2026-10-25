@@ -151,3 +151,4 @@ details:not([open])>:not(summary){display:none}
 .fact-group{border-top:1px solid var(--juthoor-border);padding-top:1rem;margin-top:1rem}
 .fact-claim{padding:.6rem .8rem;margin:.4rem 0;border:1px solid var(--juthoor-border);border-radius:.6rem;background:#fafbfa}
 .fact-claim .badge{font-weight:600}
+.merge-table td,.merge-table th{vertical-align:top}

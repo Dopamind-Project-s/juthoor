@@ -21,6 +21,8 @@ class Person extends Model
 
     protected static function booted(): void
     {
+        // A person merged into another stays for history and undo but is never an active person.
+        static::addGlobalScope('active', fn ($query) => $query->whereNull($query->getModel()->qualifyColumn('merged_into_id')));
         static::saving(function (Person $person): void {
             $normalizer = app(ArabicNameNormalizer::class);
             $person->name_search = $normalizer->normalize($person->full_name_ar);
@@ -61,6 +63,24 @@ class Person extends Model
 
         return $query->where(fn ($query) => $query->where('name_search', $normalized)
             ->orWhere('alternate_name_search', 'like', '%|'.$normalized.'|%'));
+    }
+
+    /** The active person a merged identity now resolves to (follows merge chains), or null. */
+    public static function survivorOf(int $treeId, int $id): ?self
+    {
+        $seen = [];
+        $person = self::query()->withoutGlobalScope('active')->where('family_tree_id', $treeId)->find($id);
+        while ($person?->merged_into_id && ! isset($seen[$person->id])) {
+            $seen[$person->id] = true;
+            $person = self::query()->withoutGlobalScope('active')->where('family_tree_id', $treeId)->find($person->merged_into_id);
+        }
+
+        return $person && ! $person->merged_into_id && $person->id !== $id ? $person : null;
+    }
+
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'merged_into_id')->withoutGlobalScope('active');
     }
 
     public function personAttributes(): BelongsToMany

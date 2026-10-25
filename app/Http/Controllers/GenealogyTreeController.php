@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Family;
 use App\Models\FamilyTree;
+use App\Models\Person;
 use App\Services\Genealogy\GenealogyTraversalService;
 use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Genealogy\PublishedTreeTraversal;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
 class GenealogyTreeController extends Controller
@@ -34,9 +36,14 @@ class GenealogyTreeController extends Controller
         return $this->treeView($familyModel, $tree, $branchModel);
     }
 
-    public function person(string $family, int $person): View
+    public function person(string $family, int $person): View|RedirectResponse
     {
         [$familyModel, $tree] = $this->publicTree($family);
+        // A merged identity redirects to its survivor only when the visitor may see the survivor.
+        if (($survivor = Person::survivorOf($tree->id, $person))
+            && (request()->boolean('private') || $tree->people()->publiclyVisible()->whereKey($survivor->id)->exists())) {
+            return redirect()->route('genealogy.person', [$familyModel->slug, $survivor->id, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null], 301);
+        }
         $personModel = $tree->people()->when(! request()->boolean('private'), fn ($query) => $query->publiclyVisible())->whereKey($person)->firstOrFail();
         $profile = app(PublishedTreeTraversal::class)->profile($tree, $personModel, request()->boolean('private'));
 

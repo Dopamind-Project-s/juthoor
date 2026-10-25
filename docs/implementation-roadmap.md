@@ -87,7 +87,7 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 ## Phase 2 — first approved tasks (proposed order)
 1. ✅ Field-level privacy and living-status backfill (JTH-28, UC-12) — done 2026-10-22 as Phase 2.1, see below.
 2. ✅ Assertions with competing narratives and per-fact citations (JTH-08) — done 2026-10-25 as Phase 2.2, see below.
-3. Merge workflow with preview and undo, built on `DuplicatePersonDetector` (JTH-10, UC-06).
+3. ✅ Merge workflow with preview and undo (JTH-10, UC-06) — done 2026-10-25 as Phase 2.3, see below.
 4. Revert any audit entry; restore a deleted person (JTH-09).
 5. Shared-ancestry spelling reconciliation (D-06 — differences are now recordable as claims) and write-time link validity (R-04).
 6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
@@ -116,3 +116,16 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **P2.2-08 ROOT differences** — `AlZoubiRootVariantSeeder` (opt-in, idempotent): records differences as reviewable claims; nothing reconciled.
 - [x] **P2.2-09 Tests & verification** — `GenealogyAssertionTest` (12); 247/247 SQLite and PostgreSQL; Chrome facts journeys 5/5.
 - Remaining: mother/spouse/event claims, public display of approved citations, claim-level privacy overrides beyond the person's field levels, notifications to impacted families.
+
+## Phase 2.3 — Safe person merge, preview, impact analysis & undo (done 2026-10-25)
+
+- [x] **P2.3-01 Reference audit** — every FK to `people` and its handling (`docs/project-audit.md` §9).
+- [x] **P2.3-02 Data model** — `people.merged_into_id`, global scope, `person_merges` journal.
+- [x] **P2.3-03 Candidates** — `MergeCandidateFinder` on the existing duplicate rule; privacy-aware signals.
+- [x] **P2.3-04 Preview** — read-only plan with conflicts, references, privacy, publication, impact and blockers.
+- [x] **P2.3-05 Execution** — fingerprinted, locked, atomic, re-validated, audited; losing values as superseded claims.
+- [x] **P2.3-06 Undo** — journal replay with blockers and a controlled recovery path.
+- [x] **P2.3-07 Governance** — family admins only; super admin for shared ancestors and cross-family links.
+- [x] **P2.3-08 UI** — candidates, manual selection, preview with decisions, confirmation, operation page with undo, sidebar entry.
+- [x] **P2.3-09 Tests** — `PersonMergeTest` (15, mutation-checked); 262/262 SQLite and PostgreSQL; Chrome merge journeys 5/5.
+- Remaining: merges across trees/families (refused), merging people with different fathers (must be resolved first), bulk merges, a dedicated "report duplicate" action for readers.

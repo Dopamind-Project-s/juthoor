@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-25 (updated after Phase 2.2 — genealogical assertions, sources and conflicting narratives). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-25 (updated after Phase 2.3 — safe person merge with preview and undo). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `f9bb42b`; Phase 2.2 changes (session 5) are uncommitted. |
-| Test baseline (start of session 5) | 235 passed on SQLite (re-verified, not assumed). |
-| Test result (end of session 5) | **247 passed, 0 failed, 2690 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `8318177`; Phase 2.3 changes (session 6) are uncommitted. |
+| Test baseline (start of session 6) | 247 passed on SQLite (re-verified, not assumed). |
+| Test result (end of session 6) | **262 passed, 0 failed, 2785 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -30,6 +30,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Review / audit / revert | `change_requests` + `ChangeReviewService`; `audit_logs` + `AuditLogger`; `AuditReversionService` (latest change only) | Implemented (scope-limited) |
 | Person privacy | `people.is_living` tri-state + `living_status_basis`, `people.field_visibility`, `LivingStatusClassifier`, `PersonPrivacy` (audience, levels, snapshot redaction) used by public/management person pages, forms, audit and proposal views | Implemented for the fields in the schema |
 | Assertions (claims) | `assertions` + `citations.assertion_id` + `change_requests.assertion_id`; `GenealogyAssertionService`, `SharedAncestryScope`, `RootVariantImporter`; facts panel on the management person page | Implemented for 7 fact types (see §8) |
+| Person merge | `people.merged_into_id` + `Person` global scope `active`; `person_merges` (immutable journal); `PersonMergeService`, `MergeCandidateFinder`; `/manage/families/{family}/merges` | Implemented (see §9) |
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
@@ -49,7 +50,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-07 | Toggleable attributes, titles, badges | Implemented | `PersonDescriptorsTest`, founder badges added, deactivation test | — | P1 | 1 ✓ | Deactivated badge hidden, assignment kept (tested) |
 | JTH-08 | Sources & assertion verification | Partial | `assertions` with competing narratives, multiple citations per claim, review via change requests, history preserved (`GenealogyAssertionTest`, 12) | Mother/spouse and life-event claims (no model yet); positions/achievements (JTH-18) | P1 | 2 | Same assertion model reused for new fact types |
 | JTH-09 | Review, audit, revert | Partial | `ChangeReviewTest`, `AuditReversionTest`; publication gate (this session) | Revert limited to latest change; no restore of deleted person | P1 | 2 | Revert any entry with conflict check |
-| JTH-10 | Duplicate detection & safe merge | Partial | Dashboard indicator, create-time confirmation, CSV similarity | Merge workflow with preview/undo | P1 | 2 | Merge event with before/after and undo |
+| JTH-10 | Duplicate detection & safe merge | Implemented | Candidate review, read-only preview, explicit conflict choices, atomic merge with journal, exact undo with blockers (`PersonMergeTest`, 15; Chrome) | Merges across trees/families (refused by design); bulk merges | P1 | 2 ✓ | Met |
 | JTH-11 | Arabic genealogical search | Partial | Normalized search over names and recorded variants (`alternate_names`), lineage in results; seeded records searchable (D-05 fixed) | Father/fakhd filters, phonetic matching | P1 | 2 | UC-11 filters |
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
 | JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, `AdministrationSecurityTest` | Finer per-module/branch roles | P1 | 2 | Branch/module-scoped permissions |
@@ -86,7 +87,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | UC-03 Add person (match check first) | Implemented | `DuplicatePersonDetector` on direct creation and on person proposals (submit and review) |
 | UC-04 Create fakhd | Implemented | Branch types, derived membership test |
 | UC-05 Link two families | Implemented | `CrossFamilyLinksTest` |
-| UC-06 Duplicate check & merge | Partial | Detection only |
+| UC-06 Duplicate check & merge | Implemented | Preview → explicit decisions → atomic merge → audited undo (`PersonMergeTest`) |
 | UC-07 Propose correction; unapproved not published | Implemented | `PublicationGuard` (covers published narratives), `FamilyTreeMvpTest`, `PublicVisibilityTest` |
 | UC-08 Manage members | Implemented | Invitation-only enrollment for family admins, identical replies for registered/unknown emails |
 | UC-09 Attributes & badges | Implemented | `PersonDescriptorsTest`, founder badge test |
@@ -101,16 +102,16 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 
 | Status | Count |
 |---|---|
-| Implemented | 7 (JTH-01, 03, 05, 07, 13, 14, 36) |
-| Partial | 12 (JTH-02, 04, 06, 08, 09, 10, 11, 15, 18, 28, 29, 34) |
+| Implemented | 8 (JTH-01, 03, 05, 07, 10, 13, 14, 36) |
+| Partial | 11 (JTH-02, 04, 06, 08, 09, 11, 15, 18, 28, 29, 34) |
 | Missing | 17 |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(7 + 6) / 36 = 36.1 %** |
+| **Weighted completion** | **(8 + 5.5) / 36 = 37.5 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
-| Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 5 | 5 | 0 |
+| Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 6 | 4 | 0 |
 | Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 1 | 3 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
 | Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 2 | 15 |
@@ -170,3 +171,21 @@ Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` a
 **Privacy** — claims about birth/death years follow the person's field level (`PersonPrivacy::canViewFact`); values, notes and evidence of masked claims are hidden in the facts panel, review page, source page (including the citation edit form) and audit log (`redactFactSnapshot`). Public pages, graph and search show no claims or source metadata; an accepted claim reaches the public only through the person record and the existing publication rules.
 
 **Dependencies for the merge workflow** — merges should move `assertions` (person_id/related_person_id) and their citations with the merged person, record a superseded claim for each losing value, and use `SharedAncestryScope` for cross-family impact.
+
+## 9. Person merge (Phase 2.3)
+
+**References audited** (every FK to `people`): father edges and children (`person_relationships.person_id/related_person_id`), tree roots, branch founders, `citations.person_id` and citations on the duplicate's father edge, `person_sources`, `person_attribute_assignments`, `assertions.person_id/related_person_id`, `cross_family_links.left/right_person_id`, pending `change_requests` (target or payload), plus history only (`audit_logs`, `import_batches.created_ids`).
+
+**Data changes** — `people.merged_into_id` (the duplicate is kept; a global scope `active` hides merged people from every query, tree, graph, search and count); `person_merges` (survivor, merged, performer, reason, preview fingerprint, decisions, row-level journal, undo fields). Migration `2026_10_25_114226_create_person_merges_table`.
+
+**Candidates** — `MergeCandidateFinder` reuses the duplicate rule (same normalized name or recorded alternate spelling, same primary father or both without one); signals respect `PersonPrivacy`. Visible to all members; preview/merge/undo are for family admins.
+
+**Preview** (read-only, tested to leave every table unchanged) — field-by-field comparison with outcome (same / keep / fill from duplicate / conflict needing a choice), father comparison, resulting alternate names, badges, stricter field privacy, publication before/after, losing values kept as superseded claims, every redirected or consolidated reference with counts, impacted families and blockers.
+
+**Blockers** — different primary fathers (resolve through claims and review first), one being an ancestor of the other (self/cycle), invalid tree root, pending proposals about the duplicate, unresolved conflicts, and any result that would publish a record neither identity published. The survivor is always the reviewer's explicit choice and keeps its id and key.
+
+**Execution** — one transaction: lock tree and both people, recompute the plan, compare the preview fingerprint (concurrent edits refused), apply decisions, preserve losing values as superseded claims, redirect or consolidate references (same-father edges consolidated with their evidence), mark the duplicate merged, re-validate relationships, every branch and the root (any failure rolls everything back), write the journal, audit both people and a reviewers-only operation entry. Shared ancestors or cross-family links require a super admin (`SharedAncestryScope`).
+
+**Undo** — replays the journal backwards only if every touched row still has exactly the value the merge wrote (inserted claims unchanged and without new evidence, deleted rows not recreated); otherwise lists the blockers and refuses. Later unrelated work (e.g. new children of the survivor) is kept. Undo is atomic, re-validated, permission-controlled and audited; tested to restore every touched table exactly.
+
+**Routing** — the merged id redirects (301) to the survivor on public pages only when the survivor is public, and on management pages for members.

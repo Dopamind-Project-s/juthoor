@@ -2,15 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-25, after session 5)
+## Current state (2026-10-25, after session 6)
 
-- Branch `main` at `f9bb42b`; session 5 (Phase 2.2) changes uncommitted (nothing committed by the assistant).
-- Suite: **247 passed / 0 failed (2690 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1, Phase 2.1 and Phase 2.2 complete.
+- Branch `main` at `8318177`; session 6 (Phase 2.3) changes uncommitted (nothing committed by the assistant).
+- Suite: **262 passed / 0 failed (2785 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1 and Phases 2.1–2.3 complete.
 
 ## Next task to execute
 
-Phase 2, item 3: merge workflow with preview and undo, built on `DuplicatePersonDetector`, moving assertions/citations with the merged person and using `SharedAncestryScope` for cross-family impact (JTH-10, UC-06).
+Phase 2, item 4: revert any audit entry and restore a deleted person (JTH-09), reusing the merge journal approach for exact, blocker-checked restoration.
 
 ## Work log
 
@@ -61,6 +61,15 @@ Phase 2, item 3: merge workflow with preview and undo, built on `DuplicatePerson
 | UI | facts panel, review context, source page claims | `facts.blade.php`, `people/show.blade.php`, `changes/show.blade.php`, `sources/show.blade.php`, `PersonController.php`, `juthoor.css` | Chrome journeys |
 | ROOT differences | opt-in idempotent importer | `RootVariantImporter.php`, `AlZoubiRootVariantSeeder.php` | importer test; base 39+1 / shared 40 on SQLite and PostgreSQL |
 
+### Session 6 — Phase 2.3 safe person merge
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Data model | `merged_into_id`, global scope `active`, `survivorOf()`, `person_merges` | migration `2026_10_25_114226`, `Person.php`, `PersonMerge.php` | rollback/re-apply on PostgreSQL; full suite unaffected by the scope |
+| Engine | plan / merge / undoBlockers / undo with row journal | `PersonMergeService.php` | preview unchanged state, simple merge, conflicts, blockers, publication, concurrency, rollback, undo exact, undo blocked (mutation-checked) |
+| Candidates | duplicate rule + variants, privacy-aware signals | `MergeCandidateFinder.php` | candidate test |
+| UI & routing | candidates/history, preview, operation page, nav, merged-id redirects | `PersonMergeController.php`, `merges/*.blade.php`, `family-nav.blade.php`, `GenealogyTreeController.php`, `PersonController.php`, `routes/web.php`, `juthoor.css` | Chrome journeys |
+| Governance | family admin; super admin for shared/cross-family | `PersonMergeService::authorize` + `SharedAncestryScope` | role and cross-family tests |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -88,17 +97,21 @@ Phase 2, item 3: merge workflow with preview and undo, built on `DuplicatePerson
 | Replaced displayed values are preserved as superseded claims | No account is lost when a claim is accepted |
 | Shared-ancestor changes need a super admin | A local admin must not silently change a fact other families depend on |
 | ROOT differences recorded as unclassified claims, opt-in | Comparison and review without reconciling or changing people |
+| Duplicate kept with `merged_into_id` and hidden by a global scope | History and stable redirects without a second "deleted" state; every existing query excludes it automatically |
+| Row-level journal applied with raw queries | Exact, verifiable reversal; model events would add side effects that undo could not replay |
+| Undo refuses when any touched row changed | Never overwrite newer work; the operation page lists the blockers for controlled recovery |
+| Different fathers block the merge | Parentage is resolved through claims and review, never guessed by a merge |
+| Stricter field privacy wins; no merge may publish what neither identity published | Merging must not weaken privacy or publish as a side effect |
 
-## Verification evidence (session 5)
+## Verification evidence (session 6)
 
 | Check | Result |
 |---|---|
-| Full suite, SQLite / PostgreSQL 16 | 247 / 247 passed |
+| Full suite, SQLite / PostgreSQL 16 | 262 / 262 passed |
 | Pint, Blade compile, `node --check`, `git diff --check` | pass |
-| Assertions migration rollback and re-apply (PostgreSQL) | pass |
-| ROOT variant importer (SQLite and PostgreSQL) | base path 39 unclassified + 1 accepted variant; shared path 40; second run unchanged; people unchanged |
-| Mutation check | disabling the shared-ancestor guard fails the shared-ancestor test |
-| Chrome facts journeys (real seeded data + variants) | 5/5: ROOT-077 panel, editor classifies and cites a ROOT difference, reader records and proposes a claim (not public), admin accepts with evidence shown → public title, mobile |
+| Merge migration rollback and re-apply (PostgreSQL) | pass |
+| Mutation checks | undo without re-inserting consolidated rows fails the exact-restore test; skipping the fingerprint check fails the concurrency test |
+| Chrome merge journeys (real seeded data + planted duplicates) | 5/5: candidate listed and previewed, conflict resolved and merge confirmed with redirects, different-father pair blocked, undo restores both identities, reader limited to candidates |
 | Not run | Repository Playwright scripts; Safari/Firefox; real devices |
 
 ## Blockers
