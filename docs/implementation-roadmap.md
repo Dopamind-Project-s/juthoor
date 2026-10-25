@@ -88,7 +88,7 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 1. ✅ Field-level privacy and living-status backfill (JTH-28, UC-12) — done 2026-10-22 as Phase 2.1, see below.
 2. ✅ Assertions with competing narratives and per-fact citations (JTH-08) — done 2026-10-25 as Phase 2.2, see below.
 3. ✅ Merge workflow with preview and undo (JTH-10, UC-06) — done 2026-10-25 as Phase 2.3, see below.
-4. Revert any audit entry; restore a deleted person (JTH-09).
+4. ✅ Revert audit entries and restore deleted people (JTH-09) — done 2026-10-25 as Phase 2.4, see below.
 5. Shared-ancestry spelling reconciliation (D-06 — differences are now recordable as claims) and write-time link validity (R-04).
 6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
 
@@ -129,3 +129,15 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **P2.3-08 UI** — candidates, manual selection, preview with decisions, confirmation, operation page with undo, sidebar entry.
 - [x] **P2.3-09 Tests** — `PersonMergeTest` (15, mutation-checked); 262/262 SQLite and PostgreSQL; Chrome merge journeys 5/5.
 - Remaining: merges across trees/families (refused), merging people with different fathers (must be resolved first), bulk merges, a dedicated "report duplicate" action for readers.
+
+## Phase 2.4 — Audit revert, change recovery & deleted-record restoration (done 2026-10-25)
+
+- [x] **P2.4-00 Baseline** — intermittent `PersonMergeTest` failure traced to a snapshot taken before `updated_at` changes; fixed.
+- [x] **P2.4-01 Coverage matrix** — `docs/project-audit.md` §10.
+- [x] **P2.4-02 Restoration** — deleted people (with badges, privacy, living status), relationships and branches under their original ids; blockers for missing dependencies, conflicts and integrity; restored unpublished.
+- [x] **P2.4-03 Safety** — preview fingerprint, locked transaction, re-validation, scope confirmation for privacy widening/publication, one recovery per event.
+- [x] **P2.4-04 Governance** — reviewers only; shared ancestors (including invalidated links) need the super admin.
+- [x] **P2.4-05 Specialised paths** — claim decisions via re-proposal of superseded claims; merges via the merge page.
+- [x] **P2.4-06 UI** — eligibility badge and reason in audit details, preview with diff and related deletions, confirmation, recovery history page, sidebar entry.
+- [x] **P2.4-07 Tests** — `AuditRecoveryTest` (15, mutation-checked); 277/277 SQLite and PostgreSQL; Chrome recovery journeys 4/4.
+- Remaining: reverting an older change underneath newer edits (refused by design), restoring deleted sources/citations/memberships, bulk restoration of a deleted person together with its deleted relationships.

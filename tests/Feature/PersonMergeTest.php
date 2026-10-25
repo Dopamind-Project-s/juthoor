@@ -151,12 +151,13 @@ test('conflicting values need an explicit choice and the losing value is kept as
 test('different fathers, ancestry cycles and an invalid root block the merge without changes', function () {
     $fixture = mergeFixture();
     $other = $fixture['tree']->people()->create(['first_name_ar' => 'عمر', 'full_name_ar' => 'عمر', 'status' => 'historical', 'verification_status' => 'verified', 'is_living' => false]);
-    $before = mergeState();
     $service = app(PersonMergeService::class);
 
     $fixture['duplicate']->outgoingRelationships()->sole()->update(['related_person_id' => $other->id]);
     expect($service->plan($fixture['tree'], $fixture['survivor']->id, $fixture['duplicate']->id, ['verification_status' => 'survivor'])['blockers'])->toContain('لكل منهما أب مختلف في الشجرة المعتمدة. احسم الأبوة أولًا عبر الروايات والمراجعة؛ لا يُختار أب بالتخمين.');
     $fixture['duplicate']->outgoingRelationships()->sole()->update(['related_person_id' => $fixture['father']->id]);
+    // Snapshot after the edge is restored: updating it rewrites updated_at.
+    $before = mergeState();
 
     expect(implode(' ', $service->plan($fixture['tree'], $fixture['father']->id, $fixture['survivor']->id, ['verification_status' => 'survivor', 'birth_year' => 'survivor'])['blockers']))->toContain('أحدهما من أسلاف الآخر')
         ->and(implode(' ', $service->plan($fixture['tree'], $fixture['father']->id, $fixture['root']->id)['blockers']))->toContain('جذر الشجرة');

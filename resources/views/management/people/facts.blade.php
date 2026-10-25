@@ -53,6 +53,13 @@
                         @endforelse
                     </ul>
                     @if($claim->changeRequests->isNotEmpty())<a class="btn btn-sm btn-outline-primary" href="{{ route('management.changes.show',[$family->slug,$claim->changeRequests->first()->id,'tree'=>$tree->slug]) }}">مقترح الاعتماد قيد المراجعة</a>@endif
+                    @if($claim->state === 'superseded' && $canPropose && $claimVisible && $claim->changeRequests->isEmpty())
+                        <details class="mt-1"><summary class="small">إعادة اعتماد هذه الرواية</summary>
+                            <form method="post" class="management-grid mt-2" action="{{ route('management.assertions.propose',[$family->slug,$claim->id,'tree'=>$tree->slug]) }}">@csrf
+                                <label>سبب إعادة الاعتماد<textarea name="reason" class="form-control" required maxlength="2000"></textarea></label>
+                                <button class="btn btn-sm btn-outline-primary">اقتراح إعادتها للعرض</button></form>
+                        </details>
+                    @endif
                     @if(! in_array($claim->state, ['rejected','superseded'], true))
                         <details class="mt-1"><summary class="small">إدارة الرواية</summary>
                             @if($canCite && $claimVisible)

@@ -129,6 +129,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/changes', [ChangeRequestController::class, 'store'])->name('management.changes.store');
         Route::get('/manage/families/{family}/changes/{change}', [ChangeRequestController::class, 'show'])->whereNumber('change')->name('management.changes.show');
         Route::post('/manage/families/{family}/changes/{change}/decision', [ChangeRequestController::class, 'decide'])->whereNumber('change')->name('management.changes.decide');
+        Route::get('/manage/families/{family}/recoveries', [AuditReversionController::class, 'history'])->name('management.recoveries.index');
         Route::get('/manage/audit/{auditLog}/revert', [AuditReversionController::class, 'preview'])->whereNumber('auditLog')->name('management.audit.revert.preview');
         Route::post('/manage/audit/{auditLog}/revert', [AuditReversionController::class, 'store'])->whereNumber('auditLog')->name('management.audit.revert.store');
         Route::get('/manage/audit/{auditLog}', [AuditLogController::class, 'show'])->whereNumber('auditLog')->name('management.audit.show');

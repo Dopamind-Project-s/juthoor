@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assertion;
 use App\Models\AuditLog;
 use App\Models\Person;
+use App\Services\AuditReversionService;
 use App\Services\Genealogy\PersonPrivacy;
 use Illuminate\View\View;
 
@@ -14,6 +15,9 @@ class AuditLogController extends Controller
     {
         $log = AuditLog::query()->with(['family', 'user'])->findOrFail($auditLog);
         abort_unless($log->canBeViewedBy(auth()->user()), 403);
+        // Computed before redaction: the check compares the stored snapshot with the current record.
+        $recovery = $log->family && auth()->user()->can('review', $log->family) && $log->family->is_active
+            ? app(AuditReversionService::class)->eligibility($log) : null;
         if ($log->auditable_type === Assertion::class) {
             $privacy = app(PersonPrivacy::class);
             $log->setAttribute('before', $log->before ? $privacy->redactFactSnapshot($log->before, auth()->user()) : null);
@@ -27,6 +31,6 @@ class AuditLogController extends Controller
             $log->setAttribute('after', $log->after ? $privacy->redactSnapshot($log->after, $log->family, auth()->user(), $current) : null);
         }
 
-        return view('management.audit.show', ['log' => $log, 'family' => $log->family]);
+        return view('management.audit.show', ['log' => $log, 'family' => $log->family, 'recovery' => $recovery]);
     }
 }

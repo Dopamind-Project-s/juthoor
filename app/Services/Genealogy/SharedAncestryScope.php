@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
- * A person is a shared ancestor when an approved cross-family link endpoint descends from them (or is them).
+ * A person is a shared ancestor when an approved (or invalidated, awaiting re-review) cross-family link endpoint
+ * descends from them (or is them).
  * Facts about such a person affect every linked family, so only a platform reviewer (super admin) may change them.
  */
 class SharedAncestryScope
@@ -33,7 +34,8 @@ class SharedAncestryScope
         $families = collect();
         foreach ($people as $person) {
             $familyId = $person->familyTree->family_id;
-            $links = CrossFamilyLink::query()->where('status', 'approved')
+            // An approved link invalidated by a change still binds the families until it is re-confirmed or withdrawn.
+            $links = CrossFamilyLink::query()->whereIn('status', ['approved', 'needs_review'])
                 ->where(fn ($query) => $query->where('left_family_id', $familyId)->orWhere('right_family_id', $familyId))
                 ->get();
             foreach ($links as $link) {

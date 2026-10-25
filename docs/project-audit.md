@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-25 (updated after Phase 2.3 — safe person merge with preview and undo). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-25 (updated after Phase 2.4 — audit revert, change recovery and deleted-record restoration). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `8318177`; Phase 2.3 changes (session 6) are uncommitted. |
-| Test baseline (start of session 6) | 247 passed on SQLite (re-verified, not assumed). |
-| Test result (end of session 6) | **262 passed, 0 failed, 2785 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `2c0269f`; Phase 2.4 changes (session 7) are uncommitted. |
+| Test baseline (start of session 7) | 261 passed, 1 intermittent failure (time-dependent snapshot in `PersonMergeTest`, fixed in this session). |
+| Test result (end of session 7) | **277 passed, 0 failed, 2892 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -49,7 +49,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-06 | People, relationships, Arabic names | Partial | Arabic normalization (`ArabicNameNormalizer`), father edges | Mothers, spouses, events, date qualifiers | P1 | 2 | Union/mother model with integrity + privacy |
 | JTH-07 | Toggleable attributes, titles, badges | Implemented | `PersonDescriptorsTest`, founder badges added, deactivation test | — | P1 | 1 ✓ | Deactivated badge hidden, assignment kept (tested) |
 | JTH-08 | Sources & assertion verification | Partial | `assertions` with competing narratives, multiple citations per claim, review via change requests, history preserved (`GenealogyAssertionTest`, 12) | Mother/spouse and life-event claims (no model yet); positions/achievements (JTH-18) | P1 | 2 | Same assertion model reused for new fact types |
-| JTH-09 | Review, audit, revert | Partial | `ChangeReviewTest`, `AuditReversionTest`; publication gate (this session) | Revert limited to latest change; no restore of deleted person | P1 | 2 | Revert any entry with conflict check |
+| JTH-09 | Review, audit, revert | Implemented | Revert of created/updated records, restoration of deleted people/relationships/branches under original ids, preview fingerprints, scope confirmation, eligibility in audit details, recovery history, claim re-proposal path (`AuditRecoveryTest` 15, `AuditReversionTest`) | Reverting an older change underneath newer edits (refused by design); restoring source/citation/membership deletions | P1 | 2 ✓ | Met |
 | JTH-10 | Duplicate detection & safe merge | Implemented | Candidate review, read-only preview, explicit conflict choices, atomic merge with journal, exact undo with blockers (`PersonMergeTest`, 15; Chrome) | Merges across trees/families (refused by design); bulk merges | P1 | 2 ✓ | Met |
 | JTH-11 | Arabic genealogical search | Partial | Normalized search over names and recorded variants (`alternate_names`), lineage in results; seeded records searchable (D-05 fixed) | Father/fakhd filters, phonetic matching | P1 | 2 | UC-11 filters |
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
@@ -102,17 +102,17 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 
 | Status | Count |
 |---|---|
-| Implemented | 8 (JTH-01, 03, 05, 07, 10, 13, 14, 36) |
-| Partial | 11 (JTH-02, 04, 06, 08, 09, 11, 15, 18, 28, 29, 34) |
+| Implemented | 9 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 36) |
+| Partial | 10 (JTH-02, 04, 06, 08, 11, 15, 18, 28, 29, 34) |
 | Missing | 17 |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(8 + 5.5) / 36 = 37.5 %** |
+| **Weighted completion** | **(9 + 5) / 36 = 38.9 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
 | Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 6 | 4 | 0 |
-| Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 1 | 3 | 1 |
+| Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 2 | 2 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
 | Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 2 | 15 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
@@ -189,3 +189,23 @@ Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` a
 **Undo** — replays the journal backwards only if every touched row still has exactly the value the merge wrote (inserted claims unchanged and without new evidence, deleted rows not recreated); otherwise lists the blockers and refuses. Later unrelated work (e.g. new children of the survivor) is kept. Undo is atomic, re-validated, permission-controlled and audited; tested to restore every touched table exactly.
 
 **Routing** — the merged id redirects (301) to the survivor on public pages only when the survivor is public, and on management pages for members.
+
+## 10. Change recovery (Phase 2.4)
+
+**Recovery coverage matrix**
+
+| Event (audit action) | Class | Mechanism / requirement |
+|---|---|---|
+| Person, relationship, branch — `created` | Conditionally reversible | Delete through `GenealogyMutationService` if it is the record's latest change, its values still match and nothing depends on it |
+| Person, relationship, branch — `updated` | Conditionally reversible | Re-apply the `before` values through the governed path (integrity, `PublicationGuard`, `SharedAncestryScope`, audit); explicit confirmation when it widens field privacy or publishes |
+| Person, relationship, branch — `deleted` | Conditionally reversible | Re-create under the original id from the deletion snapshot; blocked by missing parent/child/founder, key or slug conflicts, cycles or second fathers; returns pending review (never republished automatically) |
+| Change applied by accepting a claim (`change_requests.assertion_id`) | Specialized workflow | Re-propose the superseded claim; it goes through review again |
+| `merged` / `merge_undone` | Specialized workflow | Phase 2.3 merge page (journal undo) only |
+| Deletions without a complete snapshot (legacy) | Historical only | Refused; no values are invented |
+| Sources, citations, memberships, invitations, users, logins, notifications, imports, claims' own state changes | Historical only | Not reversed generically |
+
+**Architecture** — `AuditReversionService` (extended, not replaced): `preview()` is read-only and returns current/proposed values, publication and privacy-scope effects, impacted families, related deleted records and a fingerprint (log id + latest audit id + current row); `revert()` locks the tree, re-runs the preview, compares the fingerprint, requires scope confirmation when needed and writes a new audit entry (`reverted` or `restored`) linked by the unique `reverted_from_id` (immutable record: actor, reason, before/after; an event is recovered at most once). The merge journal was not generalised: generic recovery keeps the governed model path, so every existing rule applies; merges keep their exact journal.
+
+**Fixes found while auditing** — revert of any person with field privacy or alternate names failed (snapshot JSON validated as array); a shared ancestor whose link had been invalidated (`needs_review`) stopped being protected — `SharedAncestryScope` now includes `needs_review` links.
+
+**Privacy** — preview values are masked with `PersonPrivacy::redactSnapshot`; only reviewers (family admins, super admins) see recovery controls or previews; restored records keep their snapshot privacy levels and come back unpublished.

@@ -126,8 +126,9 @@ class GenealogyAssertionService
     {
         $tree = $assertion->familyTree;
         Gate::forUser($user)->authorize('propose', $tree->family);
-        if ($assertion->state !== 'proposed') {
-            $this->reject('assertion', 'يمكن اقتراح اعتماد الروايات المسجلة غير المعتمدة فقط.');
+        // A superseded claim may be proposed again: that is how an accepted claim is reversed (JTH-09) under review.
+        if (! in_array($assertion->state, ['proposed', 'superseded'], true)) {
+            $this->reject('assertion', 'يمكن اقتراح اعتماد الروايات المسجلة أو المستبدلة فقط.');
         }
         if ($assertion->changeRequests()->where('status', 'pending')->exists()) {
             $this->reject('assertion', 'لهذه الرواية مقترح اعتماد قيد المراجعة بالفعل.');

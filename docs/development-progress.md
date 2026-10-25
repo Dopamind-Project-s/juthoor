@@ -2,15 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-25, after session 6)
+## Current state (2026-10-25, after session 7)
 
-- Branch `main` at `8318177`; session 6 (Phase 2.3) changes uncommitted (nothing committed by the assistant).
-- Suite: **262 passed / 0 failed (2785 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1 and Phases 2.1–2.3 complete.
+- Branch `main` at `2c0269f`; session 7 (Phase 2.4) changes uncommitted (nothing committed by the assistant).
+- Suite: **277 passed / 0 failed (2892 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1 and Phases 2.1–2.4 complete.
 
 ## Next task to execute
 
-Phase 2, item 4: revert any audit entry and restore a deleted person (JTH-09), reusing the merge journal approach for exact, blocker-checked restoration.
+Phase 2, item 5: reconcile the shared-ancestry spellings with sources (D-06) using the claims workflow, and store cross-family link validity at write time instead of on every public request (R-04).
 
 ## Work log
 
@@ -70,6 +70,14 @@ Phase 2, item 4: revert any audit entry and restore a deleted person (JTH-09), r
 | UI & routing | candidates/history, preview, operation page, nav, merged-id redirects | `PersonMergeController.php`, `merges/*.blade.php`, `family-nav.blade.php`, `GenealogyTreeController.php`, `PersonController.php`, `routes/web.php`, `juthoor.css` | Chrome journeys |
 | Governance | family admin; super admin for shared/cross-family | `PersonMergeService::authorize` + `SharedAncestryScope` | role and cross-family tests |
 
+### Session 7 — Phase 2.4 change recovery
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Baseline fix | time-dependent snapshot in a merge test | `tests/Feature/PersonMergeTest.php` | repeated runs |
+| Recovery engine | eligibility, preview with fingerprint/scope effects, restoration of deleted records, related deletions, JSON snapshot fix | `app/Services/AuditReversionService.php` | `AuditRecoveryTest` (15); existing `AuditReversionTest` unchanged and green |
+| Governance | `needs_review` links still protect shared ancestors; claim re-proposal path | `SharedAncestryScope.php`, `GenealogyAssertionService.php`, `facts.blade.php` | shared-ancestor and claim tests |
+| UI | eligibility in audit details, preview, recovery history, nav | `AuditLogController.php`, `AuditReversionController.php`, `audit/show|revert|recoveries.blade.php`, `family-nav.blade.php`, `routes/web.php` | Chrome journeys |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -101,17 +109,20 @@ Phase 2, item 4: revert any audit entry and restore a deleted person (JTH-09), r
 | Row-level journal applied with raw queries | Exact, verifiable reversal; model events would add side effects that undo could not replay |
 | Undo refuses when any touched row changed | Never overwrite newer work; the operation page lists the blockers for controlled recovery |
 | Different fathers block the merge | Parentage is resolved through claims and review, never guessed by a merge |
+| Generic recovery stays on the governed mutation path; merge journal not generalised | Every governance rule applies to recovery; merges keep their exact journal |
+| Recovery record = audit entry with unique `reverted_from_id` | Immutable, linked to the original, prevents double recovery without a second history table |
+| Restored records return pending review | Recovery must not republish by itself |
+| Only the latest change of a record is reverted | Never overwrite newer work; older changes are recovered by reverting newer ones first or by a new reviewed change |
 | Stricter field privacy wins; no merge may publish what neither identity published | Merging must not weaken privacy or publish as a side effect |
 
-## Verification evidence (session 6)
+## Verification evidence (session 7)
 
 | Check | Result |
 |---|---|
-| Full suite, SQLite / PostgreSQL 16 | 262 / 262 passed |
+| Full suite, SQLite / PostgreSQL 16 | 277 / 277 passed |
 | Pint, Blade compile, `node --check`, `git diff --check` | pass |
-| Merge migration rollback and re-apply (PostgreSQL) | pass |
-| Mutation checks | undo without re-inserting consolidated rows fails the exact-restore test; skipping the fingerprint check fails the concurrency test |
-| Chrome merge journeys (real seeded data + planted duplicates) | 5/5: candidate listed and previewed, conflict resolved and merge confirmed with redirects, different-father pair blocked, undo restores both identities, reader limited to candidates |
+| Mutation checks | disabling "restore unpublished" fails the restoration test; disabling scope confirmation fails the privacy/publication test |
+| Chrome recovery journeys (real seeded data) | 4/4: field change reverted from audit details, deleted relationship blocked until its person is restored then both restored, recovery history, reader without controls |
 | Not run | Repository Playwright scripts; Safari/Firefox; real devices |
 
 ## Blockers
