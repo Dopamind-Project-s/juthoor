@@ -91,6 +91,11 @@ class Person extends Model
             && ($attribute->family_id === null || $attribute->family_id === $this->familyTree->family_id))->values();
     }
 
+    public function assertions(): HasMany
+    {
+        return $this->hasMany(Assertion::class);
+    }
+
     public function citations(): HasMany
     {
         return $this->hasMany(Citation::class, 'person_id');

@@ -23,4 +23,6 @@
 $allCitations = $person->citations->concat($person->outgoingRelationships->flatMap->citations);
 @endphp
 @foreach ($allCitations as $citation)
-<p><a href="{{ route('management.sources.show',[$family->slug,$citation->source_id,'tree'=>$tree->slug]) }}">{{ $citation->source->title }}</a> · {{ $citation->locator }} · {{ $citation->field_key==='father'?'علاقة الأبوة':($citation->field_key==='person'?'الشخص':__('genealogy.fields.'.$citation->field_key)) }}</p>@endforeach<a href="{{ route('management.sources.index',[$family->slug,'tree'=>$tree->slug]) }}">مكتبة المصادر</a></section>@endsection
+<p><a href="{{ route('management.sources.show',[$family->slug,$citation->source_id,'tree'=>$tree->slug]) }}">{{ $citation->source->title }}</a> · {{ $citation->locator }} · {{ $citation->field_key==='father'?'علاقة الأبوة':($citation->field_key==='person'?'الشخص':__('genealogy.fields.'.$citation->field_key)) }}</p>@endforeach<a href="{{ route('management.sources.index',[$family->slug,'tree'=>$tree->slug]) }}">مكتبة المصادر</a></section>
+@include('management.people.facts')
+@endsection

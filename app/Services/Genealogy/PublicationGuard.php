@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Only family administrators (and super admins) may publish genealogy or change what is already public.
+ * Only family administrators (and super admins) may publish genealogy or change what is already public, and only super
+ * admins may change a shared ancestor whose facts other families depend on (approved cross-family link).
  * Editors keep direct write access to unpublished records; published records change through reviewed proposals (UC-07).
  */
 class PublicationGuard
@@ -25,6 +26,10 @@ class PublicationGuard
      */
     public function assertAllowed(User $user, Family $family, Model $record, bool $deleting = false): void
     {
+        // A fact shared with other families through an approved link is changed only by a platform reviewer.
+        if (! $user->isSuperAdmin() && ($impacted = app(SharedAncestryScope::class)->impactedFamilies($record))->isNotEmpty()) {
+            throw ValidationException::withMessages(['change' => 'هذا الجد مشترك مع عائلات أخرى ('.$impacted->pluck('name_ar')->implode('، ').')؛ تغيير وقائعه يعتمده مشرف المنصة بعد مراجعة العائلات المتأثرة.']);
+        }
         if ($this->canPublish($user, $family)) {
             return;
         }

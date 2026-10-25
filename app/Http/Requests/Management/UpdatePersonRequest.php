@@ -28,6 +28,8 @@ class UpdatePersonRequest extends FormRequest
             'death_year' => ['nullable', 'integer', 'between:1,9999', 'gte:birth_year'],
             'is_living' => ['nullable', 'boolean'],
             'field_visibility' => ['sometimes', 'nullable', 'array'],
+            'alternate_names' => ['sometimes', 'nullable', 'array'],
+            'alternate_names.*' => ['string', 'max:255'],
             'field_visibility.*' => ['in:public,family,restricted'],
             'status' => ['required', 'in:active,historical,unresolved'],
             'verification_status' => ['required', 'in:verified,sourced,pending_review,unresolved'],

@@ -2,15 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-22, after session 4)
+## Current state (2026-10-25, after session 5)
 
-- Branch `main` at `3059fac`; session 4 (Phase 2.1) changes uncommitted (nothing committed by the assistant).
-- Suite: **235 passed / 0 failed (2549 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1 complete; Phase 2.1 (field-level privacy & living status) complete.
+- Branch `main` at `f9bb42b`; session 5 (Phase 2.2) changes uncommitted (nothing committed by the assistant).
+- Suite: **247 passed / 0 failed (2690 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1, Phase 2.1 and Phase 2.2 complete.
 
 ## Next task to execute
 
-Phase 2, item 2: assertions with competing narratives and per-fact citations (JTH-08), reusing `citations.field_key` and `PersonPrivacy` for per-fact visibility.
+Phase 2, item 3: merge workflow with preview and undo, built on `DuplicatePersonDetector`, moving assertions/citations with the merged person and using `SharedAncestryScope` for cross-family impact (JTH-10, UC-06).
 
 ## Work log
 
@@ -51,6 +51,16 @@ Phase 2, item 2: assertions with competing narratives and per-fact citations (JT
 | Dashboard | `living_legacy` indicator; corrected text | `FamilyHealthService.php`, `dashboard.blade.php` | full suite |
 | Fixtures | Tests that intended public people now declare `is_living => false` | `GenealogyExperienceTest`, `GenealogyGraphEndpointTest`, `BetaReadinessTest`, `PersonDescriptorsTest`, `AlQawasmehBranchTest` | assertions unchanged |
 
+### Session 5 — Phase 2.2 assertions, sources & conflicting narratives
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Data model | `assertions`, `citations.assertion_id`, `change_requests.assertion_id`; model relations; deletion guard | migration `2026_10_25_111923`, `Assertion.php`, `Citation.php`, `ChangeRequest.php`, `Person.php`, `FamilyTree.php`, `GenealogyDeletionService.php` | rollback/re-apply on PostgreSQL |
+| Lifecycle | record, classify, cite, propose; accept/reject from `decide`; supersession and preserved replaced values; `alternate_names` accepted through review | `GenealogyAssertionService.php`, `ChangeReviewService.php`, `GenealogyMutationService.php`, `Store/UpdatePersonRequest.php`, `AssertionController.php`, `SourceController.php`, `routes/web.php` | creation, citations, source reuse, alternate spelling, conflicting narratives, rejection/supersession, graph consistency, invalid parentage |
+| Shared ancestors | `SharedAncestryScope`; guard requires super admin | `SharedAncestryScope.php`, `PublicationGuard.php`, `ChangeRequestController.php` | shared-ancestor test (mutation-checked) |
+| Privacy | fact masking and audit redaction | `PersonPrivacy.php`, `AuditLogController.php`, `facts.blade.php`, `sources/show.blade.php`, `changes/show.blade.php` | restricted-claim test (pages, source page, audit, review page) |
+| UI | facts panel, review context, source page claims | `facts.blade.php`, `people/show.blade.php`, `changes/show.blade.php`, `sources/show.blade.php`, `PersonController.php`, `juthoor.css` | Chrome journeys |
+| ROOT differences | opt-in idempotent importer | `RootVariantImporter.php`, `AlZoubiRootVariantSeeder.php` | importer test; base 39+1 / shared 40 on SQLite and PostgreSQL |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -72,18 +82,23 @@ Phase 2, item 2: assertions with competing narratives and per-fact citations (JT
 | Restricted = family admins and super admins | Membership alone must not unlock restricted personal data |
 | Snapshot redaction uses the stricter of historical and current level | Tightening privacy also hides earlier audit/proposal values |
 | Public page omits hidden fields; management pages show a lock | Visitors should not learn that hidden data exists; members need to know it is withheld |
+| Claims in a new `assertions` table, evidence in existing `citations` | No structure stored competing claims; sources/citations already model evidence |
+| Claim approval is an ordinary change request | Reuses review rules, fingerprints, self-review prevention, integrity, publication guard and audit; no parallel review path |
+| `relation` (how a claim relates) and `state` (lifecycle) beside the existing `verification_status` | Verification keeps its vocabulary (unresolved = disputed); rejection/supersession are lifecycle, not verification |
+| Replaced displayed values are preserved as superseded claims | No account is lost when a claim is accepted |
+| Shared-ancestor changes need a super admin | A local admin must not silently change a fact other families depend on |
+| ROOT differences recorded as unclassified claims, opt-in | Comparison and review without reconciling or changing people |
 
-## Verification evidence (session 4)
+## Verification evidence (session 5)
 
 | Check | Result |
 |---|---|
-| Full suite, SQLite / PostgreSQL 16 | 235 / 235 passed |
+| Full suite, SQLite / PostgreSQL 16 | 247 / 247 passed |
 | Pint, Blade compile, `node --check`, `git diff --check` | pass |
-| Migration rollback and re-apply (PostgreSQL) | pass |
-| Migration on old-code data | public 86 → 85 (only the recent-birth unknown probe removed), nothing gained, 34 Qawasmeh unknown |
-| Seed orders on PostgreSQL | unchanged from session 3 (identical counts, ROOT-077 same id, 0 duplicates) |
-| Mutation check | restoring "null = deceased" fails `PersonPrivacyTest` |
-| Chrome privacy journeys (real seeded data) | 6/6: public tree, unknown Qawasmeh 404, admin privacy controls → public death year shown, reader masked notes (page and audit), editor form without restricted values, unknown new person private, mobile |
+| Assertions migration rollback and re-apply (PostgreSQL) | pass |
+| ROOT variant importer (SQLite and PostgreSQL) | base path 39 unclassified + 1 accepted variant; shared path 40; second run unchanged; people unchanged |
+| Mutation check | disabling the shared-ancestor guard fails the shared-ancestor test |
+| Chrome facts journeys (real seeded data + variants) | 5/5: ROOT-077 panel, editor classifies and cites a ROOT difference, reader records and proposes a claim (not public), admin accepts with evidence shown → public title, mobile |
 | Not run | Repository Playwright scripts; Safari/Firefox; real devices |
 
 ## Blockers

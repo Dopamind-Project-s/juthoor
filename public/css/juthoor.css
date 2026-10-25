@@ -148,3 +148,6 @@ details:not([open])>:not(summary){display:none}
 .duplicate-confirmation{grid-column:1/-1;padding:.75rem;border:1px solid #f0c36d;border-radius:.6rem;background:#fff8e6}
 .person-public-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.25rem 1rem;margin:.5rem 0}
 .person-public-facts dt{font-weight:600}.person-public-facts dd{margin:0}
+.fact-group{border-top:1px solid var(--juthoor-border);padding-top:1rem;margin-top:1rem}
+.fact-claim{padding:.6rem .8rem;margin:.4rem 0;border:1px solid var(--juthoor-border);border-radius:.6rem;background:#fafbfa}
+.fact-claim .badge{font-weight:600}

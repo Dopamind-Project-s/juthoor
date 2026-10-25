@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assertion;
 use App\Models\AuditLog;
 use App\Models\Person;
 use App\Services\Genealogy\PersonPrivacy;
@@ -13,6 +14,11 @@ class AuditLogController extends Controller
     {
         $log = AuditLog::query()->with(['family', 'user'])->findOrFail($auditLog);
         abort_unless($log->canBeViewedBy(auth()->user()), 403);
+        if ($log->auditable_type === Assertion::class) {
+            $privacy = app(PersonPrivacy::class);
+            $log->setAttribute('before', $log->before ? $privacy->redactFactSnapshot($log->before, auth()->user()) : null);
+            $log->setAttribute('after', $log->after ? $privacy->redactFactSnapshot($log->after, auth()->user()) : null);
+        }
         if ($log->family && $log->auditable_type === Person::class) {
             $privacy = app(PersonPrivacy::class);
             $current = Person::query()->find($log->auditable_id);

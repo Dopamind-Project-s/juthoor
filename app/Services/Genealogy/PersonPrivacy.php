@@ -2,6 +2,7 @@
 
 namespace App\Services\Genealogy;
 
+use App\Models\Assertion;
 use App\Models\Family;
 use App\Models\Person;
 use App\Models\User;
@@ -123,6 +124,34 @@ class PersonPrivacy
         }
         if ($audience !== self::RESTRICTED) {
             unset($snapshot['field_visibility']);
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * A claim about a sensitive field (birth or death year) is readable only where the person's field is readable;
+     * other claims follow the person's record visibility, which management pages already require.
+     */
+    public function canViewFact(Assertion $assertion, ?User $user): bool
+    {
+        $field = Assertion::FACTS[$assertion->fact_type]['privacy'] ?? null;
+
+        return $field === null || $this->canView($assertion->person, $field, $user);
+    }
+
+    /**
+     * Masks the value of a claim snapshot (audit log) the viewer may not read.
+     *
+     * @param  array<string, mixed>  $snapshot
+     * @return array<string, mixed>
+     */
+    public function redactFactSnapshot(array $snapshot, ?User $user, string $placeholder = '🔒 محجوب'): array
+    {
+        $field = Assertion::FACTS[$snapshot['fact_type'] ?? '']['privacy'] ?? null;
+        $person = isset($snapshot['person_id']) ? Person::query()->find($snapshot['person_id']) : null;
+        if ($field !== null && ($snapshot['value'] ?? null) !== null && (! $person || ! $this->canView($person, $field, $user))) {
+            $snapshot['value'] = $placeholder;
         }
 
         return $snapshot;

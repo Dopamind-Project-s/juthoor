@@ -9,6 +9,7 @@ use App\Http\Controllers\CrossFamilyLinkController;
 use App\Http\Controllers\GenealogyGraphController;
 use App\Http\Controllers\GenealogyTreeController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\Management\AssertionController;
 use App\Http\Controllers\Management\AuditReversionController;
 use App\Http\Controllers\Management\BranchController;
 use App\Http\Controllers\Management\ChangeRequestController;
@@ -141,6 +142,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/manage/families/{family}/people/{person}', [PersonController::class, 'show'])->whereNumber('person')->name('management.people.show');
         Route::put('/manage/families/{family}/people/{person}', [PersonController::class, 'update'])->whereNumber('person')->name('management.people.update');
         Route::delete('/manage/families/{family}/people/{person}', [PersonController::class, 'destroy'])->whereNumber('person')->name('management.people.destroy');
+        Route::post('/manage/families/{family}/people/{person}/assertions', [AssertionController::class, 'store'])->whereNumber('person')->name('management.assertions.store');
+        Route::put('/manage/families/{family}/assertions/{assertion}', [AssertionController::class, 'update'])->whereNumber('assertion')->name('management.assertions.update');
+        Route::post('/manage/families/{family}/assertions/{assertion}/propose', [AssertionController::class, 'propose'])->whereNumber('assertion')->name('management.assertions.propose');
+        Route::post('/manage/families/{family}/assertions/{assertion}/citations', [AssertionController::class, 'cite'])->whereNumber('assertion')->name('management.assertions.cite');
         Route::post('/manage/families/{family}/relationships', [RelationshipController::class, 'store'])->name('management.relationships.store');
         Route::delete('/manage/families/{family}/relationships/{relationship}', [RelationshipController::class, 'destroy'])->whereNumber('relationship')->name('management.relationships.destroy');
         Route::post('/manage/families/{family}/branches', [BranchController::class, 'store'])->name('management.branches.store');

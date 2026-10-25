@@ -86,10 +86,10 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 
 ## Phase 2 — first approved tasks (proposed order)
 1. ✅ Field-level privacy and living-status backfill (JTH-28, UC-12) — done 2026-10-22 as Phase 2.1, see below.
-2. Assertions with competing narratives and per-fact citations (JTH-08).
+2. ✅ Assertions with competing narratives and per-fact citations (JTH-08) — done 2026-10-25 as Phase 2.2, see below.
 3. Merge workflow with preview and undo, built on `DuplicatePersonDetector` (JTH-10, UC-06).
 4. Revert any audit entry; restore a deleted person (JTH-09).
-5. Shared-ancestry spelling reconciliation (D-06) and write-time link validity (R-04).
+5. Shared-ancestry spelling reconciliation (D-06 — differences are now recordable as claims) and write-time link validity (R-04).
 6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
 
 ## Phase 2.1 — Field-level privacy & living status (done 2026-10-22)
@@ -103,3 +103,16 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **P2.1-07 Tests** — `PersonPrivacyTest` (17); existing fixtures that meant "public" now declare deceased explicitly (assertions unchanged).
 - [x] **P2.1-08 Verification** — 235/235 SQLite and PostgreSQL; Chrome privacy journeys 6/6.
 - Remaining: person-managed consent ("voluntary" privacy), contact/address/photo fields, member directory privacy, export (none exists yet).
+
+## Phase 2.2 — Genealogical assertions, sources & conflicting narratives (done 2026-10-25)
+
+- [x] **P2.2-01 Audit** — citations already scoped facts by `field_key`; review existed only as change requests; no structure for competing claims.
+- [x] **P2.2-02 Data model** — `assertions` table; `citations.assertion_id`; `change_requests.assertion_id` (migration `2026_10_25_111923_create_assertions_table`).
+- [x] **P2.2-03 Lifecycle** — record / classify / cite / propose (`GenealogyAssertionService`), accept/reject hooked into `ChangeReviewService::decide`; supersession and preservation of replaced values.
+- [x] **P2.2-04 Active graph separation** — only accepted change requests change people/father edges; father claims validated (self, cycle, duplicate).
+- [x] **P2.2-05 Shared ancestors** — `SharedAncestryScope` + `PublicationGuard`: super admin required; impacted families shown.
+- [x] **P2.2-06 Privacy** — `PersonPrivacy::canViewFact`/`redactFactSnapshot`; facts panel, review page, source page (incl. edit form) and audit masking; nothing public.
+- [x] **P2.2-07 UI** — facts panel on the management person page (displayed value, claims, evidence, classification, citation, proposal); claim context and competing claims on the review page; claim citations on source pages.
+- [x] **P2.2-08 ROOT differences** — `AlZoubiRootVariantSeeder` (opt-in, idempotent): records differences as reviewable claims; nothing reconciled.
+- [x] **P2.2-09 Tests & verification** — `GenealogyAssertionTest` (12); 247/247 SQLite and PostgreSQL; Chrome facts journeys 5/5.
+- Remaining: mother/spouse/event claims, public display of approved citations, claim-level privacy overrides beyond the person's field levels, notifications to impacted families.

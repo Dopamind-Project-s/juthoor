@@ -2,6 +2,7 @@
 
 namespace App\Services\Genealogy;
 
+use App\Models\Assertion;
 use App\Models\Branch;
 use App\Models\FamilyTree;
 use App\Models\Person;
@@ -12,6 +13,9 @@ class GenealogyDeletionService
 {
     public function assertPersonCanBeDeleted(Person $person): void
     {
+        if (Assertion::query()->where('person_id', $person->id)->orWhere('related_person_id', $person->id)->exists()) {
+            $this->reject('person', 'الشخص مرتبط بروايات ووقائع مسجلة؛ يُحفظ سجلها التاريخي ولا يُحذف.');
+        }
         if ($person->citations()->exists() || $person->sources()->exists()) {
             $this->reject('person', 'الشخص مرتبط بمصادر واستشهادات. أزل الربط قبل الحذف.');
         }

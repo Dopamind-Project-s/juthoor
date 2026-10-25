@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assertion;
 use App\Models\ChangeRequest;
 use App\Models\Family;
 use App\Services\ChangeReviewService;
@@ -10,6 +11,7 @@ use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Genealogy\GenealogyMutationService;
 use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Genealogy\SelectedFamilyTree;
+use App\Services\Genealogy\SharedAncestryScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -92,7 +94,13 @@ class ChangeRequestController extends Controller
             ? app(DuplicatePersonDetector::class)->matches($tree, (string) ($change->payload['full_name_ar'] ?? ''), null)
             : collect();
 
-        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels', 'possibleDuplicates'));
+        $claim = $change->assertion()->with(['citations.source', 'person.familyTree.family', 'relatedPerson'])->first();
+        $competing = $claim ? Assertion::query()->where('person_id', $claim->person_id)->where('fact_type', $claim->fact_type)->whereKeyNot($claim->id)
+            ->with(['citations.source', 'person.familyTree.family', 'relatedPerson'])->orderBy('id')->get() : collect();
+        $target = $change->target_id ? $this->mutations->modelClass($change->target_type)::query()->where('family_tree_id', $tree->id)->find($change->target_id) : null;
+        $sharedFamilies = $target ? app(SharedAncestryScope::class)->impactedFamilies($target) : collect();
+
+        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels', 'possibleDuplicates', 'claim', 'competing', 'sharedFamilies'));
     }
 
     public function decide(Request $request, string $family, int $change): RedirectResponse

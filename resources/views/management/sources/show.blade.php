@@ -16,7 +16,10 @@
 @forelse($citations as $citation)
 <article><div>
 <strong>
-@if($citation->person)
+@if($citation->assertion)
+    @php($factVisible = app(\App\Services\Genealogy\PersonPrivacy::class)->canViewFact($citation->assertion, auth()->user()))
+    <a href="{{ route('management.people.show',[$family->slug,$citation->assertion->person_id,'tree'=>$tree->slug]) }}#facts">{{ $citation->assertion->person->display_name }}</a> — {{ $citation->assertion->label }}: @if($factVisible){{ $citation->assertion->claim_text }}@else<i class="bi bi-lock"></i> محجوب@endif
+@elseif($citation->person)
     {{ $citation->person->display_name }}
 @elseif($citation->relationship)
     {{ $citation->relationship->person->display_name }} ← {{ $citation->relationship->relatedPerson->display_name }}
@@ -25,8 +28,10 @@
 @endif
 </strong>
 <small>{{ $citation->field_key === 'source_observation' ? 'سجل مصدر غير محسوم' : ($citation->field_key === 'father' ? 'علاقة الأبوة' : 'معلومة عن الشخص') }} · {{ $citation->locator }} · {{ ['pending_review'=>'قيد المراجعة','verified'=>'موثق','sourced'=>'مسند','unresolved'=>'غير محسوم'][$citation->verification_status] }}</small>
-<p>{{ $citation->notes }}</p>
-@if($citation->person_id || $citation->person_relationship_id)
+@if(! $citation->assertion || $factVisible)<p>{{ $citation->notes }}</p>@endif
+@if($citation->assertion)
+<a href="{{ route('management.people.show',[$family->slug,$citation->assertion->person_id,'tree'=>$tree->slug]) }}#facts">الرواية ومراجعتها في صفحة الشخص</a>
+@elseif($citation->person_id || $citation->person_relationship_id)
 <a href="{{ route('management.changes.create',[$family->slug,'tree'=>$tree->slug,'kind'=>$citation->person_id?'person':'relationship','target'=>$citation->person_id ?? $citation->person_relationship_id]) }}">اقتراح تعديل أو مراجعة السجل</a>
 @else
 <small>لا ينشئ هذا الاستشهاد شخصاً أو علاقة. يلزم حسم الهوية والأبوة من المصدر قبل تقديم مقترح في مسار المراجعة.</small>
@@ -35,7 +40,7 @@
 <a href="{{ $citation->url }}" target="_blank" rel="noopener noreferrer">رابط الاستشهاد</a>
 @endif
 </div>
-@can('manageSources',$family)
+@if(auth()->user()->can('manageSources',$family) && (! $citation->assertion || $factVisible))
 <details><summary>تعديل الاستشهاد</summary><form method="post" action="{{ route('management.sources.citation.update',[$family->slug,$source->id,$citation->id,'tree'=>$tree->slug]) }}" class="management-grid">
 @csrf
 @method('PUT')
@@ -45,7 +50,7 @@
 @csrf
 @method('DELETE')
 <button class="btn btn-outline-danger">إزالة الربط</button></form>
-@endcan
+@endif
 </article>
 @empty
 <p>لا توجد استشهادات في هذه الشجرة.</p>

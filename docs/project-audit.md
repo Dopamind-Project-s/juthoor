@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-22 (updated after Phase 2.1 — field-level privacy and living status). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-25 (updated after Phase 2.2 — genealogical assertions, sources and conflicting narratives). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `3059fac`; Phase 2.1 changes (session 4) are uncommitted. |
-| Test baseline (start of session 4) | 218 passed on SQLite (re-verified, not assumed). |
-| Test result (end of session 4) | **235 passed, 0 failed, 2549 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `f9bb42b`; Phase 2.2 changes (session 5) are uncommitted. |
+| Test baseline (start of session 5) | 235 passed on SQLite (re-verified, not assumed). |
+| Test result (end of session 5) | **247 passed, 0 failed, 2690 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -29,6 +29,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Roles | `family_memberships` (reader/editor/admin), `users.is_super_admin`, `FamilyPolicy` (+ `publish`), Person/Branch/Relationship policies, `Gate::before`; membership by invitation (`FamilyInvitationService`); `/site-admin` super-admin only | Implemented |
 | Review / audit / revert | `change_requests` + `ChangeReviewService`; `audit_logs` + `AuditLogger`; `AuditReversionService` (latest change only) | Implemented (scope-limited) |
 | Person privacy | `people.is_living` tri-state + `living_status_basis`, `people.field_visibility`, `LivingStatusClassifier`, `PersonPrivacy` (audience, levels, snapshot redaction) used by public/management person pages, forms, audit and proposal views | Implemented for the fields in the schema |
+| Assertions (claims) | `assertions` + `citations.assertion_id` + `change_requests.assertion_id`; `GenealogyAssertionService`, `SharedAncestryScope`, `RootVariantImporter`; facts panel on the management person page | Implemented for 7 fact types (see §8) |
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
@@ -46,7 +47,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-05 | Link families at verified common ancestor | Implemented | `CrossFamilyLinkController`, `CrossFamilyLinksTest` | Public page computes on GET (R-04) | P1 | 2 | Validity stored at write time |
 | JTH-06 | People, relationships, Arabic names | Partial | Arabic normalization (`ArabicNameNormalizer`), father edges | Mothers, spouses, events, date qualifiers | P1 | 2 | Union/mother model with integrity + privacy |
 | JTH-07 | Toggleable attributes, titles, badges | Implemented | `PersonDescriptorsTest`, founder badges added, deactivation test | — | P1 | 1 ✓ | Deactivated badge hidden, assignment kept (tested) |
-| JTH-08 | Sources & assertion verification | Partial | `citations.field_key`, statuses, `SourceManagementTest` | Assertion model, competing narratives | P1 | 2 | Per-fact assertions with multiple citations |
+| JTH-08 | Sources & assertion verification | Partial | `assertions` with competing narratives, multiple citations per claim, review via change requests, history preserved (`GenealogyAssertionTest`, 12) | Mother/spouse and life-event claims (no model yet); positions/achievements (JTH-18) | P1 | 2 | Same assertion model reused for new fact types |
 | JTH-09 | Review, audit, revert | Partial | `ChangeReviewTest`, `AuditReversionTest`; publication gate (this session) | Revert limited to latest change; no restore of deleted person | P1 | 2 | Revert any entry with conflict check |
 | JTH-10 | Duplicate detection & safe merge | Partial | Dashboard indicator, create-time confirmation, CSV similarity | Merge workflow with preview/undo | P1 | 2 | Merge event with before/after and undo |
 | JTH-11 | Arabic genealogical search | Partial | Normalized search over names and recorded variants (`alternate_names`), lineage in results; seeded records searchable (D-05 fixed) | Father/fakhd filters, phonetic matching | P1 | 2 | UC-11 filters |
@@ -126,7 +127,7 @@ Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acc
 | D-03 | Inconsistency | Two public rules (`treeVisible` vs `publiclyVisible`) gave different answers per endpoint. | **Resolved**: one rule for people, edges and branches on every public surface. |
 | D-04 | Coupling | Hard-coded ROOT-001..079 + source-reference exception in the visibility scopes. | **Resolved**: explicit `public_narrative` flag; migration backfill proven identical on an old-code database (79 people / 78 edges before and after; draft stayed hidden). |
 | D-05 | Defect (found in session 3) | `DatabaseSeeder` used `WithoutModelEvents`, so seeded people had no `name_search` (not searchable, invisible to duplicate checks) and seeding skipped model integrity validation. | **Resolved**: trait removed; migration `backfill_people_name_search` repairs existing databases (84 → 0 rows on a real seeded DB). |
-| D-06 | Data reconciliation | The user-supplied shared ancestry differs from the curated base dataset in 39 further ROOT names (e.g. ROOT-004 قينان/قيدان, ROOT-063). `db:seed` after the shared seeder is refused with nothing written. | Open — Phase 2 data review with sources; each variant can then be recorded the same way as D-01. |
+| D-06 | Data reconciliation | The user-supplied shared ancestry differs from the curated base dataset in 39 further ROOT names (e.g. ROOT-004 قينان/قيدان, ROOT-063). `db:seed` after the shared seeder is refused with nothing written. | **Recordable since Phase 2.2**: `AlZoubiRootVariantSeeder` records each difference as an unclassified claim citing its list (39 + ROOT-077 as an accepted variant on the base path; 40 on the shared path); reviewers classify and decide them through the facts panel. Not reconciled. |
 | R-04 | Performance | Public `/shared-ancestry` recomputes link fingerprints per request (rate-limited). | Open — Phase 2. |
 | R-05 | Policy | Family admins enrolled accounts without consent and could probe registration. | **Resolved**: invitation-only for family admins, identical replies; super admins keep direct enrollment. |
 | R-06 | Policy | Family admins used `/site-admin/families/{id}/trees*`. | **Resolved**: those routes are super-admin only; family admins use `/manage/families/{family}/trees*`. |
@@ -151,3 +152,21 @@ Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` a
 **Enforcement** — `PersonPrivacy` is used by the public person page (public audience, or the member audience in the verified private preview), management person page and record page, the person form (restricted inputs are not rendered and stored values are kept), audit-log and proposal diffs (redacted with the stricter of the snapshot's and the current level; stored history is unchanged). Graph, search, lineage and lookup JSON carry only names and identifiers (asserted by tests). Only family admins and super admins can change `field_visibility`; proposals cannot set it.
 
 **Not in the schema** — contact information, addresses/locations and photos do not exist on people; they must use `PersonPrivacy` when introduced.
+
+## 8. Assertion model (Phase 2.2)
+
+**Tables** — new `assertions` (claim about one person: `fact_type`, `value` or `related_person_id`, `relation`, `state`, `verification_status`, `notes`, `import_key`, creator/reviewer/reason/time). Reused: `citations` (new nullable `assertion_id`, `field_key = assertion`), `sources` (one source cites many claims), `change_requests` (new nullable `assertion_id`), `audit_logs`.
+
+**Fact types** — full name, alternate name/spelling, father, birth year, death year, title, honorific. Mother/spouse and events are not modelled yet.
+
+**Classification (`relation`)** — unclassified, alternate spelling, compatible additional information, conflicting narrative. Unverified = `verification_status pending_review`; disputed = `unresolved` (existing vocabulary). Only family admins may mark a claim `verified`; readers record `pending_review` only.
+
+**Lifecycle (`state`)** — `proposed` (recorded) → via an ordinary change request → accepted: `authoritative` (displayed value) or `alternative` (accepted spelling variant, added to `alternate_names`); rejected: `rejected` with reason. Accepting a claim marks the previous authoritative claim `superseded`; if none existed, the replaced displayed value is preserved as a superseded claim. Rejected/superseded claims are immutable.
+
+**Active genealogy vs claims** — recording, citing and classifying never touch `people` or `person_relationships`. Only an accepted change request (existing `ChangeReviewService::decide` → `GenealogyMutationService::apply`) changes the displayed value or the primary father edge, inside one transaction with the existing integrity checks (self/cycle/duplicate father), publication guard and audit. Father claims are validated against self-reference and cycles at recording time; duplicate claims are refused.
+
+**Shared ancestors** — `SharedAncestryScope` finds families whose approved cross-family link endpoint descends from (or is) the person. `PublicationGuard` then requires a super admin for any change to that person or their father edge (proposal acceptance or direct edit); the proposal page and the facts panel name the impacted families.
+
+**Privacy** — claims about birth/death years follow the person's field level (`PersonPrivacy::canViewFact`); values, notes and evidence of masked claims are hidden in the facts panel, review page, source page (including the citation edit form) and audit log (`redactFactSnapshot`). Public pages, graph and search show no claims or source metadata; an accepted claim reaches the public only through the person record and the existing publication rules.
+
+**Dependencies for the merge workflow** — merges should move `assertions` (person_id/related_person_id) and their citations with the merged person, record a superseded claim for each losing value, and use `SharedAncestryScope` for cross-family impact.

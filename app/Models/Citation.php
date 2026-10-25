@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['cross_family_link_id', 'source_id', 'family_tree_id', 'person_id', 'person_relationship_id', 'field_key', 'locator', 'url', 'notes', 'verification_status'])]
+#[Fillable(['assertion_id', 'cross_family_link_id', 'source_id', 'family_tree_id', 'person_id', 'person_relationship_id', 'field_key', 'locator', 'url', 'notes', 'verification_status'])]
 class Citation extends Model
 {
     public function source(): BelongsTo
@@ -17,6 +17,11 @@ class Citation extends Model
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    public function assertion(): BelongsTo
+    {
+        return $this->belongsTo(Assertion::class);
     }
 
     public function relationship(): BelongsTo

@@ -3,6 +3,17 @@
 @section('content')
 <section class="management-panel"><h1 class="h4">{{ $change->reason }}</h1><p>موضوع المقترح: {{ $change->target_type==='relationship' ? ($referenceLabels['person_id'][$change->payload['person_id']] ?? 'علاقة أبوة') : ($change->base['full_name_ar'] ?? $change->base['name_ar'] ?? $change->payload['full_name_ar'] ?? $change->payload['name_ar'] ?? 'سجل جديد') }}</p><p>الحالة: {{ ['pending'=>'بانتظار المراجعة','accepted'=>'مقبول','rejected'=>'مرفوض'][$change->status] }}</p>
 @include('management.changes.diff',['before'=>$change->base ?? [],'after'=>$change->payload])
+@if($sharedFamilies->isNotEmpty())<div class="alert alert-warning" role="status"><strong>يمس جدًا مشتركًا:</strong> العائلات المتأثرة: {{ $sharedFamilies->pluck('name_ar')->implode('، ') }}. القبول من صلاحية مشرف المنصة.</div>@endif
+@if($claim)
+@php($privacy = app(\App\Services\Genealogy\PersonPrivacy::class))
+<section class="fact-group" aria-label="الرواية المقترح اعتمادها"><h2 class="h6">الرواية المقترح اعتمادها: {{ $claim->label }}</h2>
+@foreach([$claim, ...$competing] as $item)
+@php($visible = $privacy->canViewFact($item, auth()->user()))
+<div class="fact-claim">@if($item->is($claim))<span class="badge text-bg-primary">هذا المقترح</span> @endif<strong>@if($visible){{ $item->claim_text }}@else<i class="bi bi-lock"></i> محجوب@endif</strong> <span class="badge text-bg-light">{{ \App\Models\Assertion::STATES[$item->state] }}</span> <span class="badge text-bg-light">{{ \App\Models\Assertion::RELATIONS[$item->relation] ?? $item->relation }}</span>
+<ul class="small mb-0">@forelse($item->citations as $citation)<li>@if($visible){{ $citation->source->title }}{{ $citation->locator ? ' · '.$citation->locator : '' }}@else<i class="bi bi-lock"></i> دليل محجوب@endif</li>@empty<li class="text-muted">لا دليل مرفق.</li>@endforelse</ul></div>
+@endforeach
+<p class="small text-muted">القبول يغيّر القيمة المعروضة ويحفظ القيمة السابقة رواية مستبدلة؛ الرفض يحفظ الرواية مرفوضة مع السبب. لا يُدمج أي شخص.</p></section>
+@endif
 @if($change->applied_audit_id)<a class="btn btn-outline-primary" href="{{ route('management.audit.show',$change->applied_audit_id) }}">التغيير المعتمد وسجل التدقيق</a>@endif
 @if($change->decision_reason)<p>سبب القرار: {{ $change->decision_reason }}</p>@endif
 @if($possibleDuplicates->isNotEmpty())<div class="alert alert-warning" role="status"><strong>سجلات قائمة بالاسم نفسه ودون أب مسجل:</strong> {{ app(\App\Services\Genealogy\DuplicatePersonDetector::class)->describe($possibleDuplicates) }}. قارن السجلات قبل القبول؛ لا يُدمج أي سجل تلقائيًا.</div>@endif

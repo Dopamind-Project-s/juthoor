@@ -6,6 +6,7 @@ use App\Models\ChangeRequest;
 use App\Models\FamilyTree;
 use App\Models\User;
 use App\Services\Genealogy\DuplicatePersonDetector;
+use App\Services\Genealogy\GenealogyAssertionService;
 use App\Services\Genealogy\GenealogyMutationService;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +62,11 @@ class ChangeReviewService
                     $this->duplicates->assertDistinct($tree, $data['full_name_ar'], null);
                 }
                 $log = $this->mutations->apply($tree, $user, $change->target_type, $change->operation, $data, $record);
+                if ($change->assertion_id) {
+                    app(GenealogyAssertionService::class)->accepted($change, $user, $reason);
+                }
+            } elseif ($change->assertion_id) {
+                app(GenealogyAssertionService::class)->rejected($change, $user, $reason);
             }
             $change->update(['status' => $decision, 'decision_reason' => $reason, 'reviewed_by' => $user->id, 'decided_at' => now(), 'applied_audit_id' => $log?->id]);
             $this->audit->record($user, $tree->family, $change, $decision, $before, $this->audit->snapshot($change));

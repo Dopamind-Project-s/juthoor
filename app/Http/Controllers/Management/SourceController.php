@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assertion;
 use App\Models\Citation;
 use App\Models\Family;
 use App\Models\PersonRelationship;
 use App\Models\Source;
 use App\Services\AuditLogger;
+use App\Services\Genealogy\GenealogyAssertionService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -49,7 +52,7 @@ class SourceController extends Controller
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
-        $citations = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->with(['person', 'relationship.person', 'relationship.relatedPerson'])->orderByDesc('id')->paginate(20)->withQueryString();
+        $citations = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->with(['person', 'relationship.person', 'relationship.relatedPerson', 'assertion.person.familyTree.family', 'assertion.relatedPerson'])->orderByDesc('id')->paginate(20)->withQueryString();
 
         $canDownload = $source->file_path && Storage::disk('genealogy_private')->exists($source->file_path);
 
@@ -165,12 +168,18 @@ class SourceController extends Controller
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
-        $data = $request->validate(['target_type' => ['required', 'in:person,relationship'], 'target_id' => ['required', 'integer'], 'field_key' => ['required', 'in:person,full_name_ar,birth_year,death_year,notes,father'], 'locator' => ['nullable', 'string', 'max:255'], 'url' => ['nullable', 'url:http,https', 'max:2000'], 'notes' => ['nullable', 'string', 'max:5000'], 'verification_status' => ['required', 'in:verified,sourced,pending_review,unresolved']]);
+        $data = $request->validate(['target_type' => ['required', 'in:person,relationship,assertion'], 'target_id' => ['required', 'integer'], 'field_key' => ['required', 'in:person,full_name_ar,birth_year,death_year,notes,father,assertion'], 'locator' => ['nullable', 'string', 'max:255'], 'url' => ['nullable', 'url:http,https', 'max:2000'], 'notes' => ['nullable', 'string', 'max:5000'], 'verification_status' => ['required', 'in:verified,sourced,pending_review,unresolved']]);
         DB::transaction(function () use ($request, $family, $tree, $source, $data): void {
             Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
-            if ($data['target_type'] === 'person') {
+            if ($data['target_type'] === 'assertion') {
+                abort_unless($data['field_key'] === 'assertion', 422);
+                $assertion = Assertion::query()->where('family_tree_id', $tree->id)->findOrFail($data['target_id']);
+                app(GenealogyAssertionService::class)->cite($assertion, $request->user(), $source, Arr::only($data, ['locator', 'url', 'notes', 'verification_status']));
+
+                return;
+            } elseif ($data['target_type'] === 'person') {
                 $tree->people()->lockForUpdate()->findOrFail($data['target_id']);
-                abort_if($data['field_key'] === 'father', 422);
+                abort_if(in_array($data['field_key'], ['father', 'assertion'], true), 422);
                 $data['person_id'] = $data['target_id'];
             } else {
                 $tree->personRelationships()->lockForUpdate()->findOrFail($data['target_id']);

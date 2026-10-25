@@ -53,6 +53,11 @@ class FamilyTree extends Model
         return $this->hasMany(Person::class);
     }
 
+    public function assertions(): HasMany
+    {
+        return $this->hasMany(Assertion::class);
+    }
+
     public function personRelationships(): HasMany
     {
         return $this->hasMany(PersonRelationship::class);

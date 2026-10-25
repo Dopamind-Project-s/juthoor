@@ -68,8 +68,10 @@ class GenealogyMutationService
         if ($kind === 'person' && ! empty($input['attributes_present'])) {
             $input['attribute_ids'] ??= [];
         }
-        if (isset($current['field_visibility']) && is_string($current['field_visibility'])) {
-            $current['field_visibility'] = json_decode($current['field_visibility'], true);
+        foreach (['field_visibility', 'alternate_names'] as $jsonField) {
+            if (isset($current[$jsonField]) && is_string($current[$jsonField])) {
+                $current[$jsonField] = json_decode($current[$jsonField], true);
+            }
         }
         $input = array_replace($current, $input);
         $request = match ($kind) {

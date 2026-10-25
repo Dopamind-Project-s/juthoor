@@ -7,10 +7,12 @@ use App\Http\Requests\Management\ConnectedPersonRequest;
 use App\Models\Family;
 use App\Models\FamilyTree;
 use App\Models\Person;
+use App\Models\Source;
 use App\Services\AuditLogger;
 use App\Services\Genealogy\ConnectedPersonService;
 use App\Services\Genealogy\GenealogyDeletionService;
 use App\Services\Genealogy\SelectedFamilyTree;
+use App\Services\Genealogy\SharedAncestryScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -32,6 +34,11 @@ class PersonController extends Controller
         return view('management.people.show', [
             'family' => $familyModel, 'tree' => $tree, 'person' => $personModel,
             'canEdit' => auth()->user()->canEditFamily($familyModel),
+            'assertions' => $personModel->assertions()->with(['citations.source', 'relatedPerson', 'creator', 'reviewer', 'changeRequests' => fn ($query) => $query->where('status', 'pending')])->orderBy('fact_type')->orderBy('id')->get()->groupBy('fact_type'),
+            'factSources' => Source::query()->where('family_id', $familyModel->id)
+                ->when(! auth()->user()->can('manageMembers', $familyModel), fn ($query) => $query->whereDoesntHave('citations', fn ($citations) => $citations->whereNotNull('cross_family_link_id')))
+                ->orderBy('title')->limit(200)->get(['id', 'title', 'source_type']),
+            'sharedFamilies' => app(SharedAncestryScope::class)->impactedFamilies($personModel),
         ]);
     }
 
