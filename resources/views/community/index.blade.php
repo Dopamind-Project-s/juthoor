@@ -3,6 +3,7 @@
 @section('content')
 <x-page-header :title="'القبائل والعشائر والأفخاذ — '.$family->name_ar" eyebrow="صفحات الكيانات" description="صفحات تعريفية لمستويات العائلة كما تنشرها إدارتها. الهرم هنا تنظيم اجتماعي وإداري؛ الانتساب النسبي يُعرض في الشجرة الموثقة.">
     <a class="btn btn-outline-primary mt-3" href="{{ route('genealogy.tree', $family->slug) }}"><i class="bi bi-diagram-3"></i> الشجرة الجامعة</a>
+    <a class="btn btn-outline-primary mt-3" href="{{ route('directory.index', $family->slug) }}"><i class="bi bi-person-vcard"></i> دليل أبناء العشيرة</a>
 </x-page-header>
 <section class="section-space"><div class="container">
     @if($rows === [])

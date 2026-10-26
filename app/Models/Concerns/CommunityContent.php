@@ -73,13 +73,19 @@ trait CommunityContent
             ? CommunityEntity::query()->whereIn('family_id', $viewer->familyMemberships()->select('family_id'))->select('id')
             : null;
 
-        return $query->where($this->qualifyColumn('publication_status'), self::STATUS_PUBLISHED)
+        return $this->publicationWindow($query->where($this->qualifyColumn('publication_status'), self::STATUS_PUBLISHED))
             ->where(function (Builder $audience) use ($memberEntities): void {
                 $audience->where(fn (Builder $public) => $this->publicAudienceConstraint($public->where($this->qualifyColumn('audience'), 'public')));
                 if ($memberEntities) {
                     $audience->orWhere(fn (Builder $members) => $this->memberAudienceConstraint($members->whereIn($this->qualifyColumn('owner_entity_id'), $memberEntities)));
                 }
             });
+    }
+
+    /** Time limits of a published record (e.g. scheduled publication and expiry), checked on every query. */
+    protected function publicationWindow(Builder $query): Builder
+    {
+        return $query;
     }
 
     /** Extra conditions for showing a record to visitors (e.g. the linked person must be public). */

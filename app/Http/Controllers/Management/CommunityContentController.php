@@ -5,15 +5,18 @@ namespace App\Http\Controllers\Management;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\CommunityEntity;
+use App\Models\CommunityEvent;
 use App\Models\ContentCitation;
 use App\Models\Diwan;
 use App\Models\EntityContentLink;
 use App\Models\Family;
 use App\Models\MediaItem;
+use App\Models\NewsPost;
 use App\Services\Community\CommunityContentModules;
 use App\Services\Community\CommunityContentService;
 use App\Services\Community\CommunityEntityAccess;
 use App\Services\Community\CommunityHierarchy;
+use App\Services\Community\CommunityPublishingService;
 use App\Services\Community\MediaService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Database\Eloquent\Model;
@@ -84,6 +87,8 @@ class CommunityContentController extends Controller
                 ? MediaItem::query()->where('family_id', $familyModel->id)->where('publication_status', '!=', MediaItem::STATUS_ARCHIVED)
                     ->when($recordModel instanceof Diwan, fn ($query) => $query->where('category', 'image'))->orderBy('title')->limit(300)->get(['id', 'title', 'category', 'publication_status', 'audience'])
                 : collect(),
+            'notices' => method_exists($recordModel, 'notices') ? $recordModel->notices()->with('author:id,name')->get() : collect(),
+            'linkedPeople' => method_exists($recordModel, 'linkedPeople') ? $recordModel->linkedPeople()->get(['people.id', 'full_name_ar', 'title', 'honorific']) : collect(),
             'usage' => $recordModel instanceof MediaItem ? $recordModel->attachments()->with('attachable')->get() : collect(),
             'coverOf' => $recordModel instanceof MediaItem ? CommunityEntity::query()->where('cover_media_id', $recordModel->id)->get(['id', 'name_ar']) : collect(),
             'sources' => $familyModel->sources()->whereDoesntHave('citations', fn ($citations) => $citations->whereNotNull('cross_family_link_id'))->orderBy('title')->limit(300)->get(['id', 'title']),
@@ -151,8 +156,8 @@ class CommunityContentController extends Controller
     public function review(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
     {
         [, $entityModel] = $this->context($family, $entity, 'publish');
-        $data = $request->validate(['decision' => ['required', Rule::in(['publish', 'decline', 'archive', 'restore'])], 'review_note' => ['nullable', 'string', 'max:2000']]);
-        $this->content->review($request->user(), $this->record($entityModel, $module, $record), $data['decision'], $data['review_note'] ?? null);
+        $data = $request->validate(['decision' => ['required', Rule::in(['publish', 'decline', 'archive', 'restore'])], 'review_note' => ['nullable', 'string', 'max:2000'], 'sensitive_confirmation' => ['nullable', 'boolean']]);
+        $this->content->review($request->user(), $this->record($entityModel, $module, $record), $data['decision'], $data['review_note'] ?? null, $request->boolean('sensitive_confirmation'));
 
         return back()->with('status', 'تم تسجيل قرار المراجعة.');
     }
@@ -189,6 +194,39 @@ class CommunityContentController extends Controller
         return back()->with('status', 'أُزيل الاستشهاد.');
     }
 
+    /** Public update, correction, cancellation or event schedule change; the replaced values stay visible. */
+    public function notice(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
+    {
+        [, $entityModel] = $this->context($family, $entity, 'update');
+        $recordModel = $this->record($entityModel, $module, $record);
+        abort_unless($recordModel instanceof NewsPost || $recordModel instanceof CommunityEvent, 404);
+        $kinds = $recordModel instanceof CommunityEvent ? ['update', 'correction', ...CommunityPublishingService::EVENT_CHANGES] : ['update', 'correction', 'cancellation'];
+        $data = $request->validate([
+            'kind' => ['required', Rule::in($kinds)], 'message' => ['required', 'string', 'max:2000'],
+            'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date'],
+            ...collect(CommunityEvent::contentRules($entityModel->family))->only(['location_name', 'public_address', 'city', 'governorate', 'latitude', 'longitude', 'maps_url'])->all(),
+        ], ['message.required' => 'اكتب نص التحديث الذي سيظهر للقراء.']);
+        $publishing = app(CommunityPublishingService::class);
+        match (true) {
+            in_array($data['kind'], ['update', 'correction'], true) => $publishing->addNotice($request->user(), $recordModel, $data['kind'], $data['message']),
+            $recordModel instanceof NewsPost => $publishing->cancelNews($request->user(), $recordModel, $data['message']),
+            default => $publishing->changeEvent($request->user(), $recordModel, $data['kind'], $data, $data['message']),
+        };
+
+        return back()->with('status', 'نُشر التحديث مع حفظ القيم السابقة.');
+    }
+
+    /** Draft announcement linked to the event (no copy of the event). */
+    public function announce(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
+    {
+        [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
+        $event = $this->record($entityModel, $module, $record);
+        abort_unless($event instanceof CommunityEvent, 404);
+        $post = app(CommunityPublishingService::class)->announce($request->user(), $event);
+
+        return redirect()->route('management.entities.content.edit', [$familyModel->slug, $entityModel->id, 'news', $post->id])->with('status', 'أُنشئ إعلان مسودة مرتبط بالمناسبة.');
+    }
+
     /** Records waiting for a decision on entities the user may publish. */
     public function queue(Request $request, string $family): View
     {
@@ -217,6 +255,8 @@ class CommunityContentController extends Controller
             'audience' => ['required', Rule::in(array_keys($model::AUDIENCES))],
             'subjects' => ['nullable', 'array'], 'subjects.*' => ['integer', $entityRule],
             'audiences' => ['nullable', 'array'], 'audiences.*' => ['integer', $entityRule],
+            'sensitive_confirmation' => ['nullable', 'boolean'],
+            ...(method_exists($model, 'linkedPeople') ? ['people' => ['nullable', 'array', 'max:50'], 'people.*' => ['nullable', 'integer', Rule::exists('people', 'id')->whereNull('merged_into_id')->whereIn('family_tree_id', $family->familyTrees()->pluck('id')->all())]] : []),
         ];
         // One validation pass so every error is reported together.
         $data = $request->validate([...$governanceRules, ...$rules]);
@@ -229,6 +269,14 @@ class CommunityContentController extends Controller
         }
         $governance['subjects'] = array_map('intval', $governance['subjects'] ?? []);
         $governance['audiences'] = array_map('intval', $governance['audiences'] ?? []);
+        $governance['sensitive_confirmation'] = $request->boolean('sensitive_confirmation');
+        if (method_exists($model, 'linkedPeople')) {
+            // The empty "add a person" picker submits nothing useful; drop it.
+            $governance['people'] = array_values(array_unique(array_map('intval', array_filter($governance['people'] ?? []))));
+        }
+        if (method_exists($model, 'prepareContentFields')) {
+            $fields = $model::prepareContentFields($fields);
+        }
 
         return [$fields, $governance];
     }
@@ -247,7 +295,7 @@ class CommunityContentController extends Controller
             'subjects' => $record->exists ? $links->where('relation', EntityContentLink::RELATION_SUBJECT)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all() : [$entity->id],
             'audiences' => $links->where('relation', EntityContentLink::RELATION_AUDIENCE)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all(),
             'canPublish' => $request->user()->can('publish', $entity),
-            'citations' => collect(), 'sources' => collect(), 'history' => collect(), 'attachments' => null, 'library' => collect(), 'usage' => collect(), 'coverOf' => collect(),
+            'citations' => collect(), 'sources' => collect(), 'history' => collect(), 'attachments' => null, 'library' => collect(), 'usage' => collect(), 'coverOf' => collect(), 'notices' => collect(), 'linkedPeople' => collect(),
         ];
     }
 

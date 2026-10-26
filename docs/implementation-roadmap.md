@@ -15,7 +15,7 @@ Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred
 | 1 — Family Tree MVP | Database-backed public tree, person/relationship/branch management, publication governance, family dashboard | 1, 3 (partial) | JTH-01–03, 07, 13, 14; UC-01–05, 07–09 | 0 | ✅ Done 2026-10-22: Definition of Done below |
 | 2 — Genealogy governance | Assertions & competing narratives, field-level privacy, merge with undo, revert-any-change, mothers/spouses/events, GEDCOM, branch-scoped roles, notifications | 2, 8 | JTH-06, 08–13, 28 | 1 | UC-06, UC-10, UC-12 fully met; no leak via search/API/export |
 | 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **✅ Done 2026-10-26 (3.1–3.7)**; content search/API/export pending until such endpoints exist |
-| 4 — Community & extended | News, deaths/condolences, celebrations, events, member directory & professional profiles; Facebook deferred | 5, 7 (6 deferred) | JTH-21–24, 26, 27 (25 deferred) | 3 (audience scopes) | UC-15, 16, 18 |
+| 4 — Community & extended | News, deaths/condolences, celebrations, events, member directory & professional profiles; Facebook deferred | 5, 7 (6 deferred) | JTH-21–24, 26, 27 (25 deferred) | 3 (audience scopes) | UC-15, 16, 18 — **✅ Done 2026-10-26** |
 | 5 — Production readiness | Backups + restore drill, monitoring/error reporting, security headers, 2FA, load tests, caching after measurement | 10 | JTH-29, 30 | continuous | Public-release criteria in v2.0 chapter 22 |
 
 ## Phase 1 Definition of Done (verified 2026-10-22)
@@ -210,3 +210,17 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 
 ### Phase 4 readiness (media)
 - News, events, condolences and celebrations attach images and documents through `HasMediaAttachments` and the existing library, with no new upload code; time-bound visibility and notifications remain Phase 4 work.
+
+## Phase 4 — Community news, events, publishing & member directory (done 2026-10-26)
+
+- [x] **P4-00 Baseline** — HEAD `57ffda7`, 346/346; mail/queue/notification infrastructure audited (no in-app store).
+- [x] **4.3 Shared publishing** — publication windows inside `visibleTo`, public notices with previous values, linked people, sensitive-approval rule, review/decision/change notifications (database channel), `/notifications` inbox.
+- [x] **4.1 News & announcements** — seven categories, scheduling and expiry, search, media and evidence, corrections and cancellation; death notices and condolences with consent and family-administrator confirmation; genealogy never changed.
+- [x] **4.2 Events & calendar** — separate event records with time zones and status history, Maps directions, announcement from event, calendar month/list views with filters.
+- [x] **4.4 Member directory** — opt-in profiles, per-field visibility, audience-safe search and hierarchy filters, in-app contact, reports, affiliation review, suspension, deletion without genealogy impact.
+- [x] **Integration** — portal sections, full news and calendar pages, detail pages, admin forms and panels, nav entries, person deletion/merge guards for linked people and deceased records.
+- [x] **Tests** — 21 new tests; 21 mutation checks; 367/367 SQLite and PostgreSQL 16; Chrome: Phase 4 (8) plus Phase 3 regression (29), no page errors.
+- Deferred (unchanged): Phase 2.6, Phase 2.7 (GEDCOM), Facebook (JTH-25), multi-family entity ownership.
+
+### Next recommended phase
+Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.

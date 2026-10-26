@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-26 (updated after Phase 3.7 — media library, heritage archive and Phase 3 closure). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-26 (updated after Phase 4 — news, death notices, events and calendar, member directory, notifications). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `781eb9c` (Phases 3.2–3.6 committed by the maintainer); Phase 3.7 changes (session 11) are uncommitted. |
-| Test baseline (start of session 11) | 333 passed, 0 failed, 3583 assertions (re-run on SQLite before any change). |
-| Test result (end of session 11) | **346 passed, 0 failed, 3790 assertions** on SQLite and on PostgreSQL 16; media tests also green with GD. |
+| Branch / HEAD | `main` at `57ffda7` (Phase 3.7 committed by the maintainer); Phase 4 changes (session 12) are uncommitted. |
+| Test baseline (start of session 12) | 346 passed, 0 failed, 3790 assertions (re-run on SQLite before any change). |
+| Test result (end of session 12) | **367 passed, 0 failed** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -37,6 +37,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Entity content (Phases 3.1–3.6) | `entity_content_links` (subject / audience), `EntityContentScope`, `HasCommunityEntities` + `CommunityContent`; modules `entity_narratives`, `community_locations`, `diwans`, `entity_achievements`; evidence `content_citations`; `CommunityContentService`, `CommunityContentController`, review queue | Implemented (see §13) |
 | Entity portal (Phases 3.3–3.4) | `CommunityEntityPage`, `CommunityGenealogy` (founder, chain, mini tree, related branches, shared ancestors), `CommunityStatistics` | Implemented (see §13) |
 | Media library & archive (Phase 3.7) | private `media` disk, `config/media.php`, `media_items`, `media_attachments`, `archive_records`, `community_entities.cover_media_id`; `MediaStorage`, `MediaService`, `MediaAccess`, `MediaController` (`/media/{uuid}/{variant}`), `media:verify` | Implemented (see §14) |
+| News, events & notices (Phase 4) | `news_posts`, `community_events`, `content_notices`, `content_person_links`; `CommunityPublishingService`, `CommunityPublicationController` (news list, calendar, detail pages), `HasPublicPlace` / `HasNotices` / `HasLinkedPeople` | Implemented (see §15) |
+| Member directory (Phase 4.4) | `member_profiles`, `directory_reports`; `MemberDirectory`, `MemberDirectoryController`, `DirectoryProfileController` | Implemented (see §15) |
+| In-app notifications (Phase 4) | Laravel `notifications` table (database channel only), `CommunityNotification`, `CommunityNotifier`, `/notifications` | Implemented (see §15) |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
 | CSV import | `ImportBatch`, `CsvImportService` (dry run, checksum, atomic commit) | Implemented (GEDCOM missing) |
 | Ops | `.github/workflows/tests.yml` (SQLite+Pint, PostgreSQL), site health dashboard, rate limits | Partial (no backups/monitoring) |
@@ -65,13 +68,13 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-18 | Personalities, positions, achievements | Implemented | `entity_achievements` on existing people, sources, review, audience, neutral categories, alphabetical order, approved disclaimer | Static `prominent-people` page not migrated | P2 | 3 ✓ | UC-19 |
 | JTH-19 | Residence regions | Implemented | `community_locations` (origin / settlement / migration / gathering, historical / current, period, sources), shared between entities | — | P2 | 3 ✓ | — |
 | JTH-20 | Diwans & Google Maps | Implemented | Shared diwans, keyless Maps directions, optional Embed key, validated links, consent rules, images from the media library | — | P2 | 3 ✓ | UC-14 |
-| JTH-21 | Hierarchical news | Missing | — | — | P2 | 4 | — |
-| JTH-22 | Deaths, burial, condolences | Missing | — | — | P2 | 4 | UC-15 |
-| JTH-23 | Weddings, graduations | Missing | — | — | P3 | 4 | — |
-| JTH-24 | Events & calendar | Missing | — | — | P2 | 4 | UC-16 |
-| JTH-25 | Optional Facebook | Missing | — | — | P3 | 4 | UC-17 |
-| JTH-26 | Member directory | Missing | — | — | P2 | 4 | UC-18 |
-| JTH-27 | Professional profiles | Missing | — | — | P3 | 4 | — |
+| JTH-21 | Hierarchical news | Implemented | News, announcements, initiatives, meetings and notices through the shared scope (roll-up, targeted audience, sibling isolation, one record), publication window, review, notices (`CommunityNewsTest`, Chrome) | — | P2 | 4 ✓ | — |
+| JTH-22 | Deaths, burial, condolences | Implemented | Death and condolence categories with optional funeral, burial and condolence details, consent, family-administrator confirmation, visible corrections; genealogy never changed | — | P2 | 4 ✓ | UC-15 |
+| JTH-23 | Weddings, graduations | Implemented | Event categories (wedding, graduation, achievement…) with linked people shown only per their visibility | Per-person consent records for named people (editorial rule for now) | P3 | 4 ✓ | — |
+| JTH-24 | Events & calendar | Implemented | `community_events` separate from news, time zones, status and schedule-change history, calendar month/list views with category and scope filters, announcement from event (`CommunityEventTest`, Chrome) | iCalendar export | P2 | 4 ✓ | UC-16 |
+| JTH-25 | Optional Facebook | Missing | — | Deferred by decision (2026-10-26) | P3 | deferred | UC-17 |
+| JTH-26 | Member directory | Implemented | Voluntary opt-in profiles per user and family, per-field visibility, audience-safe search and filters, in-app contact requests, reports, affiliation review, suspension (`MemberDirectoryTest`, Chrome) | Retention period settings | P2 | 4 ✓ | UC-18 |
+| JTH-27 | Professional profiles | Implemented | Profession, specialization, sector, skills, experience, organization, business and services, links, collaboration interests within the directory profile | — | P3 | 4 ✓ | — |
 | JTH-28 | Field-level voluntary privacy | Partial | `PersonPrivacy` levels public / family / restricted on birth/death year and date, gender and notes; default-deny; `PersonPrivacyTest` (17) | Self-managed ("voluntary") consent by the person, member-directory and contact fields (not in schema yet), photos | P1 | 2 | Directory/contact fields reuse the same service when added |
 | JTH-29 | Operations, monitoring, backups | Partial | CI workflow, health dashboard, rate limits | Backups, restore drill, monitoring | P1 | 5 | RPO ≤ 24h, RTO ≤ 4h drill |
 | JTH-30 | Future extensions | Missing | — | — | P3 | 5 | — |
@@ -104,7 +107,10 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | UC-14 Add diwan | Implemented | Several diwans per entity and shared diwans; Maps directions; consent rules |
 | UC-19 Nominate a personality | Implemented | Position/achievement with source, review and disclaimer |
 | UC-21 Fakhd statistics | Implemented | Number with type, date and coverage statement; registered never presented as population |
-| UC-15 – UC-18 | Missing | Phase 4 (UC-17 deferred) |
+| UC-15 Death notice | Implemented | Consent and authorised confirmation before publication; changes and cancellations shown with history |
+| UC-16 Public event | Implemented | Date, place, audience and status; shown per audience scope |
+| UC-17 Facebook | Deferred | — |
+| UC-18 Directory profile | Implemented | Create, edit, hide and delete without affecting genealogy; field privacy |
 
 ## 5. Completion dashboard
 
@@ -112,19 +118,19 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 
 | Status | Count |
 |---|---|
-| Implemented | 19 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 15, 16, 17, 18, 19, 20, 32, 33, 34, 35, 36) |
+| Implemented | 25 (JTH-01, 03, 05, 07, 09, 10, 13–24, 26, 27, 32–36) |
 | Partial | 8 (JTH-02, 04, 06, 08, 11, 28, 29, 31) |
-| Missing | 9 (JTH-12, 21–27, 30) |
+| Missing | 3 (JTH-12 GEDCOM — deferred, JTH-25 Facebook — deferred, JTH-30) |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(19 + 4) / 36 = 63.9 %** |
+| **Weighted completion** | **(25 + 4) / 36 = 80.6 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
 | Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 7 | 3 | 0 |
 | Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 2 | 2 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
-| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 9 | 1 | 7 |
+| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 15 | 1 | 1 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
 
 Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acceptance criteria met on 2026-10-22 (see roadmap). Overall weighted completion is unchanged because Phase 1 hardened existing requirements rather than adding new ones.
@@ -434,3 +440,48 @@ A first version checked rights per file for signed-in viewers (177 queries); `Me
 - Display copies are resized only where GD is installed (the PHP 8.3 images used for tests have none; the GD path was verified in a separate PHP 8.3 + GD container). EXIF orientation is not applied.
 - PDFs and audio are served as uploaded (their internal metadata is not rewritten); they are delivered sandboxed.
 - Files of a deleted family remain on disk until `media:verify --delete-orphans`.
+
+## 15. Community news, events, directory and notifications (Phase 4)
+
+**Baseline** — HEAD `57ffda7`, clean tree, 346/346 (3790 assertions) on SQLite before changes. Mail goes to the log and the queue is the database; no in-app notification store existed.
+
+**Architecture** — news and events are two more `CommunityContentModules` entries, so ownership, subject/audience links, the scope switch, publication and review states, the review queue, citations, media attachments and audit are the Phase 3 ones. New shared pieces: `CommunityContent::publicationWindow` (checked inside `visibleTo` on every query, no worker needed), `HasNotices` (`content_notices`: public updates, corrections, cancellations and schedule changes with the replaced values), `HasLinkedPeople` (`content_person_links`, references only), `HasPublicPlace` (Maps directions and consented contact, now also used by diwans). Facebook and every publication channel other than the site remain out of scope.
+
+**News (4.1)** — `news_posts`: category (news, announcement, death, condolence, initiative, meeting, notice), title, summary, body, `publish_at` / `expires_at` (entered in `COMMUNITY_TIMEZONE`, stored UTC), optional event, death and condolence fields (deceased name, optional genealogy record, death date, funeral prayer, burial, condolence place and times), public place and contact, family consent, sensitive confirmation (who and when). Expired posts are hidden or labelled (`COMMUNITY_EXPIRED_NEWS`).
+
+**Sensitive announcements** — death notices and condolences are published (or changed after publication) only by a family administrator — not by entity administrators — with the family's consent recorded and an explicit confirmation stored with the confirmer and time. Linking the genealogy record never changes it; a living or unpublished record is not linked publicly. Contact details appear only with their own consent.
+
+**Events and calendar (4.2)** — `community_events` separate from news: category (wedding, graduation, achievement, gathering, meeting, initiative, other), organizer, start/end in UTC with the event's time zone, all-day, place, status scheduled / postponed / cancelled / completed (finished scheduled events display as completed without changing the record). Reschedule, postpone, relocate, cancel, reinstate and complete go through `CommunityPublishingService` with a public notice keeping the previous values. An announcement generated from an event is a draft news post pointing at the event (no copy). Public calendar per entity: month grid, upcoming and past lists, category and scope filters, links to sub-entity calendars.
+
+**Unified publishing (4.3)** — same scope semantics as Phase 3 (direct; with descendants plus ancestor-targeted; sibling isolation; one row per record). Changing published content needs a publisher (family or entity administrator; family administrator for sensitive categories); corrections are public notices, never silent rewrites. Detail pages need the record to be visible to the viewer and its owner entity's page to be public (managers may preview). News search (`q`, category) runs inside the same scope and visibility query.
+
+**Notifications** — Laravel database notifications only (`/notifications`, unread badge): review requested (to the owner entity's publishers), review decided (to the author), published changes (author and publishers), directory contact requests, reports and affiliation decisions. Payloads hold a title, a short context and an internal link; nothing is e-mailed and no announcement text or contact detail is copied. Opening a notification follows only internal links.
+
+**Member directory (4.4)** — `member_profiles` belong to a User (one per family), never to a Person, and are never created from genealogy. Hidden until the member lists them. Profile audience (family members / public) caps every field; each field (affiliation, profession, sector, skills, experience, organization, business, city, governorate, links, collaboration, photo, e-mail, phone, in-app messages) is hidden / members / public, with organization and contact details hidden by default. Search and filters use text and field lists precomputed per audience, so hidden fields cannot be matched, filtered or returned; filter choices only show values the audience can read; pages send `X-Robots-Tag: noindex`. Affiliation claims are shown and filterable (along the entity hierarchy) only after a family administrator verifies them. Contact requests are delivered in-app without revealing either side's address. Administrators review affiliations and reports and may suspend a listing, but have no way to edit or publish a member's data. Deleting a profile removes it and its photo only. Photos use the media inspection and keep only the metadata-free copy.
+
+| Directory viewer | Sees |
+|---|---|
+| Visitor | public listed profiles; public-level fields only |
+| Family member | public and member profiles; member- and public-level fields |
+| Owner | their whole profile |
+| Family administrator | as a member, plus the display name and claimed entity in the review queue |
+
+**Tests** — `CommunityNewsTest` (9), `CommunityEventTest` (5), `MemberDirectoryTest` (7). 21 rule mutations each fail a test (scheduling, expiry, sensitive approval ×3, contact consent, editors changing published content, hidden owners, field search/filters ×5, messaging, photo visibility, notification recipients, linked-people privacy, member-only profiles); the profile-audience cap and the per-level field rule are redundant guards (each holds alone).
+
+**Performance** (SQLite, 10,000 people, 21 entities, 504 news, 315 events, 1,000 directory profiles; median of 3)
+
+| Page | Time · queries |
+|---|---|
+| Clan portal, with sub-branches (visitor / member) | 407 ms · 85 / 423 ms · 91 |
+| News list, any page | 6–7 ms · 8 |
+| Calendar (clan) | 33 ms · 14 |
+| Directory, visitor / member search / by entity | 8 ms · 7 / 4 ms · 10 / 10 ms · 14 |
+
+The news list first ran 19 queries (notices per card); eager loading made it constant. Portal time is still dominated by the single tree-graph load (§13).
+
+**Limitations**
+- No outbound e-mail for Phase 4 notifications (by design); no push or SMS.
+- Expiry is a visibility rule, not an automatic archive; no iCalendar export; no RSVP or attendance.
+- Per-person consent for people named in events and news is an editorial rule (form guidance), not a recorded consent workflow.
+- Directory retention periods and export of one's own profile are not implemented; there is no public API.
+- JTH-31: there is still no content API or export; any future endpoint must reuse `EntityContentScope`, `visibleTo`, `MediaAccess` and the directory's per-audience fields.

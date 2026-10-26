@@ -9,6 +9,7 @@ use App\Models\ChangeRequest;
 use App\Models\CrossFamilyLink;
 use App\Models\EntityAchievement;
 use App\Models\FamilyTree;
+use App\Models\NewsPost;
 use App\Models\Person;
 use App\Models\PersonMerge;
 use App\Models\PersonRelationship;
@@ -112,6 +113,9 @@ class PersonMergeService
         // Community content is not part of the merge journal; it must point at the survivor before merging.
         if (EntityAchievement::query()->where('person_id', $merged->id)->exists()) {
             $blockers[] = 'السجل المدموج مرتبط بسجلات «شخصيات وإنجازات»؛ انقلها إلى السجل الباقي من صفحات الكيانات أولًا.';
+        }
+        if (DB::table('content_person_links')->where('person_id', $merged->id)->exists() || NewsPost::query()->where('deceased_person_id', $merged->id)->exists()) {
+            $blockers[] = 'السجل المدموج مذكور في أخبار أو مناسبات أو نعي؛ انقل الإشارة إلى السجل الباقي أولًا.';
         }
         if (ArchiveRecord::query()->where('person_id', $merged->id)->exists()) {
             $blockers[] = 'السجل المدموج مرتبط بمواد أرشيفية؛ اربطها بالسجل الباقي من صفحات الكيانات أولًا.';

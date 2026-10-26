@@ -27,11 +27,12 @@ class CommunityContentService
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly EntityContentScope $scope,
+        private readonly CommunityNotifier $notifications,
     ) {}
 
     /**
      * @param  array<string, mixed>  $fields  module fields (validated by the module's contentRules)
-     * @param  array{publication_status: string, verification_status: string, audience: string, subjects: array<int, int>, audiences: array<int, int>}  $governance
+     * @param  array{publication_status: string, verification_status: string, audience: string, subjects: array<int, int>, audiences: array<int, int>, people?: array<int, int>, sensitive_confirmation?: bool}  $governance
      */
     public function save(User $user, CommunityEntity $owner, Model $record, array $fields, array $governance): Model
     {
@@ -70,13 +71,20 @@ class CommunityContentService
             // Re-checked on every save of a published record, so a later audience or rights change cannot slip through.
             if ($status === $record::STATUS_PUBLISHED) {
                 $this->assertPublishable($record);
+                $this->assertSensitiveApproval($user, $record, (bool) ($governance['sensitive_confirmation'] ?? false));
             }
             if ($status === $record::STATUS_PUBLISHED && $record->getOriginal('publication_status') !== $record::STATUS_PUBLISHED) {
                 $record->fill(['reviewed_at' => now(), 'reviewed_by' => $user->id]);
             }
             $record->save();
             $this->syncLinks($record, $subjects, $governance['audiences']);
+            if (array_key_exists('people', $governance) && method_exists($record, 'linkedPeople')) {
+                $record->linkedPeople()->sync($governance['people']);
+            }
             $this->audit->record($user, $owner->family, $record, $before ? 'updated' : 'created', $before, $this->snapshot($record));
+            if ($status === $record::STATUS_SUBMITTED && ($before['publication_status'] ?? null) !== $record::STATUS_SUBMITTED) {
+                DB::afterCommit(fn () => $this->notifications->reviewRequested($user, $record));
+            }
 
             return $record;
         });
@@ -88,15 +96,17 @@ class CommunityContentService
         $owner = $record->ownerEntity;
         $this->authorize($user, 'update', $owner);
         $this->transition($user, $record, [$record::STATUS_DRAFT], 'submitted', fn () => $record->fill(['publication_status' => $record::STATUS_SUBMITTED, 'submitted_at' => now()]));
+        $this->notifications->reviewRequested($user, $record);
     }
 
     /** Publishers publish, decline (back to draft with a reason), archive, or restore an archived record as a draft. */
-    public function review(User $user, Model $record, string $decision, ?string $note): void
+    public function review(User $user, Model $record, string $decision, ?string $note, bool $sensitiveConfirmed = false): void
     {
         $this->authorize($user, 'publish', $record->ownerEntity);
         [$from, $apply] = match ($decision) {
-            'publish' => [[$record::STATUS_DRAFT, $record::STATUS_SUBMITTED], function () use ($record, $user, $note): void {
+            'publish' => [[$record::STATUS_DRAFT, $record::STATUS_SUBMITTED], function () use ($record, $user, $note, $sensitiveConfirmed): void {
                 $this->assertPublishable($record);
+                $this->assertSensitiveApproval($user, $record, $sensitiveConfirmed);
                 $record->fill(['publication_status' => $record::STATUS_PUBLISHED, 'reviewed_at' => now(), 'reviewed_by' => $user->id, 'review_note' => $note]);
             }],
             'decline' => [[$record::STATUS_SUBMITTED], function () use ($record, $user, $note): void {
@@ -110,6 +120,9 @@ class CommunityContentService
             default => throw ValidationException::withMessages(['decision' => 'قرار غير معروف.']),
         };
         $this->transition($user, $record, $from, 'review_'.$decision, $apply);
+        if (in_array($decision, ['publish', 'decline'], true)) {
+            $this->notifications->reviewDecided($user, $record, $decision, $note);
+        }
     }
 
     /** @param  array{source_id: int, locator?: ?string, url?: ?string, notes?: ?string, verification_status: string}  $data */
@@ -167,6 +180,7 @@ class CommunityContentService
             'subject_ids' => $links->where('relation', EntityContentLink::RELATION_SUBJECT)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->values()->all(),
             'audience_ids' => $links->where('relation', EntityContentLink::RELATION_AUDIENCE)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->values()->all(),
             'citation_ids' => $record->citations()->orderBy('id')->pluck('id')->all(),
+            ...(method_exists($record, 'linkedPeople') ? ['person_ids' => $record->linkedPeople()->orderBy('people.id')->pluck('people.id')->all()] : []),
         ];
     }
 
@@ -201,6 +215,30 @@ class CommunityContentService
         }
         if ($record instanceof MediaItem && $record->isImage() && blank($record->alt_text)) {
             throw ValidationException::withMessages(['alt_text' => 'أضف نصًا بديلًا يصف الصورة قبل نشرها.']);
+        }
+    }
+
+    /**
+     * Death notices and condolences (v2.0 ch. 10: sensitive records need an authorised verifier): published or changed
+     * after publication only by a family administrator, with the family's consent recorded and an explicit confirmation
+     * kept with who confirmed and when.
+     */
+    private function assertSensitiveApproval(User $user, Model $record, bool $confirmed): void
+    {
+        if (! method_exists($record, 'isSensitive') || ! $record->isSensitive()) {
+            return;
+        }
+        if (! Gate::forUser($user)->allows('publish', $record->ownerEntity->family)) {
+            throw ValidationException::withMessages(['publication_status' => 'نشر النعي والعزاء أو تعديلهما بعد النشر من صلاحية مدير العائلة فقط.']);
+        }
+        if (! $record->family_consent) {
+            throw ValidationException::withMessages(['family_consent' => 'سجّل موافقة ذوي المتوفى على النشر أولًا.']);
+        }
+        if (! $record->sensitive_confirmed_at) {
+            if (! $confirmed) {
+                throw ValidationException::withMessages(['sensitive_confirmation' => 'أكّد التحقق من الخبر من جهة موثوقة وموافقة ذوي المتوفى قبل النشر.']);
+            }
+            $record->forceFill(['sensitive_confirmed_by' => $user->id, 'sensitive_confirmed_at' => now()]);
         }
     }
 

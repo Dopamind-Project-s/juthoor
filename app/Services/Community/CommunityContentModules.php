@@ -3,11 +3,13 @@
 namespace App\Services\Community;
 
 use App\Models\ArchiveRecord;
+use App\Models\CommunityEvent;
 use App\Models\CommunityLocation;
 use App\Models\Diwan;
 use App\Models\EntityAchievement;
 use App\Models\EntityNarrative;
 use App\Models\MediaItem;
+use App\Models\NewsPost;
 use Illuminate\Database\Eloquent\Model;
 
 /** The content modules of entity pages; every one uses CommunityContent and EntityContentScope. */
@@ -21,6 +23,8 @@ final class CommunityContentModules
         'achievements' => ['model' => EntityAchievement::class, 'label' => 'شخصيات وإنجازات', 'icon' => 'person-badge'],
         'archive' => ['model' => ArchiveRecord::class, 'label' => 'الأرشيف والوثائق', 'icon' => 'archive'],
         'media' => ['model' => MediaItem::class, 'label' => 'مكتبة الوسائط', 'icon' => 'images'],
+        'news' => ['model' => NewsPost::class, 'label' => 'الأخبار والإعلانات', 'icon' => 'megaphone'],
+        'events' => ['model' => CommunityEvent::class, 'label' => 'المناسبات والفعاليات', 'icon' => 'calendar-event'],
     ];
 
     /** @return class-string<Model> */

@@ -5,6 +5,7 @@
     $counts = [
         'history' => $content['history']->count(), 'locations' => $content['locations']->count(), 'diwans' => $content['diwans']->count(),
         'achievements' => $content['achievements']->count(), 'sources' => $sources->count(), 'children' => $children->count(),
+        'news' => $content['news']->count(), 'events' => $content['events']->count(),
         'archive' => $content['archive']->count(), 'media' => $content['media']->filter(fn ($media) => isset($visibleMedia[$media->id]))->count(),
     ];
 @endphp
@@ -40,6 +41,8 @@
     <div class="row g-4 py-4">
         <div class="col-lg-8 d-grid gap-4 align-content-start">
             @include('community.sections.overview')
+            @include('community.sections.news')
+            @include('community.sections.events')
             @include('community.sections.history')
             @include('community.sections.archive')
             @include('community.sections.locations')

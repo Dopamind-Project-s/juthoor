@@ -17,6 +17,10 @@
 <a href="{{ route('management.entities.index',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.*') && ! request()->routeIs('management.entities.review')) aria-current="page" @endif><i class="bi bi-diagram-2"></i> صفحات الكيانات</a>
 <a href="{{ route('management.entities.review',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.review')) aria-current="page" @endif><i class="bi bi-inbox"></i> مراجعة محتوى الكيانات</a>
 @endcan
+<span class="workspace-nav-heading">دليل الأعضاء</span>
+<a href="{{ route('management.directory.edit',$workspaceFamily->slug) }}" @if(request()->routeIs('management.directory.edit')) aria-current="page" @endif><i class="bi bi-person-vcard"></i> ملفي في الدليل</a>
+<a href="{{ route('directory.index',$workspaceFamily->slug) }}"><i class="bi bi-search"></i> تصفح الدليل</a>
+@can('manageMembers',$workspaceFamily)<a href="{{ route('management.directory.review',$workspaceFamily->slug) }}" @if(request()->routeIs('management.directory.review')) aria-current="page" @endif><i class="bi bi-person-check"></i> مراجعة الدليل</a>@endcan
 <span class="workspace-nav-heading">التوثيق والمراجعة</span>
 <a href="{{ route('management.sources.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.sources.*')) aria-current="page" @endif><i class="bi bi-journal-text"></i> المصادر والاستشهادات</a>
 <a href="{{ route('management.changes.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.changes.*')) aria-current="page" @endif><i class="bi bi-check2-square"></i> طلبات التغيير والمراجعة</a>

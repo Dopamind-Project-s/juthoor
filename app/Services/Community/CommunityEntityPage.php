@@ -24,6 +24,8 @@ class CommunityEntityPage
      */
     public const SECTIONS = [
         'overview' => ['label' => 'نظرة عامة', 'icon' => 'info-circle'],
+        'news' => ['label' => 'الأخبار والإعلانات', 'icon' => 'megaphone'],
+        'events' => ['label' => 'المناسبات', 'icon' => 'calendar-event'],
         'history' => ['label' => 'التاريخ والأصول', 'icon' => 'hourglass-split'],
         'archive' => ['label' => 'الأرشيف والوثائق', 'icon' => 'archive'],
         'locations' => ['label' => 'المناطق والانتشار', 'icon' => 'geo-alt'],
@@ -109,6 +111,9 @@ class CommunityEntityPage
                 ->when(in_array($key, ['achievements', 'archive'], true), fn ($query) => $query->with('person:id,full_name_ar,family_tree_id', 'person.familyTree:id,slug'))
                 ->when(method_exists($module['model'], 'mediaAttachments'), fn ($query) => $query->with('mediaAttachments.media.ownerEntity'))
                 ->when($key === 'media', fn ($query) => $query->with('ownerEntity'))
+                // News and events can be numerous: the portal shows the latest posts and the next events; full lists are paginated pages.
+                ->when($key === 'news', fn ($query) => $query->with('notices')->orderByRaw('coalesce(publish_at, reviewed_at, created_at) desc')->orderByDesc('id')->limit(config('community.portal_news')))
+                ->when($key === 'events', fn ($query) => $query->with('notices')->whereRaw('coalesce(ends_at, starts_at) >= ?', [now()])->orderBy('starts_at')->limit(config('community.portal_events')))
                 ->get();
         }
         $sections = array_flip(array_keys(EntityNarrative::SECTIONS));

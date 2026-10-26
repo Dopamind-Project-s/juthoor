@@ -2,16 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-26, after session 11)
+## Current state (2026-10-26, after session 12)
 
-- Branch `main` at `781eb9c` (Phases 3.2–3.6 committed by the maintainer); session 11 (Phase 3.7) changes uncommitted (nothing committed by the assistant).
-- Suite: **346 passed / 0 failed (3790 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1, Phases 2.1–2.5 and Phase 3 (3.1–3.7) complete. Deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook. The 39 ROOT name differences are reviewable and intentionally still open.
+- Branch `main` at `57ffda7` (Phase 3.7 committed by the maintainer); session 12 (Phase 4) changes uncommitted (nothing committed by the assistant).
+- Suite: **367 passed / 0 failed** on SQLite and PostgreSQL 16.
+- Phase 1, Phases 2.1–2.5, Phase 3 (3.1–3.7) and Phase 4 complete. Deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook, multi-family entity ownership. The 39 ROOT name differences are reviewable and intentionally still open.
 - Priorities changed 2026-10-26: Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are deferred, not cancelled; Phase 3 continues, then Phase 4 without Facebook.
 
 ## Next task to execute
 
-Phase 4 (without Facebook): news and announcements as the first `CommunityContentModules` entry, then deaths/condolences, celebrations and events (see "Phase 4 readiness" in `docs/implementation-roadmap.md`). Media for Phase 4 records comes from the existing library through `HasMediaAttachments`. In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
+Phase 5 — production readiness (see `docs/implementation-roadmap.md`, "Next recommended phase").
 
 ## Work log
 
@@ -119,6 +119,18 @@ Phase 4 (without Facebook): news and announcements as the first `CommunityConten
 | Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
 | Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
 
+### Session 12 — Phase 4 news, events, directory & notifications
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Data model | news, events, notices, linked people, directory profiles and reports, notifications table | migrations `2026_10_26_134010_create_notifications_table`, `2026_10_26_134011_create_community_news_events_and_directory_tables`; `NewsPost.php`, `CommunityEvent.php`, `ContentNotice.php`, `MemberProfile.php`, `DirectoryReport.php`, `Concerns/{HasPublicPlace,HasNotices,HasLinkedPeople,CommunityContent}.php`, `Diwan.php` | rollback/re-apply on PostgreSQL |
+| Publishing | publication window, sensitive approval, people sync, notifications; notices, cancellations, schedule changes, announcements | `CommunityContentService.php`, `CommunityPublishingService.php`, `CommunityNotifier.php`, `CommunityContentModules.php`, `Notifications/CommunityNotification.php`, `config/community.php` | `CommunityNewsTest`, `CommunityEventTest` |
+| Public pages | portal news/events sections, news list with search, calendar, detail pages, cards, notices | `CommunityPublicationController.php`, `CommunityEntityPage.php`, `community/{news,events}/*`, `community/sections/{news,events}.blade.php`, `components/community/{news-card,event-card,notices}.blade.php`, `community/show.blade.php`, `juthoor.css` | tests; Chrome |
+| Administration | news/event forms (death fields, places, people, sensitive confirmation), notices and schedule panel, announce action | `CommunityContentController.php`, `management/entities/content/{form,fields/news,fields/events,fields/place}.blade.php`, `routes/web.php` | tests; Chrome |
+| Directory | profiles, search, contact, reports, affiliation, suspension, photos | `MemberDirectory.php`, `MemberDirectoryController.php`, `Management/DirectoryProfileController.php`, `directory/*`, `management/directory/*`, `components/community/directory-card.blade.php`, `family-nav.blade.php`, `community/index.blade.php` | `MemberDirectoryTest`; Chrome |
+| Notifications UI | inbox, open/mark read, unread badge | `NotificationController.php`, `notifications/index.blade.php`, `layouts/management.blade.php` | tests; Chrome |
+| Integrity | linked people and deceased records protected from deletion/merge | `GenealogyDeletionService.php`, `PersonMergeService.php` | test |
+| Fixes during the session | event/news model defaults; empty person picker; flash messages on the public profile page; news list N+1 (19 → 8 queries); notification JSON filter in tests (PostgreSQL text column) | as above | re-run |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -186,6 +198,27 @@ Phase 4 (without Facebook): news and announcements as the first `CommunityConten
 | Viewers get metadata-free display copies; originals for managers | Protects GPS/EXIF data while keeping the original |
 | Rights gate the audience | No public copyrighted material without permission |
 | `restricted` added to the shared audience | v2.0 Public / Members / Restricted levels, for all modules |
+| News and events are content modules; events stay separate records | One governance model; v2.0 requires Event ≠ NewsPost and announcements without copies |
+| Publication window enforced in `visibleTo` | Server-side and authoritative without a scheduler or worker |
+| Death notices need a family administrator, consent and a stored confirmation | v2.0: sensitive records verified by an authorised party, with who/when |
+| Notices instead of overwriting published content | Changes, postponements and cancellations stay visible with previous values |
+| In-app (database) notifications only | No paid service, no sensitive text by e-mail; works without a mail server |
+| Directory profile belongs to a User, opt-in, per-field levels capped by audience | v2.0 ch. 12: Person ≠ User ≠ profile; consent and field privacy |
+| Per-audience precomputed search text | Hidden fields can never be searched or inferred through filters |
+| Admins moderate but never edit member profiles | v2.0: no data entered or published on a member's behalf |
+
+## Verification evidence (session 12)
+
+| Check | Result |
+|---|---|
+| Baseline before changes | 346 / 346 SQLite |
+| Full suite, SQLite / PostgreSQL 16 | 367 / 367 passed |
+| Migration up / rollback (2) / up on PostgreSQL 16 | pass |
+| Pint, Blade compile, `git diff --check` | pass |
+| Mutation checks | 21 Phase 4 rules each fail at least one test (two redundant directory guards each hold alone) |
+| Chrome (fresh seeded database) | Phase 4: 8/8 — editor news → admin notified → published, rolled up, not on sibling; scheduled news hidden; death notice refused without consent then published with confirmation, genealogy unchanged; event in calendar at local time, rescheduled and cancelled with visible notices; announcement linked to event; directory opt-in with hidden phone absent from HTML, members-only profile hidden from visitors; in-app contact and verified affiliation filter; mobile. Phase 3 regression: 29/29. No page errors |
+| Performance | `docs/project-audit.md` §15 |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices; MySQL; real e-mail delivery |
 
 ## Verification evidence (session 11)
 

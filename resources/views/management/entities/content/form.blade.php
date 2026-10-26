@@ -39,8 +39,18 @@
                 @endforeach
             </div>
             @error('subjects')<span class="field-error">{{ $message }}</span>@enderror
+            @if(method_exists($record, 'linkedPeople'))
+                <div class="content-entity-choices" data-linked-people>
+                    <span class="fw-bold">أشخاص من الشجرة يشير إليهم السجل (اختياري)</span>
+                    @foreach($linkedPeople as $person)<label><input type="checkbox" name="people[]" value="{{ $person->id }}" checked> {{ $person->display_name }}</label>@endforeach
+                    <select class="form-select" name="people[]" data-remote-select data-remote-url="{{ route('management.lookups.people', [$family->slug, 'tree' => $tree->slug]) }}" aria-label="إضافة شخص"><option value="">إضافة شخص</option></select>
+                    <small class="text-muted">يظهر الشخص للزوار فقط إذا كان منشورًا في الشجرة؛ احرص على موافقة المذكورين، خاصة الأطفال.</small>
+                    @error('people.*')<span class="field-error">{{ $message }}</span>@enderror
+                </div>
+            @endif
             <label>جمهور العرض<select class="form-select" name="audience">@foreach(\App\Models\EntityNarrative::AUDIENCES as $key => $label)<option value="{{ $key }}" @selected($v('audience', 'public') === $key)>{{ $label }}</option>@endforeach</select></label>
             <label>حالة التحقق<select class="form-select" name="verification_status">@foreach(\App\Models\EntityNarrative::VERIFICATION_STATUSES as $key => $label)<option value="{{ $key }}" @selected($v('verification_status', 'pending_review') === $key) @disabled(! $canPublish && in_array($key, ['verified', 'sourced'], true) && $record->verification_status !== $key)>{{ $label }}</option>@endforeach</select>@error('verification_status')<span class="field-error">{{ $message }}</span>@enderror</label>
+            @if($record instanceof \App\Models\NewsPost)<label class="flex-row align-items-center gap-2"><input type="checkbox" name="sensitive_confirmation" value="1"> للنعي والعزاء: تحققتُ من الخبر من جهة موثوقة ومن موافقة ذوي المتوفى (مدير العائلة فقط)</label>@error('sensitive_confirmation')<span class="field-error">{{ $message }}</span>@enderror @error('family_consent')<span class="field-error">{{ $message }}</span>@enderror @endif
             <label>حالة النشر<select class="form-select" name="publication_status">@foreach(\App\Models\EntityNarrative::PUBLICATION_STATUSES as $key => $label)<option value="{{ $key }}" @selected($v('publication_status', 'draft') === $key) @disabled(! $canPublish && ! in_array($key, ['draft', 'submitted'], true))>{{ $label }}</option>@endforeach</select>@error('publication_status')<span class="field-error">{{ $message }}</span>@enderror</label>
         </fieldset>
         <button class="btn btn-primary" @disabled($locked)>{{ $record->exists ? 'حفظ التعديلات' : 'حفظ السجل' }}</button>
@@ -58,6 +68,7 @@
             @csrf
             <label>ملاحظة المراجعة (مطلوبة عند الإعادة إلى المسودة)<textarea class="form-control" name="review_note" rows="2"></textarea>@error('review_note')<span class="field-error">{{ $message }}</span>@enderror</label>
             <div class="d-flex flex-wrap gap-2">
+                @if($record instanceof \App\Models\NewsPost && $record->isSensitive() && ! $record->sensitive_confirmed_at)<label class="flex-row align-items-center gap-2 w-100"><input type="checkbox" name="sensitive_confirmation" value="1"> تحققتُ من الخبر ومن موافقة ذوي المتوفى</label>@endif
                 @if(in_array($record->publication_status, ['draft', 'submitted'], true))<button class="btn btn-success" name="decision" value="publish">نشر</button>@endif
                 @if($record->publication_status === 'submitted')<button class="btn btn-outline-warning" name="decision" value="decline">إعادة إلى المسودة</button>@endif
                 @if($record->publication_status !== 'archived')<button class="btn btn-outline-secondary" name="decision" value="archive">أرشفة</button>@else<button class="btn btn-outline-primary" name="decision" value="restore">استعادة كمسودة</button>@endif
@@ -65,9 +76,43 @@
             @error('residence_consent')<span class="field-error">{{ $message }}</span>@enderror
             @error('rights_status')<span class="field-error">{{ $message }}</span>@enderror
             @error('alt_text')<span class="field-error">{{ $message }}</span>@enderror
+            @error('sensitive_confirmation')<span class="field-error">{{ $message }}</span>@enderror
+            @error('family_consent')<span class="field-error">{{ $message }}</span>@enderror
         </form>
     @endif
+    @if($record instanceof \App\Models\CommunityEvent)
+        <form method="post" action="{{ route('management.entities.content.announce', [$family->slug, $entity->id, $module, $record->id]) }}" class="mt-3">@csrf<button class="btn btn-outline-primary" data-announce>إنشاء إعلان مرتبط بهذه المناسبة</button></form>
+        @foreach($record->announcements as $announcement)<p class="small mb-0">إعلان مرتبط: <a href="{{ route('management.entities.content.edit', [$family->slug, $announcement->owner_entity_id, 'news', $announcement->id]) }}">{{ $announcement->title }}</a> ({{ $announcement->status_label }})</p>@endforeach
+    @endif
 </section>
+
+@if($record instanceof \App\Models\NewsPost || $record instanceof \App\Models\CommunityEvent)
+<section class="management-panel" aria-labelledby="notices-heading" data-notices-panel>
+    <h2 class="h5" id="notices-heading">تحديثات وتغييرات {{ $record instanceof \App\Models\CommunityEvent ? 'الموعد' : 'الإعلان' }}</h2>
+    <p class="small text-muted">تظهر للقراء مع السجل، وتُحفظ القيم السابقة. بعد النشر تتطلب صلاحية النشر.</p>
+    <ul class="small" data-notices>
+        @forelse($notices as $notice)<li>{{ $notice->created_at?->setTimezone(config('community.timezone'))->format('Y-m-d H:i') }} · {{ \App\Models\ContentNotice::KINDS[$notice->kind] ?? $notice->kind }} · {{ $notice->message }} — {{ $notice->author?->name }}</li>@empty<li class="text-muted">لا توجد تحديثات.</li>@endforelse
+    </ul>
+    <form method="post" action="{{ route('management.entities.content.notices.store', [$family->slug, $entity->id, $module, $record->id]) }}" class="management-grid" data-notice-form>
+        @csrf
+        <label>النوع<select class="form-select" name="kind">
+            <option value="update">تحديث</option><option value="correction">تصحيح</option>
+            @if($record instanceof \App\Models\CommunityEvent)
+                @foreach(\App\Services\Community\CommunityPublishingService::EVENT_CHANGES as $kind)<option value="{{ $kind }}">{{ \App\Models\ContentNotice::KINDS[$kind] }}</option>@endforeach
+            @elseif(! $record->cancelled_at)<option value="cancellation">إلغاء الإعلان</option>@endif
+        </select>@error('kind')<span class="field-error">{{ $message }}</span>@enderror</label>
+        <label>النص الظاهر للقراء<textarea class="form-control" name="message" rows="2" required maxlength="2000"></textarea>@error('message')<span class="field-error">{{ $message }}</span>@enderror</label>
+        @if($record instanceof \App\Models\CommunityEvent)
+            <label>الموعد الجديد (لتغيير الموعد أو التأجيل، بتوقيت {{ $record->timezone }})<input class="form-control" type="datetime-local" name="starts_at"></label>
+            <label>الانتهاء الجديد<input class="form-control" type="datetime-local" name="ends_at"></label>
+            <label>المكان الجديد (لتغيير المكان)<input class="form-control" name="location_name" placeholder="اسم المكان"></label>
+            <label>العنوان العام الجديد<input class="form-control" name="public_address"></label>
+            @error('starts_at')<span class="field-error">{{ $message }}</span>@enderror @error('ends_at')<span class="field-error">{{ $message }}</span>@enderror
+        @endif
+        <button class="btn btn-outline-primary">نشر التحديث</button>
+    </form>
+</section>
+@endif
 
 @if($attachments !== null)
 <section class="management-panel" aria-labelledby="attachments-heading" data-attachments>

@@ -7,8 +7,10 @@ use App\Models\Assertion;
 use App\Models\Branch;
 use App\Models\EntityAchievement;
 use App\Models\FamilyTree;
+use App\Models\NewsPost;
 use App\Models\Person;
 use App\Models\PersonRelationship;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class GenealogyDeletionService
@@ -20,6 +22,9 @@ class GenealogyDeletionService
         }
         if (EntityAchievement::query()->where('person_id', $person->id)->exists() || ArchiveRecord::query()->where('person_id', $person->id)->exists()) {
             $this->reject('person', 'الشخص مرتبط بسجلات «شخصيات وإنجازات» أو بمواد أرشيفية في صفحات الكيانات. أزل الربط أولًا.');
+        }
+        if (DB::table('content_person_links')->where('person_id', $person->id)->exists() || NewsPost::query()->where('deceased_person_id', $person->id)->exists()) {
+            $this->reject('person', 'الشخص مذكور في أخبار أو مناسبات أو نعي في صفحات الكيانات. أزل الإشارة أولًا.');
         }
         if ($person->citations()->exists() || $person->sources()->exists()) {
             $this->reject('person', 'الشخص مرتبط بمصادر واستشهادات. أزل الربط قبل الحذف.');

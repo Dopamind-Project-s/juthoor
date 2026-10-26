@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\CommunityEntityController;
+use App\Http\Controllers\CommunityPublicationController;
 use App\Http\Controllers\CrossFamilyLinkController;
 use App\Http\Controllers\GenealogyGraphController;
 use App\Http\Controllers\GenealogyTreeController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Management\ChangeRequestController;
 use App\Http\Controllers\Management\CommunityContentController;
 use App\Http\Controllers\Management\CommunityEntityController as ManagementCommunityEntityController;
 use App\Http\Controllers\Management\CsvImportController;
+use App\Http\Controllers\Management\DirectoryProfileController;
 use App\Http\Controllers\Management\FamilyController as ManagementFamilyController;
 use App\Http\Controllers\Management\FamilyDashboardController;
 use App\Http\Controllers\Management\LookupController;
@@ -30,12 +32,15 @@ use App\Http\Controllers\Management\RelationshipController;
 use App\Http\Controllers\Management\SourceController;
 use App\Http\Controllers\Management\TreeController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\MemberDirectoryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SiteAdmin\DashboardController as SiteAdminDashboardController;
 use App\Http\Controllers\SiteAdmin\FamilyController as SiteAdminFamilyController;
 use App\Http\Controllers\SiteAdmin\FamilyTreeController as SiteAdminFamilyTreeController;
 use App\Http\Controllers\SiteAdmin\ResourceController;
 use App\Http\Controllers\SiteAdmin\UserController as SiteAdminUserController;
 use App\Models\Family;
+use App\Services\Community\CommunityContentModules;
 use Illuminate\Support\Facades\Route;
 
 $data = static fn (string $file): array => require resource_path("data/al-zoubi/{$file}.php");
@@ -78,8 +83,23 @@ Route::prefix('families/{family}')->name('genealogy.')->middleware('throttle:240
 
 Route::prefix('families/{family}/entities')->name('community.entities.')->middleware('throttle:240,1')->group(function () {
     Route::get('/', [CommunityEntityController::class, 'index'])->name('index');
+    Route::get('/{entity}/news', [CommunityPublicationController::class, 'news'])->name('news');
+    Route::get('/{entity}/calendar', [CommunityPublicationController::class, 'calendar'])->name('calendar');
     Route::get('/{entity}', [CommunityEntityController::class, 'show'])->name('show');
 });
+
+Route::prefix('families/{family}/directory')->name('directory.')->middleware('throttle:120,1')->group(function () {
+    Route::get('/', [MemberDirectoryController::class, 'index'])->name('index');
+    Route::get('/{profile}', [MemberDirectoryController::class, 'show'])->whereNumber('profile')->name('show');
+    Route::get('/{profile}/photo', [MemberDirectoryController::class, 'photo'])->whereNumber('profile')->name('photo');
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Route::post('/{profile}/contact', [MemberDirectoryController::class, 'contact'])->whereNumber('profile')->middleware('throttle:10,60')->name('contact');
+        Route::post('/{profile}/report', [MemberDirectoryController::class, 'report'])->whereNumber('profile')->middleware('throttle:10,60')->name('report');
+    });
+});
+
+Route::get('/families/{family}/news/{post}', [CommunityPublicationController::class, 'showNews'])->whereNumber('post')->middleware('throttle:240,1')->name('community.news.show');
+Route::get('/families/{family}/events/{event}', [CommunityPublicationController::class, 'showEvent'])->whereNumber('event')->middleware('throttle:240,1')->name('community.events.show');
 
 // Every community media file is delivered here; the controller applies publication, audience and role rules.
 Route::get('/media/{uuid}/{variant?}', [MediaController::class, 'show'])->whereUuid('uuid')->whereIn('variant', ['display', 'original'])->middleware('throttle:600,1')->name('media.show');
@@ -107,6 +127,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
 
     Route::middleware('verified')->group(function () {
+        Route::get('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'edit'])->name('management.directory.edit');
+        Route::put('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'update'])->name('management.directory.update');
+        Route::delete('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'destroy'])->name('management.directory.destroy');
+        Route::get('/manage/families/{family}/directory/review', [DirectoryProfileController::class, 'review'])->name('management.directory.review');
+        Route::post('/manage/families/{family}/directory/profiles/{profile}/affiliation', [DirectoryProfileController::class, 'affiliation'])->whereNumber('profile')->name('management.directory.affiliation');
+        Route::post('/manage/families/{family}/directory/profiles/{profile}/reinstate', [DirectoryProfileController::class, 'reinstate'])->whereNumber('profile')->name('management.directory.reinstate');
+        Route::post('/manage/families/{family}/directory/reports/{report}', [DirectoryProfileController::class, 'resolve'])->whereNumber('report')->name('management.directory.resolve');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{notification}', [NotificationController::class, 'open'])->whereUuid('notification')->name('notifications.open');
         Route::get('/manage/cross-family-links', [CrossFamilyLinkController::class, 'index'])->name('cross-links.index');
         Route::get('/manage/cross-family-links/create', [CrossFamilyLinkController::class, 'create'])->name('cross-links.create');
         Route::post('/manage/cross-family-links', [CrossFamilyLinkController::class, 'store'])->name('cross-links.store');
@@ -172,7 +202,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/entities/{entity}/managers', [ManagementCommunityEntityController::class, 'storeManager'])->whereNumber('entity')->name('management.entities.managers.store');
         Route::delete('/manage/families/{family}/entities/{entity}/managers/{manager}', [ManagementCommunityEntityController::class, 'destroyManager'])->whereNumber('entity')->whereNumber('manager')->name('management.entities.managers.destroy');
         Route::get('/manage/families/{family}/entity-review', [CommunityContentController::class, 'queue'])->name('management.entities.review');
-        Route::prefix('/manage/families/{family}/entities/{entity}/content/{module}')->where(['entity' => '[0-9]+', 'module' => 'history|locations|diwans|achievements|archive|media'])->name('management.entities.content.')->group(function () {
+        Route::prefix('/manage/families/{family}/entities/{entity}/content/{module}')->where(['entity' => '[0-9]+', 'module' => implode('|', array_keys(CommunityContentModules::MODULES))])->name('management.entities.content.')->group(function () {
             Route::get('/', [CommunityContentController::class, 'index'])->name('index');
             Route::get('/create', [CommunityContentController::class, 'create'])->name('create');
             Route::post('/', [CommunityContentController::class, 'store'])->name('store');
@@ -184,6 +214,8 @@ Route::middleware('auth')->group(function () {
             Route::put('/{record}/citations/{citation}', [CommunityContentController::class, 'reviewCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.update');
             Route::delete('/{record}/citations/{citation}', [CommunityContentController::class, 'removeCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.destroy');
             Route::delete('/{record}', [CommunityContentController::class, 'destroy'])->whereNumber('record')->name('destroy');
+            Route::post('/{record}/notices', [CommunityContentController::class, 'notice'])->whereNumber('record')->name('notices.store');
+            Route::post('/{record}/announce', [CommunityContentController::class, 'announce'])->whereNumber('record')->name('announce');
             Route::post('/{record}/media', [CommunityContentController::class, 'attach'])->whereNumber('record')->name('media.store');
             Route::delete('/{record}/media/{attachment}', [CommunityContentController::class, 'detach'])->whereNumber('record')->whereNumber('attachment')->name('media.destroy');
         });
