@@ -11,6 +11,7 @@ use App\Models\FamilyMembership;
 use App\Models\FamilyTree;
 use App\Models\ImportBatch;
 use App\Models\User;
+use App\Services\Community\CommunityContentModules;
 use App\Services\Genealogy\NameReconciliationService;
 
 /**
@@ -52,6 +53,8 @@ class FamilyDashboardService
             'pendingChanges' => ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', 'pending')
                 ->orderByDesc('id')->limit(5)->get(),
             'pendingNameDifferences' => $tree->assertions()->where('import_key', 'like', NameReconciliationService::IMPORT_PREFIX.'%')->where('state', 'proposed')->count(),
+            'entityContentPending' => collect(CommunityContentModules::MODULES)->sum(fn (array $module) => $module['model']::query()->where('publication_status', 'submitted')
+                ->whereIn('owner_entity_id', $family->communityEntities()->select('id'))->count()),
             'entityCounts' => $family->communityEntities()->toBase()->selectRaw('publication_status, count(*) as total')->groupBy('publication_status')->pluck('total', 'publication_status')->map(fn ($total) => (int) $total)->all(),
             'pendingImports' => ImportBatch::query()->where('family_tree_id', $tree->id)->where('status', 'preview')->count(),
             'branches' => $tree->branches()->whereNull('parent_branch_id')->with('rootPerson')->withCount('childBranches')

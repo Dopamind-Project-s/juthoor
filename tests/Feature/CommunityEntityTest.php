@@ -76,7 +76,7 @@ test('tribe, clan, fakhd, sub-fakhd and branch pages form one navigable hierarch
 
     foreach ($levels as $position => [$name, $slug, $type]) {
         $page = $this->get(route('community.entities.show', ['zain', $slug]))->assertOk()
-            ->assertSee($name)->assertSee(Branch::TYPES[$type])->assertSee('نبذة '.$name)->assertSee('غير متاح بعد');
+            ->assertSee($name)->assertSee(Branch::TYPES[$type])->assertSee('نبذة '.$name)->assertSee('التاريخ والأصول')->assertSee('شخصيات وإنجازات');
         foreach (array_slice($levels, 0, $position) as [$ancestorName, $ancestorSlug]) {
             $page->assertSee(route('community.entities.show', ['zain', $ancestorSlug]), false)->assertSee($ancestorName);
         }
@@ -158,7 +158,7 @@ test('community-only entities need no genealogical founder', function () {
     auth()->logout();
 
     $this->get(route('community.entities.show', ['zain', 'association']))->assertOk()
-        ->assertSee('الكيانات الاجتماعية لا تشترط مؤسسًا مثبتًا')->assertSee('اكتمال صفحة التعريف: 0 من 4');
+        ->assertSee('الكيانات الاجتماعية لا تشترط مؤسسًا مثبتًا')->assertSee('اكتمال صفحة التعريف: 0 من 6');
 });
 
 test('only published entities under published ancestors are public; managers may preview the rest', function () {
@@ -170,7 +170,7 @@ test('only published entities under published ancestors are public; managers may
     // Published itself, but its parent is a draft: hidden, so no breadcrumb can name the draft.
     $this->get(route('community.entities.show', ['zain', 'sub']))->assertNotFound();
     $this->get(route('community.entities.index', 'zain'))->assertOk()->assertSee('العشيرة')->assertDontSee('الفخذ');
-    $this->get(route('community.entities.show', ['zain', 'clan']))->assertOk()->assertDontSee('الفخذ');
+    $this->get(route('community.entities.show', ['zain', 'clan']))->assertOk()->assertDontSee('data-entity="fakhd"', false)->assertDontSee('data-entity="sub"', false);
     $this->get(route('community.entities.show', ['zain', 'fakhd', 'preview' => 1]))->assertNotFound();
 
     $this->actingAs($context['reader'])->get(route('community.entities.show', ['zain', 'fakhd', 'preview' => 1]))->assertNotFound();

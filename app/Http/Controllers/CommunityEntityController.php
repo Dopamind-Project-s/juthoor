@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CommunityEntity;
+use App\Models\EntityAchievement;
 use App\Models\Family;
 use App\Services\Community\CommunityEntityPage;
 use App\Services\Community\CommunityHierarchy;
@@ -39,7 +40,9 @@ class CommunityEntityController extends Controller
             'entity' => $entityModel,
             'scope' => $scope,
             'preview' => $preview,
-            ...$page->build($entityModel, $scope, ! $preview),
+            'category' => array_key_exists((string) $request->query('category'), EntityAchievement::CATEGORIES) ? (string) $request->query('category') : null,
+            // Members of the owning family also see records addressed to members.
+            ...$page->build($entityModel, $scope, ! $preview, $request->user()),
         ]);
     }
 }

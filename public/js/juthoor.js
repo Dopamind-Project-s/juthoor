@@ -134,3 +134,5 @@ document.querySelectorAll('[data-root-fields]').forEach(fieldset => {
     };
     mode.addEventListener('change', update); update();
 });
+// Scope switches on entity pages reload with the new scope at the section the reader was viewing.
+document.querySelectorAll('[data-preserve-hash]').forEach(link => link.addEventListener('click', () => { if (location.hash) link.hash = location.hash; }));

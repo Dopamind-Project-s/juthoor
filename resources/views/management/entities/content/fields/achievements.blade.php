@@ -1,0 +1,10 @@
+@php($selectedPerson = old('person_id') ? \App\Models\Person::query()->find(old('person_id')) : $record->person)
+<label>الشخص (من سجلات الشجرة)<select class="form-select" name="person_id" data-remote-select data-remote-url="{{ route('management.lookups.people', [$family->slug, 'tree' => $tree->slug]) }}" required><option value="">اختر شخصًا</option>@if($selectedPerson)<option value="{{ $selectedPerson->id }}" selected>{{ $selectedPerson->display_name }}</option>@endif</select>@error('person_id')<span class="field-error">{{ $message }}</span>@enderror<small class="text-muted fw-normal">يظهر السجل للزوار فقط إذا كان الشخص منشورًا في الشجرة؛ لا تذكر في الوصف معلومات محجوبة عنه.</small></label>
+<label>النوع<select class="form-select" name="kind">@foreach(\App\Models\EntityAchievement::KINDS as $key => $label)<option value="{{ $key }}" @selected($v('kind', 'position') === $key)>{{ $label }}</option>@endforeach</select></label>
+<label>التصنيف (غير حصري)<select class="form-select" name="category">@foreach(\App\Models\EntityAchievement::CATEGORIES as $key => $label)<option value="{{ $key }}" @selected($v('category', 'other') === $key)>{{ $label }}</option>@endforeach</select></label>
+<label>المنصب أو الإنجاز<input class="form-control" name="title" value="{{ $v('title') }}" required maxlength="255">@error('title')<span class="field-error">{{ $message }}</span>@enderror</label>
+<label>الجهة أو المؤسسة<input class="form-control" name="organization" value="{{ $v('organization') }}" maxlength="255"></label>
+<label>الوصف<textarea class="form-control" name="description" rows="3" maxlength="5000">{{ $v('description') }}</textarea></label>
+<label>الفترة<input class="form-control" name="period_label" value="{{ $v('period_label') }}" maxlength="120"></label>
+<label>من سنة<input class="form-control" type="number" name="start_year" value="{{ $v('start_year') }}">@error('start_year')<span class="field-error">{{ $message }}</span>@enderror</label>
+<label>إلى سنة<input class="form-control" type="number" name="end_year" value="{{ $v('end_year') }}">@error('end_year')<span class="field-error">{{ $message }}</span>@enderror</label>

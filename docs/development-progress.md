@@ -2,16 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-26, after session 9)
+## Current state (2026-10-26, after session 10)
 
-- Branch `main` at `3d958bb` (Phase 2.5 committed by the maintainer); session 9 (Phase 3.1) changes uncommitted (nothing committed by the assistant).
-- Suite: **319 passed / 0 failed (3374 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1, Phases 2.1–2.5 and Phase 3.1 complete. The 39 ROOT name differences are reviewable and intentionally still open.
+- Branch `main` at `80d5c91` (Phase 3.1 committed by the maintainer); session 10 (Phases 3.2–3.6) changes uncommitted (nothing committed by the assistant).
+- Suite: **333 passed / 0 failed (3583 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1, Phases 2.1–2.5 and Phases 3.1–3.6 complete; Phase 3 roadmap items still open: archive & media (JTH-15), diwan images. The 39 ROOT name differences are reviewable and intentionally still open.
 - Priorities changed 2026-10-26: Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are deferred, not cancelled; Phase 3 continues, then Phase 4 without Facebook.
 
 ## Next task to execute
 
-Phase 3.2, as defined in the approved roadmap: the first content module built on `EntityContentScope` / `HasCommunityEntities` (see `docs/implementation-roadmap.md`, "Phase 3.2 readiness"). In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
+Phase 4 (without Facebook): news and announcements as the first `CommunityContentModules` entry, then deaths/condolences, celebrations and events (see "Phase 4 readiness" in `docs/implementation-roadmap.md`). Open Phase 3 items (archive & media, diwan images) need a public media store decision first. In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
 
 ## Work log
 
@@ -97,6 +97,16 @@ Phase 3.2, as defined in the approved roadmap: the first content module built on
 | Administration | hierarchy list, form, managers, dashboard panel, sidebar; branch deletion guard | `Management/CommunityEntityController.php`, `management/entities/{index,form}.blade.php`, `FamilyDashboardService.php`, `dashboard.blade.php`, `family-nav.blade.php`, `GenealogyDeletionService.php` | admin and dashboard tests; Chrome |
 | Content scope | shared placement query, module contract | `EntityContentScope.php`, `Models/Concerns/HasCommunityEntities.php` | `CommunityContentScopeTest` (stand-in module) |
 
+### Session 10 — Phases 3.2–3.6 community portals
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Data model | content tables, `content_citations`, entity population estimate | migration `2026_10_26_121429_create_community_content_tables`, `EntityNarrative.php`, `CommunityLocation.php`, `Diwan.php`, `EntityAchievement.php`, `ContentCitation.php`, `Concerns/CommunityContent.php`, `CommunityEntity.php` | rollback/re-apply and family cascade on PostgreSQL |
+| Shared services | write path, module registry, genealogy graph and preview, statistics, portal assembly | `CommunityContentService.php`, `CommunityContentModules.php`, `CommunityGenealogy.php`, `CommunityStatistics.php`, `CommunityEntityPage.php` | `CommunityPortalTest` (14) |
+| Public portal | section navigation, one scope switch with anchor, nine sections, evidence component | `community/show.blade.php`, `community/sections/*`, `components/community/{evidence,scope-switch}.blade.php`, `CommunityEntityController.php`, `juthoor.js`, `juthoor.css` | portal tests; Chrome |
+| Administration | content list/form per module, citations, review decisions, history, queue, entity content panel, population estimate, nav, dashboard count | `Management/CommunityContentController.php`, `management/entities/content/*`, `management/entities/form.blade.php`, `Management/CommunityEntityController.php`, `family-nav.blade.php`, `dashboard.blade.php`, `FamilyDashboardService.php`, `routes/web.php` | admin rendering, workflow and scope tests; Chrome |
+| Integration | person deletion and merge blockers, source deletion guard and usage list, Maps embed config | `GenealogyDeletionService.php`, `PersonMergeService.php`, `SourceController.php`, `sources/show.blade.php`, `config/services.php` | portal tests; existing merge/source tests green |
+| Tests updated | Phase 3.1 assertions for placeholders (now real sections), completeness 4 → 6 items, a text check that the approved disclaimer now matches | `CommunityEntityTest.php` | intent unchanged |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -148,6 +158,28 @@ Phase 3.2, as defined in the approved roadmap: the first content module built on
 | Entity roles are subtree-scoped and require family membership | Matches the existing family role model; leaving the family revokes them |
 | Editors draft; family/entity admins publish or change published pages | Same governance as `PublicationGuard` for genealogy |
 | Future sections listed as «غير متاح بعد» without links | Stable page layout without presenting unimplemented features |
+| Content evidence in `content_citations`, sources from the family library | Genealogy `citations` need a tree and feed shared-ancestry fingerprints; content must not invalidate links |
+| One governance trait and one write service for all modules | Same publication, review, audience and audit rules everywhere; Phase 4 modules plug in |
+| Content review = draft → submitted → published/declined, audited; not `change_requests` | Change requests are genealogy payload diffs; content records carry their own state and history |
+| Linked entities must be within the actor's scope | Nobody can place content on pages they do not manage (v2.0 ch. 6) |
+| Statistics from one per-page graph, three edge sets, distinct ids | Correct de-duplication and one tree load per page; no container singleton (stale across requests) |
+| Population coverage always «غير معروفة»; estimate only with a source | Records are not a census (v2.0 ch. 8) |
+| Keyless Google Maps URLs; Embed API only with a configured key | No paid or assumed key (v2.0 ch. 9) |
+| Achievements hidden unless the person is public (visitors) | Positions must not reveal living or unpublished people |
+| No hard delete of content; archive and restore | Reversible without a replay engine; audit keeps full snapshots |
+
+## Verification evidence (session 10)
+
+| Check | Result |
+|---|---|
+| Baseline before changes | 319 / 319 SQLite; all migrations apply |
+| Full suite, SQLite / PostgreSQL 16 | 333 / 333 passed (3583 assertions) |
+| Migration up / rollback / up on PostgreSQL 16; family delete cascades to content and links | pass |
+| Pint, Blade compile, `git diff --check` | pass |
+| Mutation checks | 14 rule removals each fail at least one test: member audience, hidden person, distinct counting, link scope, editor publishing, editor editing published, residence consent, Maps host, hidden-entity aggregation, unapproved citations, private genealogy edges, contact consent, merge blocker, cross-link sources |
+| Chrome journeys (real seeded Al-Zoubi + Qawasmeh data) | 12/12, no page errors: historical profile with alternative account and source; sourced region rolls up; founder, chain and mini tree with profile link; one switch keeps the section anchor; statistics equal the traversal count with disclaimer and unknown coverage; shared diwan once; directions open a new tab with the keyless URL; sourced position; private person's record hidden in HTML but visible to members; editor draft → submit → decline with note → resubmit → publish; entity editor limited to its fakhd; 390 px mobile |
+| Performance | see `docs/project-audit.md` §13 (constant 48–54 queries; 0.25–0.33 s at 10,000 people) |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 9)
 

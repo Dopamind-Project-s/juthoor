@@ -4,6 +4,7 @@ namespace App\Services\Genealogy;
 
 use App\Models\Assertion;
 use App\Models\Branch;
+use App\Models\EntityAchievement;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
@@ -15,6 +16,9 @@ class GenealogyDeletionService
     {
         if (Assertion::query()->where('person_id', $person->id)->orWhere('related_person_id', $person->id)->exists()) {
             $this->reject('person', 'الشخص مرتبط بروايات ووقائع مسجلة؛ يُحفظ سجلها التاريخي ولا يُحذف.');
+        }
+        if (EntityAchievement::query()->where('person_id', $person->id)->exists()) {
+            $this->reject('person', 'الشخص مرتبط بسجلات «شخصيات وإنجازات» في صفحات الكيانات. أزل الربط أولًا.');
         }
         if ($person->citations()->exists() || $person->sources()->exists()) {
             $this->reject('person', 'الشخص مرتبط بمصادر واستشهادات. أزل الربط قبل الحذف.');

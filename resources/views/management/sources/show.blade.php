@@ -56,4 +56,14 @@
 <p>لا توجد استشهادات في هذه الشجرة.</p>
 @endforelse
 </div>{{ $citations->links() }}</section>
+@if($contentCitations->isNotEmpty())
+<section class="management-panel" aria-labelledby="content-citations-heading">
+    <h2 class="h5" id="content-citations-heading">مستخدم في محتوى صفحات الكيانات</h2>
+    <ul class="small mb-0">
+        @foreach($contentCitations as $usage)
+            <li>{{ $usage->citable?->content_title }} — {{ $usage->citable?->ownerEntity?->name_ar }} ({{ \App\Models\EntityNarrative::VERIFICATION_STATUSES[$usage->verification_status] ?? $usage->verification_status }})</li>
+        @endforeach
+    </ul>
+</section>
+@endif
 @endsection

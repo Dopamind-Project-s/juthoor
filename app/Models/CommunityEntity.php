@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A tribe, clan, fakhd, sub-fakhd or branch/hamula page (v2.0 chapters 5–7): a content and administration unit, distinct
  * from the genealogical Branch it may point at. Levels may be skipped; a child is never placed above its parent's level.
  */
-#[Fillable(['family_id', 'parent_id', 'entity_type', 'name_ar', 'name_en', 'slug', 'alternate_names', 'summary', 'description', 'family_tree_id', 'branch_id', 'publication_status', 'reviewed_at', 'reviewed_by', 'sort_order'])]
+#[Fillable(['family_id', 'parent_id', 'entity_type', 'name_ar', 'name_en', 'slug', 'alternate_names', 'summary', 'description', 'family_tree_id', 'branch_id', 'publication_status', 'reviewed_at', 'reviewed_by', 'sort_order', 'population_estimate', 'population_estimate_year', 'population_estimate_source_id'])]
 class CommunityEntity extends Model
 {
     public const STATUS_DRAFT = 'draft';
@@ -88,6 +88,11 @@ class CommunityEntity extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function populationEstimateSource(): BelongsTo
+    {
+        return $this->belongsTo(Source::class, 'population_estimate_source_id');
     }
 
     public function managers(): HasMany

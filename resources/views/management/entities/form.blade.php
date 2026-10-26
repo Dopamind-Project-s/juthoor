@@ -42,12 +42,31 @@
         <label>الشجرة المرتبطة (اختياري)<select class="form-select" name="family_tree_id"><option value="">دون ربط</option>@foreach($trees as $item)<option value="{{ $item->id }}" @selected((string) $value('family_tree_id') === (string) $item->id)>{{ $item->name_ar }}</option>@endforeach</select>@error('family_tree_id')<span class="field-error">{{ $message }}</span>@enderror</label>
         <label>الفرع النسبي المرتبط (اختياري)<select class="form-select" name="branch_id" aria-describedby="branch-help"><option value="">دون ربط — كيان اجتماعي</option>@foreach($branches as $item)<option value="{{ $item->id }}" @selected((string) $value('branch_id') === (string) $item->id)>{{ $item->name_ar }} — {{ $item->type_label }} · المؤسس: {{ $item->rootPerson?->full_name_ar ?? 'غير محدد' }} · {{ $item->familyTree?->name_ar }}</option>@endforeach</select><small id="branch-help" class="text-muted fw-normal">يُعرض مؤسس الفرع وشجرته في الصفحة من السجلات الحالية دون نسخ. لكل فرع صفحة كيان واحدة.</small>@error('branch_id')<span class="field-error">{{ $message }}</span>@enderror</label>
         <label>حالة النشر<select class="form-select" name="publication_status">@foreach(\App\Models\CommunityEntity::STATUSES as $status => $label)<option value="{{ $status }}" @selected($value('publication_status', 'draft') === $status) @disabled(! $canPublish && $status !== \App\Models\CommunityEntity::STATUS_DRAFT)>{{ $label }}</option>@endforeach</select>@error('publication_status')<span class="field-error">{{ $message }}</span>@enderror</label>
+        <fieldset class="content-governance">
+            <legend class="h6">التعداد التقديري من مصدر مستقل (اختياري)</legend>
+            <label>العدد التقديري<input class="form-control" type="number" min="1" name="population_estimate" value="{{ $value('population_estimate') }}">@error('population_estimate')<span class="field-error">{{ $message }}</span>@enderror</label>
+            <label>سنة التقدير<input class="form-control" type="number" name="population_estimate_year" value="{{ $value('population_estimate_year') }}">@error('population_estimate_year')<span class="field-error">{{ $message }}</span>@enderror</label>
+            <label>المصدر<select class="form-select" name="population_estimate_source_id"><option value="">دون مصدر</option>@foreach($estimateSources as $source)<option value="{{ $source->id }}" @selected((string) $value('population_estimate_source_id') === (string) $source->id)>{{ $source->title }}</option>@endforeach</select>@error('population_estimate_source_id')<span class="field-error">{{ $message }}</span>@enderror<small class="text-muted fw-normal">لا يُعرض عدد السجلات بوصفه تعدادًا؛ هذا الحقل لتقدير موثق من مصدر خارجي فقط.</small></label>
+        </fieldset>
         @if($canPublish)<label class="flex-row align-items-center"><input type="checkbox" name="mark_reviewed" value="1"> تمت مراجعة معلومات الصفحة الآن@error('mark_reviewed')<span class="field-error">{{ $message }}</span>@enderror</label>@endif
         <button class="btn btn-primary">{{ $entity->exists ? 'حفظ التعديلات' : 'إضافة الكيان' }}</button>
     </form>
 </section>
 
 @if($entity->exists)
+<section class="management-panel" aria-labelledby="entity-content" data-entity-content-panel>
+    <h2 class="h5" id="entity-content">محتوى الصفحة</h2>
+    <p class="text-muted small">التاريخ والمناطق والدواوين والشخصيات سجلات يملكها هذا الكيان ويمكن ربطها بكيانات أخرى دون نسخ. الإحصاءات تُحسب من الشجرة تلقائيًا، والصلة النسبية من حقلي الشجرة والفرع أعلاه.</p>
+    <div class="management-list">
+        @foreach(\App\Services\Community\CommunityContentModules::MODULES as $key => $info)
+            <article data-content-module="{{ $key }}">
+                <div><strong><i class="bi bi-{{ $info['icon'] }}"></i> {{ $info['label'] }}</strong><small>@forelse($contentCounts[$key] as $status => $total){{ \App\Models\EntityNarrative::PUBLICATION_STATUSES[$status] ?? $status }}: {{ $total }}@if(! $loop->last) · @endif @empty لا سجلات بعد @endforelse</small></div>
+                <a class="btn btn-sm btn-primary" href="{{ route('management.entities.content.index', [$family->slug, $entity->id, $key]) }}">إدارة</a>
+            </article>
+        @endforeach
+    </div>
+</section>
+
 <section class="management-panel" aria-labelledby="entity-managers">
     <h2 class="h5" id="entity-managers">مسؤولو الكيان</h2>
     <p class="text-muted small">يدير مسؤول الكيان هذه الصفحة والكيانات التابعة لها فقط، ولا يملك صلاحية على المستويات الأعلى أو الكيانات المجاورة. ظهور محتوى في صفحة الكيان لا يمنحه صلاحية تعديله.</p>

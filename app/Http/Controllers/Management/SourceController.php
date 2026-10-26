@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Management;
 use App\Http\Controllers\Controller;
 use App\Models\Assertion;
 use App\Models\Citation;
+use App\Models\CommunityEntity;
+use App\Models\ContentCitation;
 use App\Models\Family;
 use App\Models\PersonRelationship;
 use App\Models\Source;
@@ -55,8 +57,9 @@ class SourceController extends Controller
         $citations = Citation::query()->where('family_tree_id', $tree->id)->where('source_id', $source->id)->with(['person', 'relationship.person', 'relationship.relatedPerson', 'assertion.person.familyTree.family', 'assertion.relatedPerson'])->orderByDesc('id')->paginate(20)->withQueryString();
 
         $canDownload = $source->file_path && Storage::disk('genealogy_private')->exists($source->file_path);
+        $contentCitations = ContentCitation::query()->where('source_id', $source->id)->with('citable.ownerEntity:id,name_ar')->orderByDesc('id')->limit(50)->get();
 
-        return view('management.sources.show', compact('family', 'tree', 'source', 'citations', 'canDownload'));
+        return view('management.sources.show', compact('family', 'tree', 'source', 'citations', 'canDownload', 'contentCitations'));
     }
 
     private function data(Request $request, Family $family, ?Source $source = null): array
@@ -146,7 +149,8 @@ class SourceController extends Controller
         }
         DB::transaction(function () use ($family, $source): void {
             Source::query()->whereKey($source->id)->lockForUpdate()->firstOrFail();
-            if ($source->people()->exists() || Citation::query()->where('source_id', $source->id)->exists() || PersonRelationship::query()->where('source_id', $source->id)->exists()) {
+            if ($source->people()->exists() || Citation::query()->where('source_id', $source->id)->exists() || PersonRelationship::query()->where('source_id', $source->id)->exists()
+                || ContentCitation::query()->where('source_id', $source->id)->exists() || CommunityEntity::query()->where('population_estimate_source_id', $source->id)->exists()) {
                 throw ValidationException::withMessages(['source' => 'المصدر مرتبط باستشهادات أو سجلات. أزل الربط قبل حذفه.']);
             }
             $before = $this->audit->snapshot($source);

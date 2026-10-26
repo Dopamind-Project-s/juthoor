@@ -6,6 +6,7 @@ use App\Models\Assertion;
 use App\Models\Branch;
 use App\Models\ChangeRequest;
 use App\Models\CrossFamilyLink;
+use App\Models\EntityAchievement;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonMerge;
@@ -106,6 +107,10 @@ class PersonMergeService
         $pending = $this->pendingChangeRequests($tree, $merged->id);
         if ($pending->isNotEmpty()) {
             $blockers[] = 'توجد مقترحات معلقة تخص السجل المدموج (#'.$pending->implode(', #').')؛ اتخذ قرارًا بشأنها أولًا.';
+        }
+        // Community content is not part of the merge journal; it must point at the survivor before merging.
+        if (EntityAchievement::query()->where('person_id', $merged->id)->exists()) {
+            $blockers[] = 'السجل المدموج مرتبط بسجلات «شخصيات وإنجازات»؛ انقلها إلى السجل الباقي من صفحات الكيانات أولًا.';
         }
 
         $resultAttributes = collect($fields)->map(fn ($field) => $field['result'])->all();

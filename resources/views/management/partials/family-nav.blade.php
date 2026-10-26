@@ -14,7 +14,8 @@
 @endforeach
 @can('viewAny',[\App\Models\CommunityEntity::class,$workspaceFamily])
 <span class="workspace-nav-heading">الصفحات المجتمعية</span>
-<a href="{{ route('management.entities.index',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.*')) aria-current="page" @endif><i class="bi bi-diagram-2"></i> صفحات الكيانات</a>
+<a href="{{ route('management.entities.index',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.*') && ! request()->routeIs('management.entities.review')) aria-current="page" @endif><i class="bi bi-diagram-2"></i> صفحات الكيانات</a>
+<a href="{{ route('management.entities.review',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.review')) aria-current="page" @endif><i class="bi bi-inbox"></i> مراجعة محتوى الكيانات</a>
 @endcan
 <span class="workspace-nav-heading">التوثيق والمراجعة</span>
 <a href="{{ route('management.sources.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.sources.*')) aria-current="page" @endif><i class="bi bi-journal-text"></i> المصادر والاستشهادات</a>

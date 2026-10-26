@@ -14,6 +14,7 @@ use App\Http\Controllers\Management\AssertionController;
 use App\Http\Controllers\Management\AuditReversionController;
 use App\Http\Controllers\Management\BranchController;
 use App\Http\Controllers\Management\ChangeRequestController;
+use App\Http\Controllers\Management\CommunityContentController;
 use App\Http\Controllers\Management\CommunityEntityController as ManagementCommunityEntityController;
 use App\Http\Controllers\Management\CsvImportController;
 use App\Http\Controllers\Management\FamilyController as ManagementFamilyController;
@@ -166,6 +167,19 @@ Route::middleware('auth')->group(function () {
         Route::put('/manage/families/{family}/entities/{entity}', [ManagementCommunityEntityController::class, 'update'])->whereNumber('entity')->name('management.entities.update');
         Route::post('/manage/families/{family}/entities/{entity}/managers', [ManagementCommunityEntityController::class, 'storeManager'])->whereNumber('entity')->name('management.entities.managers.store');
         Route::delete('/manage/families/{family}/entities/{entity}/managers/{manager}', [ManagementCommunityEntityController::class, 'destroyManager'])->whereNumber('entity')->whereNumber('manager')->name('management.entities.managers.destroy');
+        Route::get('/manage/families/{family}/entity-review', [CommunityContentController::class, 'queue'])->name('management.entities.review');
+        Route::prefix('/manage/families/{family}/entities/{entity}/content/{module}')->where(['entity' => '[0-9]+', 'module' => 'history|locations|diwans|achievements'])->name('management.entities.content.')->group(function () {
+            Route::get('/', [CommunityContentController::class, 'index'])->name('index');
+            Route::get('/create', [CommunityContentController::class, 'create'])->name('create');
+            Route::post('/', [CommunityContentController::class, 'store'])->name('store');
+            Route::get('/{record}/edit', [CommunityContentController::class, 'edit'])->whereNumber('record')->name('edit');
+            Route::put('/{record}', [CommunityContentController::class, 'update'])->whereNumber('record')->name('update');
+            Route::post('/{record}/submit', [CommunityContentController::class, 'submit'])->whereNumber('record')->name('submit');
+            Route::post('/{record}/review', [CommunityContentController::class, 'review'])->whereNumber('record')->name('review');
+            Route::post('/{record}/citations', [CommunityContentController::class, 'cite'])->whereNumber('record')->name('citations.store');
+            Route::put('/{record}/citations/{citation}', [CommunityContentController::class, 'reviewCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.update');
+            Route::delete('/{record}/citations/{citation}', [CommunityContentController::class, 'removeCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.destroy');
+        });
         Route::get('/manage/families/{family}/merges', [PersonMergeController::class, 'index'])->name('management.merges.index');
         Route::get('/manage/families/{family}/merges/preview', [PersonMergeController::class, 'preview'])->name('management.merges.preview');
         Route::post('/manage/families/{family}/merges', [PersonMergeController::class, 'store'])->name('management.merges.store');

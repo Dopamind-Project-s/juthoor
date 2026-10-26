@@ -14,7 +14,7 @@ Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred
 | 0 — Audit & stabilization | Verified baseline, traceability, green suite on SQLite + PostgreSQL | 1 | — | — | ✅ Done 2026-10-22: 194/194 green on both engines, CI workflow added |
 | 1 — Family Tree MVP | Database-backed public tree, person/relationship/branch management, publication governance, family dashboard | 1, 3 (partial) | JTH-01–03, 07, 13, 14; UC-01–05, 07–09 | 0 | ✅ Done 2026-10-22: Definition of Done below |
 | 2 — Genealogy governance | Assertions & competing narratives, field-level privacy, merge with undo, revert-any-change, mothers/spouses/events, GEDCOM, branch-scoped roles, notifications | 2, 8 | JTH-06, 08–13, 28 | 1 | UC-06, UC-10, UC-12 fully met; no leak via search/API/export |
-| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **in progress**: 3.1 done 2026-10-26 |
+| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **3.1–3.6 done 2026-10-26**; archive/media (JTH-15) and diwan images remain |
 | 4 — Community & extended | News, deaths/condolences, celebrations, events, member directory & professional profiles; Facebook deferred | 5, 7 (6 deferred) | JTH-21–24, 26, 27 (25 deferred) | 3 (audience scopes) | UC-15, 16, 18 |
 | 5 — Production readiness | Backups + restore drill, monitoring/error reporting, security headers, 2FA, load tests, caching after measurement | 10 | JTH-29, 30 | continuous | Public-release criteria in v2.0 chapter 22 |
 
@@ -176,3 +176,22 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - A content module needs only: a table with `owner_entity_id`, `HasCommunityEntities`, a `scopeVisibleTo` for its publication/audience rules, and links via `EntityContentScope::link`. Entity pages already reserve its section.
 - Authorization for module records: `isEditableBy()` (owner entity) — visibility on another page grants nothing.
 - Not started (by instruction): Phase 3.2–3.6 modules, Phase 2.6, GEDCOM, Facebook.
+
+## Phases 3.2–3.6 — Complete community portals (done 2026-10-26)
+
+- [x] **P3.2–3.6-00 Baseline** — HEAD `80d5c91`, 319/319 on SQLite before changes, migrations apply, no regressions.
+- [x] **Shared content layer** — `CommunityContent` (publication, verification, audience, review, evidence, `visibleTo`), `CommunityContentService` (single audited write path), `content_citations` (family sources), module registry, generic admin controller, review queue; reuses `EntityContentScope`, `HasCommunityEntities`, `CommunityEntityPolicy`/`CommunityEntityAccess`.
+- [x] **3.2 History & geography** — `entity_narratives` (six sections, primary/alternative accounts, periods) and `community_locations` (classification, era, period), sourced and shareable.
+- [x] **3.3 Genealogy preview** — founder, ancestor chain, mini tree, descendant count, related branches, approved shared ancestors, sub-entity founders, links to the full tree; empty state for community-only entities; one scope switch for all sections with the section anchor kept.
+- [x] **3.4 Statistics** — registered / verified / published / living (members) / branches / father-link coverage, distinct person ids, sourced population estimate, coverage «غير معروفة», approved disclaimer.
+- [x] **3.5 Diwans & Maps** — shared diwans, keyless Google Maps directions, optional Embed API key, validated links and coordinates, consent for contacts and private residences.
+- [x] **3.6 Notable people** — positions/achievements on existing people, neutral categories, alphabetical, approved disclaimer, privacy by the person's visibility; deletion/merge blockers.
+- [x] **Portal & administration** — functional sections replace the placeholders; entity edit page lists module content; dashboard pending count; sidebar review queue; source page lists content usages.
+- [x] **Tests** — `CommunityPortalTest` (14), Phase 3.1 tests updated for the new sections (intent unchanged); 14 rule mutations each caught; 333/333 SQLite and PostgreSQL 16; Chrome journeys 12/12.
+- Remaining Phase 3 items: archive & media (JTH-15) and diwan images (need a public media store); content search/API/export with the same scope; migrating the static Al-Zoubi pages after content review.
+
+### Phase 4 readiness
+- News, deaths/condolences, celebrations and events can be new `CommunityContentModules` entries: a table with the governance columns, `CommunityContent`, `contentRules()`, a fields partial and a portal section. Owner/subject/audience, publication, review queue, evidence and audit come for free.
+- Time-bound content (events, condolences) needs date-window rules in its `visibleTo` hooks; notifications and approval of sensitive announcements (deaths) are Phase 4 work.
+- Member directory (JTH-26/27) must stay separate from `people` (ADR-008) and reuse `PersonPrivacy`-style levels.
+- Facebook remains deferred.

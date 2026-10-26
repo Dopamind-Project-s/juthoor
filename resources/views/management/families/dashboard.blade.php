@@ -103,6 +103,7 @@
 <section class="management-panel" aria-labelledby="entitiesHeading" data-dashboard-entities>
     <span class="eyebrow">الصفحات المجتمعية</span><h2 class="h4" id="entitiesHeading">القبيلة والعشيرة والأفخاذ</h2>
     <dl class="dashboard-facts">@foreach(\App\Models\CommunityEntity::STATUSES as $key=>$label)<dt>{{ $label }}</dt><dd>{{ $entityCounts[$key] ?? 0 }}</dd>@endforeach</dl>
+    @if($entityContentPending > 0)<p class="small mt-2 mb-0"><a href="{{ route('management.entities.review',$family->slug) }}">محتوى بانتظار المراجعة</a>: <strong data-entity-content-pending>{{ $entityContentPending }}</strong></p>@endif
     <a class="btn btn-sm btn-outline-primary mt-3" href="{{ route('management.entities.index',$family->slug) }}">إدارة صفحات الكيانات</a>
 </section>
 @endcan

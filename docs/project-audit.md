@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-26 (updated after Phase 3.1 — unified hierarchical entities and portals). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-26 (updated after Phase 3.2–3.6 — community portal modules). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `3d958bb` (Phase 2.5 committed by the maintainer); Phase 3.1 changes (session 9) are uncommitted. |
-| Test baseline (start of session 9) | 303 passed, 0 failed (session 8 result, committed as `3d958bb`). |
-| Test result (end of session 9) | **319 passed, 0 failed, 3374 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `80d5c91` (Phase 3.1 committed by the maintainer); Phase 3.2–3.6 changes (session 10) are uncommitted. |
+| Test baseline (start of session 10) | 319 passed, 0 failed, 3374 assertions (re-run on SQLite before any change; all migrations apply). |
+| Test result (end of session 10) | **333 passed, 0 failed, 3583 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -34,7 +34,8 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
 | Community entities (Phase 3.1) | `community_entities` (type, parent, optional `branch_id`/`family_tree_id`, publication, review date), `community_entity_managers`, `CommunityHierarchy`, `CommunityEntityIntegrityService`, `CommunityEntityAccess`, `CommunityEntityPolicy`; public `/families/{family}/entities[/{slug}]`, admin `/manage/families/{family}/entities` | Implemented (see §12) |
-| Entity content scope (Phase 3.1) | `entity_content_links` (subject / audience), `EntityContentScope`, `HasCommunityEntities` contract | Foundation only — no content module uses it yet (see §12) |
+| Entity content (Phases 3.1–3.6) | `entity_content_links` (subject / audience), `EntityContentScope`, `HasCommunityEntities` + `CommunityContent`; modules `entity_narratives`, `community_locations`, `diwans`, `entity_achievements`; evidence `content_citations`; `CommunityContentService`, `CommunityContentController`, review queue | Implemented (see §13) |
+| Entity portal (Phases 3.3–3.4) | `CommunityEntityPage`, `CommunityGenealogy` (founder, chain, mini tree, related branches, shared ancestors), `CommunityStatistics` | Implemented (see §13) |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
 | CSV import | `ImportBatch`, `CsvImportService` (dry run, checksum, atomic commit) | Implemented (GEDCOM missing) |
 | Ops | `.github/workflows/tests.yml` (SQLite+Pint, PostgreSQL), site health dashboard, rate limits | Partial (no backups/monitoring) |
@@ -57,12 +58,12 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
 | JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, entity-scoped editor/admin roles over an entity subtree (Phase 3.1), `AdministrationSecurityTest`, `CommunityEntityTest` | Per-module roles (news, diwans…) | P1 | 2 | Branch/module-scoped permissions |
 | JTH-14 | Dashboard per family | Implemented | `/manage/families/{family}/dashboard`, `FamilyDashboardTest` | Settings page | P1 | 1 ✓ | Role-aware, family-scoped (tested) |
-| JTH-15 | History, archive, media | Partial | Static history/archive pages; source files | DB archive and media | P2 | 3 | Archive items linked to person/fakhd |
-| JTH-16 | Pages for every clan level | Partial | Independent, manageable pages for tribe / clan / fakhd / sub-fakhd / branch-hamula with breadcrumbs, children, founder/branch links, publication, review date, completeness (`CommunityEntityTest`, Chrome) | Content sections (history, regions, diwans, personalities, news, archive, counters) await their modules; static Al-Zoubi pages not yet migrated | P1 | 3 | UC-13 met; sections filled by JTH-15, 17–20 |
-| JTH-17 | Counters with scope/coverage | Missing | Admin-only counts | Public counters with disclaimer | P2 | 3 | UC-21 |
-| JTH-18 | Personalities, positions, achievements | Partial | Static `prominent-people` page | DB model with sources | P2 | 3 | UC-19 |
-| JTH-19 | Residence regions | Missing | — | — | P2 | 3 | — |
-| JTH-20 | Diwans & Google Maps | Missing | — | — | P2 | 3 | UC-14 |
+| JTH-15 | History, archive, media | Partial | Structured, sourced historical narratives with competing accounts on every entity page (`CommunityPortalTest`) | Archive and media (no media store yet); static Al-Zoubi history not migrated | P2 | 3 | Archive items linked to person/fakhd |
+| JTH-16 | Pages for every clan level | Implemented | Portal per level with overview, history, regions, founder and genealogy, statistics, diwans, notable people, sources, sub-entities and review (`CommunityEntityTest`, `CommunityPortalTest`, Chrome) | Static Al-Zoubi pages kept until reviewed content is migrated | P1 | 3 ✓ | UC-13 |
+| JTH-17 | Counters with scope/coverage | Implemented | Registered / verified / published / living (members) / branches / father-link coverage with explanations, date and the approved disclaimer; sourced estimate; population coverage reported unknown | — | P2 | 3 ✓ | UC-21 |
+| JTH-18 | Personalities, positions, achievements | Implemented | `entity_achievements` on existing people, sources, review, audience, neutral categories, alphabetical order, approved disclaimer | Static `prominent-people` page not migrated | P2 | 3 ✓ | UC-19 |
+| JTH-19 | Residence regions | Implemented | `community_locations` (origin / settlement / migration / gathering, historical / current, period, sources), shared between entities | — | P2 | 3 ✓ | — |
+| JTH-20 | Diwans & Google Maps | Partial | `diwans` shared by several entities, keyless Maps directions, optional Embed API key, validated links, consent for contacts and private residences | Images (no public media store yet) | P2 | 3 | UC-14 |
 | JTH-21 | Hierarchical news | Missing | — | — | P2 | 4 | — |
 | JTH-22 | Deaths, burial, condolences | Missing | — | — | P2 | 4 | UC-15 |
 | JTH-23 | Weddings, graduations | Missing | — | — | P3 | 4 | — |
@@ -73,11 +74,11 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-28 | Field-level voluntary privacy | Partial | `PersonPrivacy` levels public / family / restricted on birth/death year and date, gender and notes; default-deny; `PersonPrivacyTest` (17) | Self-managed ("voluntary") consent by the person, member-directory and contact fields (not in schema yet), photos | P1 | 2 | Directory/contact fields reuse the same service when added |
 | JTH-29 | Operations, monitoring, backups | Partial | CI workflow, health dashboard, rate limits | Backups, restore drill, monitoring | P1 | 5 | RPO ≤ 24h, RTO ≤ 4h drill |
 | JTH-30 | Future extensions | Missing | — | — | P3 | 5 | — |
-| JTH-31 | Hierarchical filtering for all sections | Partial | `EntityContentScope` (direct / with descendants) shared by all future modules; child-entity listing uses the same switch (`CommunityContentScopeTest`) | No content module yet; search/API/export not yet scoped | P1 | 3 | UC-20 |
-| JTH-32 | Owner / subject / audience separation | Partial | `owner_entity_id` contract + subject/audience links + module `visibleTo` scope; editing follows the owner only (tested) | No module uses it yet; publication channel (site/Facebook) not modelled | P1 | 3 | UC-22 |
-| JTH-33 | Upper-level content flows down when targeted | Partial | Audience links on an ancestor reach every descendant page, never siblings (tested) | No module yet | P2 | 3 | — |
-| JTH-34 | No duplicate people/news/diwans in views & counters | Partial | Tree focus de-duplicated; content scope filters the content table by key, so a record linked to several entities appears once (tested) | Counters (JTH-17) | P1 | 3 | Distinct IDs in aggregates |
-| JTH-35 | Personalities fairness disclaimer | Missing | — | — | P2 | 3 | Appendix A text shown |
+| JTH-31 | Hierarchical filtering for all sections | Partial | One switch drives every portal section (children, history, regions, diwans, people, founders, statistics) through `EntityContentScope` | Content search, API and export do not exist yet; they must reuse the scope | P1 | 3 | UC-20 |
+| JTH-32 | Owner / subject / audience separation | Implemented | Four modules use owner entity + subject / audience links + audience scope; edit rights follow the owner only (tested) | Publication channel (Facebook) deferred | P1 | 3 ✓ | UC-22 |
+| JTH-33 | Upper-level content flows down when targeted | Implemented | Audience links reach descendant pages only, never siblings (tested on diwans and narratives) | — | P2 | 3 ✓ | — |
+| JTH-34 | No duplicate people/news/diwans in views & counters | Implemented | Distinct record ids in aggregated sections; distinct person ids across overlapping branches in counters (tested) | — | P1 | 3 ✓ | Distinct IDs in aggregates |
+| JTH-35 | Personalities fairness disclaimer | Implemented | Appendix A text on the notable-people section; no ranking | — | P2 | 3 ✓ | Appendix A text shown |
 | JTH-36 | Separate genealogical identity, account, directory | Implemented | `people` vs `users` tables, no coupling | Directory n/a yet | P1 | — ✓ | — |
 
 ## 4. Use cases relevant to the tree MVP
@@ -97,9 +98,12 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | UC-11 Genealogical search | Partial | Lineage in results; no father/fakhd filters |
 | UC-12 Living-person privacy | Implemented | Unknown status is private; record rule across page/graph/focus/search; field levels enforced server-side on pages, forms, audit and proposal diffs; JSON endpoints carry no sensitive fields (`PersonPrivacyTest`). No export exists yet. |
 | UC-13 Create entity page | Implemented | Entity admins add identity, description and links; the page appears in the hierarchy without copies (`CommunityEntityTest`, Chrome) |
-| UC-20 Hierarchical filtering | Partial | Direct / with-descendants switch on child entities; shared content scope tested with a stand-in module; no content sections yet |
-| UC-22 Shared content management | Partial | One record linked to several entities with central edit control (foundation, tested); no content module yet |
-| UC-14 – UC-19, UC-21 | Missing | Phases 3.2+ and 4 |
+| UC-20 Hierarchical filtering | Implemented | One switch for all sections, preserved section anchor, correct results without duplicates and by audience (tests, Chrome) |
+| UC-22 Shared content management | Implemented | One diwan / narrative / achievement linked to several entities, edited centrally by its owner (tests, Chrome) |
+| UC-14 Add diwan | Implemented | Several diwans per entity and shared diwans; Maps directions; consent rules |
+| UC-19 Nominate a personality | Implemented | Position/achievement with source, review and disclaimer |
+| UC-21 Fakhd statistics | Implemented | Number with type, date and coverage statement; registered never presented as population |
+| UC-15 – UC-18 | Missing | Phase 4 (UC-17 deferred) |
 
 ## 5. Completion dashboard
 
@@ -107,19 +111,19 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 
 | Status | Count |
 |---|---|
-| Implemented | 9 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 36) |
-| Partial | 14 (JTH-02, 04, 06, 08, 11, 15, 16, 18, 28, 29, 31, 32, 33, 34) |
-| Missing | 13 |
+| Implemented | 17 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 16, 17, 18, 19, 32, 33, 34, 35, 36) |
+| Partial | 10 (JTH-02, 04, 06, 08, 11, 15, 20, 28, 29, 31) |
+| Missing | 9 (JTH-12, 21–27, 30) |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(9 + 7) / 36 = 44.4 %** |
+| **Weighted completion** | **(17 + 5) / 36 = 61.1 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
-| Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 6 | 4 | 0 |
+| Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 7 | 3 | 0 |
 | Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 2 | 2 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
-| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 6 | 11 |
+| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 7 | 3 | 7 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
 
 Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acceptance criteria met on 2026-10-22 (see roadmap). Overall weighted completion is unchanged because Phase 1 hardened existing requirements rather than adding new ones.
@@ -322,3 +326,56 @@ Moving an entity requires authority over the destination too. Entity roles lapse
 - Level labels are the fixed `Branch::TYPES`; per-family custom labels remain a later option.
 - The static Al-Zoubi portal (`/al-zoubi/*`) is unchanged.
 - The admin list shows all entity names of the family to scoped managers (all are family members); edit controls are limited to their scope.
+
+## 13. Community portal modules (Phases 3.2–3.6)
+
+**Baseline** — HEAD `80d5c91`, clean tree, 319/319 (3374 assertions) on SQLite before changes; every migration applies.
+
+**Architecture** — the Phase 3.1 pieces are the foundation and were extended, not duplicated: `CommunityHierarchy` (parent map, public ids), `EntityContentScope` (placement), `HasCommunityEntities` (owner, links, owner-only edit rights), `CommunityEntityPolicy` / `CommunityEntityAccess` (rights), `CommunityEntityPage` (portal). New shared layer:
+- `CommunityContent` trait: publication `draft → submitted → published / archived`, verification (genealogy vocabulary), audience `public / members`, review fields, `citations()`, and the single visibility rule `visibleTo($viewer)` (published; public records for everyone; member records for members of the owner's family; per-module hooks).
+- `CommunityContentService`: the only write path (save, submit, review, cite, review/remove citation), locked on the family row, audited with snapshots that include subject/audience ids and citation ids.
+- `content_citations`: evidence from the family `sources` library; kept separate from genealogy `citations`, which are tree-bound and part of shared-ancestry fingerprints. Only verified/sourced citations are public; sources evidencing cross-family links cannot be cited.
+- `CommunityContentModules`: registry of the four modules; one generic admin controller and one review queue.
+
+**Modules**
+
+| Phase | Table | Content | Public rule beyond publication/audience |
+|---|---|---|---|
+| 3.2 History | `entity_narratives` | overview, origins, founding, migration, periods, milestones; primary or alternative account; period and years | alternative accounts shown beside the primary one, never replacing it |
+| 3.2 Geography | `community_locations` | country, governorate, city, name, historical/current, origin/settlement/migration/gathering, period, description | no coordinates; a region of the group, not an address |
+| 3.3 Genealogy | — (existing graph) | founder, ancestor chain, two-generation mini tree, descendant count, related branches, approved shared ancestors, sub-entity founders, links to the full tree / branch focus | visitors: published branches, publicly visible people and edges; validated cross-family links only |
+| 3.4 Statistics | — (+ `community_entities.population_estimate*`) | registered, verified, published, living (members only), known branches, share with a verified father link, sourced estimate | estimate shown only with a source; population coverage always «غير معروفة» |
+| 3.5 Diwans | `diwans` | type, description, governorate/city, public address, coordinates, Place ID, Maps link, contact, visit instructions, private-residence flags | contact only with consent; a private residence is published only with recorded consent |
+| 3.6 Notable people | `entity_achievements` | person (existing record), position/achievement, neutral category, organization, period, description | visitors only when the person is publicly visible; members while the person is active |
+
+**Hierarchical behaviour** — one `scope` parameter for the whole portal; the switch keeps the current section anchor. Direct: content about or addressed to the entity, its own founder and statistics. With sub-branches: content about the entity or any descendant, content addressed to it or any ancestor, founders of descendant entities and statistics over all anchors in scope. Siblings never contribute. Hidden (draft/archived or under a hidden ancestor) entities contribute no content, founders or statistics to public pages.
+
+**Statistics semantics** — membership = founder plus descendants along primary father edges (`BranchMembershipService` semantics), computed for recorded, verified and public edge sets; a tree-linked entity counts its whole tree. Each tree's people and edges are loaded once per page build and shared by the preview and the statistics; people are united by id, so overlapping branches never double-count. Branch counts are filtered in memory (no large `whereIn`).
+
+**Maps** — directions use the keyless Maps URLs API (`/maps/dir/?api=1&destination=lat,lng[&destination_place_id]`, else a place or address search, else the validated stored link). An Embed API iframe appears only when `GOOGLE_MAPS_EMBED_KEY` is configured. Stored links must be `https` on Google Maps hosts (`www.google.com/maps…`, `maps.google.com`, `maps.app.goo.gl`, `goo.gl/maps…`). Coordinates are validated ranges and required in pairs; nothing is geocoded or inferred.
+
+**Governance and privacy**
+- Rights come from the owner entity: managers draft and submit; family/entity administrators publish, archive, verify, approve evidence and change published records. Every subject/audience entity must be one the actor manages in the same family.
+- Visibility on a page never grants editing (`isEditableBy` follows the owner; the admin route only resolves records by owner).
+- Achievements reference `people` with `restrictOnDelete`; person deletion and merges are refused while achievements point at the person (merge journal does not cover content).
+- Sources cited by content or used for a population estimate cannot be deleted; the source page lists content usages.
+- Recovery: records are never hard-deleted from the UI (archive / restore as draft); every change is audited with full snapshots. Generic audit revert is **not** registered for content types (no replay engine for links/citations); this is documented rather than promised.
+
+**Performance** (SQLite, 4-ary tree, 21 published entities, 253 content records with citations, shared diwan; median of 3)
+
+| Page | 2,000 people | 10,000 people |
+|---|---|---|
+| Clan, with sub-branches (285 KB, all records) | 129 ms · 53 queries | 330 ms · 53 queries |
+| Clan, direct | 61 ms · 48 queries | 253 ms · 48 queries |
+| Fakhd, with sub-branches | 75 ms · 54 queries | 277 ms · 54 queries |
+| Sub-fakhd, direct | 60 ms · 50 queries | 246 ms · 50 queries |
+| Entity index | 5 ms · 3 queries | 5 ms · 3 queries |
+
+Query count is independent of content volume (eager loading; no N+1). The time growth is the single per-page load of the tree graph; a first version loaded it twice (statistics had its own instance) and was fixed by sharing one graph per page build — a container-scoped singleton was rejected because it would survive across requests in long-lived processes and tests. Caching the graph is not introduced without production measurements.
+
+**Limitations**
+- Diwan images (no public media store); archive and media module (JTH-15) not built.
+- Content search, API and export do not exist yet; when built they must use `EntityContentScope` and `visibleTo`.
+- Static Al-Zoubi pages unchanged; nothing was copied or published from them.
+- Single-family ownership of entities and content (multi-family governance deferred).
+- Shared-ancestor display on the portal uses `CrossFamilyLinkService::verified`, which may re-check up to two stale links on a page view.
