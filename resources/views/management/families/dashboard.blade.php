@@ -94,6 +94,7 @@
     </div>
     <ul class="dashboard-inline-facts">
         <li>دفعات CSV بانتظار الاعتماد: <strong>{{ $pendingImports }}</strong></li>
+        @if($pendingNameDifferences > 0 && $canEdit)<li><a href="{{ route('management.reconciliation.index',[$family->slug,'tree'=>$tree->slug]) }}">اختلافات أسماء تاريخية لم يُبت فيها</a>: <strong>{{ $pendingNameDifferences }}</strong></li>@endif
         @if($isAdmin)<li>دعوات معلقة: <strong>{{ $pendingInvitations }}</strong></li><li>مطابقات أنساب مشتركة قيد المراجعة: <strong>{{ $pendingSharedAncestry }}</strong></li>@endif
     </ul>
 </section>

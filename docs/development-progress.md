@@ -2,15 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-25, after session 7)
+## Current state (2026-10-26, after session 8)
 
-- Branch `main` at `2c0269f`; session 7 (Phase 2.4) changes uncommitted (nothing committed by the assistant).
-- Suite: **277 passed / 0 failed (2892 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1 and Phases 2.1–2.4 complete.
+- Branch `main` at `b1f6bf8`; session 8 (Phase 2.5) changes uncommitted (nothing committed by the assistant).
+- Suite: **303 passed / 0 failed (3183 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1 and Phases 2.1–2.5 complete. The 39 ROOT name differences are reviewable and intentionally still open.
 
 ## Next task to execute
 
-Phase 2, item 5: reconcile the shared-ancestry spellings with sources (D-06) using the claims workflow, and store cross-family link validity at write time instead of on every public request (R-04).
+Phase 2, item 6: mothers, spouses and events (JTH-06), then GEDCOM 5.5.1 export (JTH-12). In parallel (data work, no code): review the 39 ROOT differences in the reconciliation queue with sources.
 
 ## Work log
 
@@ -78,6 +78,14 @@ Phase 2, item 5: reconcile the shared-ancestry spellings with sources (D-06) usi
 | Governance | `needs_review` links still protect shared ancestors; claim re-proposal path | `SharedAncestryScope.php`, `GenealogyAssertionService.php`, `facts.blade.php` | shared-ancestor and claim tests |
 | UI | eligibility in audit details, preview, recovery history, nav | `AuditLogController.php`, `AuditReversionController.php`, `audit/show|revert|recoveries.blade.php`, `family-nav.blade.php`, `routes/web.php` | Chrome journeys |
 
+### Session 8 — Phase 2.5 name reconciliation & link validity
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Reconciliation | review queue for ROOT differences with evidence, competing claims, branches, shared families, history; dashboard count; nav | `NameReconciliationService.php`, `NameReconciliationController.php`, `management/reconciliation/index.blade.php`, `FamilyDashboardService.php`, `dashboard.blade.php`, `family-nav.blade.php`, `juthoor.css`, `routes/web.php` | `NameReconciliationTest` (10) |
+| Claim decisions | reviewer `decline` with reason; spelling proposal adds a variant (D-08) | `GenealogyAssertionService.php`, `AssertionController.php` | same |
+| Link validity | `validated_at`/`validation_stamp`; full check recorded; stamp-based read path; bounded locked re-check; revalidate action; per-tree descendant loading | migration `2026_10_25_130636_…`, `CrossFamilyLink.php`, `CrossFamilyLinkService.php`, `CrossFamilyLinkController.php`, `shared-ancestry/{manage,review,public}.blade.php`, `shared-ancestry/partials/validity.blade.php` | `SharedAncestryValidityTest` (16), `CrossFamilyLinksTest` unchanged and green |
+| Invalidator | every approved link re-checked per write (D-07); shared tree fingerprint part; claim evidence ignored | `CrossFamilyLinkInvalidator.php` | regression + identity tests |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -114,6 +122,24 @@ Phase 2, item 5: reconcile the shared-ancestry spellings with sources (D-06) usi
 | Restored records return pending review | Recovery must not republish by itself |
 | Only the latest change of a record is reverted | Never overwrite newer work; older changes are recovered by reverting newer ones first or by a new reviewed change |
 | Stricter field privacy wins; no merge may publish what neither identity published | Merging must not weaken privacy or publish as a side effect |
+| Validity = persisted full check + aggregate stamp, not a revision counter | Bulk/raw writes bypass model events; counts, key sums and `updated_at` still reveal them, so stale links are never trusted |
+| No stamp recorded while a dependency changed in the current second | Timestamps have second precision; a later write in that second would otherwise be invisible |
+| Stale links re-checked on read at most twice per request, under a lock, else after the response | Correct immediately after most changes without letting a busy page run every fingerprint |
+| Fingerprint formula kept byte-identical | Changing it would silently invalidate (or require re-approving) every existing link |
+| Claim evidence is not a link dependency | Claims never change displayed genealogy until accepted, and acceptance writes the person |
+| Reconciliation reuses claim actions; only `decline` is new | One review workflow, one audit trail; no second decision path for names |
+
+## Verification evidence (session 8)
+
+| Check | Result |
+|---|---|
+| Full suite, SQLite / PostgreSQL 16 | 303 / 303 passed |
+| Migration up / rollback / up on PostgreSQL 16 | pass |
+| Pint, Blade compile, `git diff --check` | pass (no JS changed) |
+| Mutation checks | trusting without the stamp, counting claim evidence, dropping same-second protection, dropping deferred re-check, and the old `each()` invalidator each fail at least one test |
+| Chrome journeys (real seeded data + synthetic partner family) | 11/11: queue lists 39, classify + propose, accept as variant, decline with history, leave unresolved, ROOT-077 preserved, mobile layout, reader refused, approval then public, descendant edit invalidates, direct DB write shows stale then revalidation withdraws |
+| Performance | see `docs/project-audit.md` §11 |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 7)
 
@@ -127,4 +153,4 @@ Phase 2, item 5: reconcile the shared-ancestry spellings with sources (D-06) usi
 
 ## Blockers
 
-None for Phase 1. Data decision needed for Phase 2: the 39 remaining shared-ancestry spellings (D-06) require sources before reconciliation.
+None for code. Data work: the 39 shared-ancestry spellings (D-06) need sources and reviewer decisions in the reconciliation queue; the platform will not decide them.

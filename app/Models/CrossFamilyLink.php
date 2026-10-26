@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['left_person_id', 'right_person_id', 'left_family_id', 'right_family_id', 'kind', 'status', 'claim', 'submitted_by', 'reviewed_by', 'reviewed_at', 'review_reason', 'dependency_hash', 'invalidation_reason'])]
+#[Fillable(['left_person_id', 'right_person_id', 'left_family_id', 'right_family_id', 'kind', 'status', 'claim', 'submitted_by', 'reviewed_by', 'reviewed_at', 'review_reason', 'dependency_hash', 'invalidation_reason', 'validated_at', 'validation_stamp'])]
 class CrossFamilyLink extends Model
 {
     protected function casts(): array
     {
-        return ['reviewed_at' => 'datetime'];
+        return ['reviewed_at' => 'datetime', 'validated_at' => 'datetime'];
     }
 
     public function leftPerson(): BelongsTo

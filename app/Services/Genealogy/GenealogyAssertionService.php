@@ -140,8 +140,13 @@ class GenealogyAssertionService
                 ? ['relationship', 'update', $edge->id, ['person_id' => $person->id, 'father_id' => $assertion->related_person_id, 'verification_status' => $edge->verification_status]]
                 : ['relationship', 'create', null, ['person_id' => $person->id, 'father_id' => $assertion->related_person_id, 'verification_status' => Source::VERIFICATION_PENDING_REVIEW]];
         } else {
-            $field = Assertion::FACTS[$assertion->fact_type]['field'];
-            $value = $assertion->fact_type === 'alternate_name'
+            // A name difference classified as a spelling is added as a variant; the identity and displayed name stay.
+            $asVariant = $assertion->fact_type === 'alternate_name' || ($assertion->fact_type === 'full_name' && $assertion->relation === 'alternate_spelling');
+            if ($asVariant && $assertion->value === $person->full_name_ar) {
+                $this->reject('assertion', 'هذه هي التهجئة المعروضة حاليًا.');
+            }
+            $field = $asVariant ? 'alternate_names' : Assertion::FACTS[$assertion->fact_type]['field'];
+            $value = $asVariant
                 ? array_values(array_unique([...($person->alternate_names ?? []), $assertion->value]))
                 : $assertion->value;
             [$kind, $operation, $targetId, $payload] = ['person', 'update', $person->id, [$field => $value]];
@@ -150,6 +155,31 @@ class GenealogyAssertionService
         $change->update(['assertion_id' => $assertion->id]);
 
         return $change;
+    }
+
+    /**
+     * A reviewer rejects a recorded claim directly, with a reason, without a change request. The claim and its evidence
+     * are kept (state «rejected»); for a shared ancestor only a platform reviewer may decide.
+     */
+    public function decline(Assertion $assertion, User $user, string $reason): void
+    {
+        $tree = $assertion->familyTree;
+        Gate::forUser($user)->authorize('review', $tree->family);
+        DB::transaction(function () use ($assertion, $user, $reason, $tree): void {
+            FamilyTree::query()->whereKey($tree->id)->lockForUpdate()->firstOrFail();
+            $locked = Assertion::query()->lockForUpdate()->findOrFail($assertion->id);
+            if ($locked->state !== 'proposed') {
+                $this->reject('assertion', 'يمكن رفض الروايات المسجلة التي لم يُبت فيها فقط.');
+            }
+            if ($locked->changeRequests()->where('status', 'pending')->exists()) {
+                $this->reject('assertion', 'لهذه الرواية مقترح اعتماد قيد المراجعة؛ قرّر فيه من صفحة طلبات التغيير.');
+            }
+            $person = $locked->person()->withoutGlobalScope('active')->firstOrFail();
+            if (! $user->isSuperAdmin() && ($impacted = app(SharedAncestryScope::class)->impactedFamilies($person))->isNotEmpty()) {
+                $this->reject('assertion', 'هذا الجد مشترك مع عائلات أخرى ('.$impacted->pluck('name_ar')->implode('، ').')؛ البت في رواياته من صلاحية مشرف المنصة.');
+            }
+            $this->transition($locked, $user, 'rejected', $reason);
+        });
     }
 
     /** Called inside ChangeReviewService::decide after an accepted change was applied. */

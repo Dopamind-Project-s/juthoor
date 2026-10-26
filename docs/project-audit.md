@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-25 (updated after Phase 2.4 — audit revert, change recovery and deleted-record restoration). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-26 (updated after Phase 2.5 — historical name reconciliation and shared-ancestry validity). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `2c0269f`; Phase 2.4 changes (session 7) are uncommitted. |
-| Test baseline (start of session 7) | 261 passed, 1 intermittent failure (time-dependent snapshot in `PersonMergeTest`, fixed in this session). |
-| Test result (end of session 7) | **277 passed, 0 failed, 2892 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `b1f6bf8` (Phase 2.4 committed by the maintainer); Phase 2.5 changes (session 8) are uncommitted. |
+| Test baseline (start of session 8) | 277 passed, 0 failed (run twice, SQLite). |
+| Test result (end of session 8) | **303 passed, 0 failed, 3183 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -128,8 +128,10 @@ Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acc
 | D-03 | Inconsistency | Two public rules (`treeVisible` vs `publiclyVisible`) gave different answers per endpoint. | **Resolved**: one rule for people, edges and branches on every public surface. |
 | D-04 | Coupling | Hard-coded ROOT-001..079 + source-reference exception in the visibility scopes. | **Resolved**: explicit `public_narrative` flag; migration backfill proven identical on an old-code database (79 people / 78 edges before and after; draft stayed hidden). |
 | D-05 | Defect (found in session 3) | `DatabaseSeeder` used `WithoutModelEvents`, so seeded people had no `name_search` (not searchable, invisible to duplicate checks) and seeding skipped model integrity validation. | **Resolved**: trait removed; migration `backfill_people_name_search` repairs existing databases (84 → 0 rows on a real seeded DB). |
-| D-06 | Data reconciliation | The user-supplied shared ancestry differs from the curated base dataset in 39 further ROOT names (e.g. ROOT-004 قينان/قيدان, ROOT-063). `db:seed` after the shared seeder is refused with nothing written. | **Recordable since Phase 2.2**: `AlZoubiRootVariantSeeder` records each difference as an unclassified claim citing its list (39 + ROOT-077 as an accepted variant on the base path; 40 on the shared path); reviewers classify and decide them through the facts panel. Not reconciled. |
-| R-04 | Performance | Public `/shared-ancestry` recomputes link fingerprints per request (rate-limited). | Open — Phase 2. |
+| D-06 | Data reconciliation | The user-supplied shared ancestry differs from the curated base dataset in 39 further ROOT names (e.g. ROOT-004 قينان/قيدان, ROOT-063). `db:seed` after the shared seeder is refused with nothing written. | **Reviewable since Phase 2.5**: `AlZoubiRootVariantSeeder` records each difference as an unclassified claim citing its list; the reconciliation queue (`/manage/families/{family}/reconciliation`, §11) lets reviewers inspect, cite, classify, accept as a spelling, propose a correction, reject with a reason or leave unresolved. All 39 remain open until evidence-based review; nothing is resolved automatically. |
+| D-07 | Defect (found in session 8) | `CrossFamilyLinkInvalidator::flush` used `each(fn => current())`; `each()` stops when the callback returns `false`, so after a write only the links up to the first invalid one were re-checked. Previously masked by per-request re-validation on read. | **Resolved**: the callback no longer returns the result; regression test fails on the old code. |
+| D-08 | Defect (found in session 8) | Proposing a full-name claim classified as «تهجئة بديلة» would have replaced the displayed name (`full_name_ar`) instead of adding a variant. | **Resolved**: the proposal adds the value to `alternate_names`; identity and displayed name are unchanged (tested). |
+| R-04 | Performance | Public `/shared-ancestry` recomputed every approved link's whole-tree fingerprint per request (4.3 s for 2 × 2,000 people and 5 links). | **Resolved in Phase 2.5**: persisted, change-driven validity (§11); steady state runs no fingerprint (0.49 s, dominated by rendering ~10,000 listed descendants). |
 | R-05 | Policy | Family admins enrolled accounts without consent and could probe registration. | **Resolved**: invitation-only for family admins, identical replies; super admins keep direct enrollment. |
 | R-06 | Policy | Family admins used `/site-admin/families/{id}/trees*`. | **Resolved**: those routes are super-admin only; family admins use `/manage/families/{family}/trees*`. |
 | R-07 | Privacy | `is_living = null` was treated as not living (scopes, `PublicationGuard`), forms/CSV/roots coerced unknown to deceased. | **Resolved in Phase 2.1**: tri-state with provenance; narrowly scoped classification (see §7). |
@@ -209,3 +211,51 @@ Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` a
 **Fixes found while auditing** — revert of any person with field privacy or alternate names failed (snapshot JSON validated as array); a shared ancestor whose link had been invalidated (`needs_review`) stopped being protected — `SharedAncestryScope` now includes `needs_review` links.
 
 **Privacy** — preview values are masked with `PersonPrivacy::redactSnapshot`; only reviewers (family admins, super admins) see recovery controls or previews; restored records keep their snapshot privacy levels and come back unpublished.
+
+## 11. Historical name reconciliation and shared-ancestry validity (Phase 2.5)
+
+**Architecture findings**
+- The 39 ROOT differences already existed as `assertions` (`import_key` `root-variant:{dataset|shared}:{ROOT-xxx}`, state `proposed`, relation `unclassified`, `pending_review`, one citation each); ROOT-077 ذبيان is an accepted variant. They were only reachable person by person.
+- Shared-ancestry validity was recomputed on read: `publicIndex` and the admin index called `CrossFamilyLinkService::current()` for every approved link on every request, and `current()` fingerprints both whole trees (all people with sources and descriptors, all edges, all tree citations). The write-time invalidator already existed but stopped at the first invalid link (D-07).
+
+**Reconciliation workflow** — `NameReconciliationService` (read-only) + `NameReconciliationController` + `management/reconciliation/index`, editors and admins (`manageSources`); readers and other families get 403. Each card shows: ROOT key, displayed name and accepted variants, proposed spelling (privacy-masked like the facts panel), original list, evidence, competing name claims for the person, state / relation / verification, affected branches (branches founded by the person or a descendant), shared families, pending change request and the decision history (audit entries of the claim, its citations and its change requests, filtered by `AuditLog::visibleToMember`). Filters: open, unresolved, decided, all; a summary counts each state; the family dashboard shows the open count. All actions reuse existing endpoints: classify (`assertions.update`), cite (`assertions.cite`), propose (`assertions.propose` → change review), plus one new reviewer action `assertions.decline` (`GenealogyAssertionService::decline`: `review` permission, claim must be `proposed` with no pending change, super admin for shared ancestors; claim and evidence are kept as `rejected` with the reason). "Leave unresolved" = verification `unresolved`; the claim stays `proposed` and out of the open queue. Nothing verifies or resolves a claim automatically.
+
+**Validity design** — new nullable columns `cross_family_links.validated_at` and `validation_stamp` (status, `dependency_hash` and `invalidation_reason` already existed).
+
+| Displayed state | Meaning | Shown publicly |
+|---|---|---|
+| valid | `approved` and the stored stamp equals the current stamp | yes |
+| stale («بانتظار إعادة التحقق») | `approved` but dependencies changed since the last full check (or never checked) | no, until a full check passes |
+| needs_review («غير صالح») | a full check failed; super admin must re-approve | no |
+| pending_review / rejected / disputed | review states | no |
+
+- **Full check** (`current()`, unchanged rules: eligible endpoints, approved evidence, `dependency_hash` = whole-tree fingerprint) now records `validated_at` and the stamp on success, or moves the link to `needs_review` with an audit entry. It runs on writes (invalidator after commit), on approval, on the explicit "إعادة التحقق الآن" action (link admins/super admin, throttled) and on the single-link review page.
+- **Stamp** = hash of row count, key sum and latest `updated_at` of: both family trees, all their people (including merged), parent edges, tree citations (excluding claim evidence), `person_sources`, `person_attribute_assignments`, family rows, family sources, link citations, `person_attributes`, plus link status and hash. A stamp is never recorded while a dependency was written in the current second (second-precision timestamps), so a same-second write cannot hide behind it.
+- **Read path** (`verified()`): trusted links cost the aggregate queries (shared per tree within a request); a stale link is fully re-checked at most twice per request under a cache lock, otherwise hidden for that request and re-checked after the response. Stale links are never shown as verified.
+- **Fingerprint sharing** — within one write's re-check, links of the same trees reuse the encoded tree part; the hash is byte-identical to the previous formula (tested), so existing approvals stay valid after deployment.
+- **Claim evidence** — citations attached to assertions are no longer link dependencies (they never change displayed genealogy); recording, citing, classifying or proposing claims leaves validity untouched.
+
+**Invalidation coverage**
+
+| Change | Mechanism | Test |
+|---|---|---|
+| Parent change, person edit, deletion, tree/family change | model events → invalidator → full check | dataset test (reparent / rename / delete / tree) |
+| Approved correction (claim accepted) | applied through the person model | accepted fact change test |
+| Merge / merge undo | `PersonMergeService` calls the invalidator after raw updates | merge test |
+| Audit revert / deleted-person restoration | governed model path | recovery test |
+| Imports, seeders, raw or bulk updates without events | stamp mismatch → stale → re-check on read or by the admin action | bypass test, existing bulk-update test |
+| Unapproved claims and their evidence | excluded from dependencies | unapproved claims test (0 full checks) |
+| Branch changes | not a dependency (public view lists descendants by father edges, not branches) | — |
+
+**Measurements** (2 families × 2,000 people, 5 approved links, SQLite, median of 3, same generator)
+
+| Request | Before | After |
+|---|---|---|
+| Public `/shared-ancestry`, steady state | 4,270.9 ms · 141 queries · 5 full checks | 487.3 ms · 60 queries · 0 full checks |
+| Admin cross-family links index (super admin) | 3,228.3 ms · 85 queries · 5 full checks | 22.5 ms · 101 queries · 0 full checks |
+| Public tree page | 2.0 ms · 4 queries | 1.9 ms · 4 queries |
+| First public view of never-validated links (after migration) | — | 1,178.2 ms · 1 full check |
+| Write that touches both trees (edit one person) | 1 full check, then stopped (D-07) | 820.1 ms · 1 shared full check covering all 5 links |
+| First public view after that write | — | 5.7 ms (links already `needs_review`) |
+
+Remaining public cost is the descendant listing (~570 KB HTML for ~10,000 listed people), now loaded once per tree instead of once per founder.

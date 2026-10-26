@@ -11,6 +11,7 @@ use App\Models\FamilyMembership;
 use App\Models\FamilyTree;
 use App\Models\ImportBatch;
 use App\Models\User;
+use App\Services\Genealogy\NameReconciliationService;
 
 /**
  * Builds the family workspace dashboard. Every figure is scoped to the given family
@@ -50,6 +51,7 @@ class FamilyDashboardService
             'duplicateGroups' => $this->health->duplicateGroups($tree),
             'pendingChanges' => ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', 'pending')
                 ->orderByDesc('id')->limit(5)->get(),
+            'pendingNameDifferences' => $tree->assertions()->where('import_key', 'like', NameReconciliationService::IMPORT_PREFIX.'%')->where('state', 'proposed')->count(),
             'pendingImports' => ImportBatch::query()->where('family_tree_id', $tree->id)->where('status', 'preview')->count(),
             'branches' => $tree->branches()->whereNull('parent_branch_id')->with('rootPerson')->withCount('childBranches')
                 ->orderBy('sort_order')->limit(8)->get(),

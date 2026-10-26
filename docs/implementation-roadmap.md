@@ -89,7 +89,7 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 2. ✅ Assertions with competing narratives and per-fact citations (JTH-08) — done 2026-10-25 as Phase 2.2, see below.
 3. ✅ Merge workflow with preview and undo (JTH-10, UC-06) — done 2026-10-25 as Phase 2.3, see below.
 4. ✅ Revert audit entries and restore deleted people (JTH-09) — done 2026-10-25 as Phase 2.4, see below.
-5. Shared-ancestry spelling reconciliation (D-06 — differences are now recordable as claims) and write-time link validity (R-04).
+5. ✅ Shared-ancestry spelling reconciliation workflow (D-06) and persisted link validity (R-04) — done 2026-10-26 as Phase 2.5, see below. The 39 differences stay open until reviewed with evidence.
 6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
 
 ## Phase 2.1 — Field-level privacy & living status (done 2026-10-22)
@@ -141,3 +141,14 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **P2.4-06 UI** — eligibility badge and reason in audit details, preview with diff and related deletions, confirmation, recovery history page, sidebar entry.
 - [x] **P2.4-07 Tests** — `AuditRecoveryTest` (15, mutation-checked); 277/277 SQLite and PostgreSQL; Chrome recovery journeys 4/4.
 - Remaining: reverting an older change underneath newer edits (refused by design), restoring deleted sources/citations/memberships, bulk restoration of a deleted person together with its deleted relationships.
+
+## Phase 2.5 — Historical name reconciliation & shared-ancestry validity (done 2026-10-26)
+
+- [x] **P2.5-00 Baseline** — HEAD `b1f6bf8`, 277/277 twice; performance baseline on 2 × 2,000 people / 5 links.
+- [x] **P2.5-01 Reconciliation queue** — per-family page with ROOT key, displayed name, proposed spelling, list, evidence, competing claims, verification, affected branches, shared families, pending change, decision history; filters and summary; dashboard count; sidebar entry.
+- [x] **P2.5-02 Decisions** — reuse classify / cite / propose; new reviewer `decline` with reason; spelling acceptance adds a variant without renaming (D-08); unresolved stays open; shared ancestors need the super admin.
+- [x] **P2.5-03 Persisted validity** — `validated_at` + `validation_stamp`; full check on writes, approval, explicit revalidation and review page; aggregate stamp on read; bounded locked re-check of stale links; same-second protection.
+- [x] **P2.5-04 Invalidation** — every approved link re-checked per write (D-07); fingerprint tree part shared within a write (hash unchanged); claim evidence excluded.
+- [x] **P2.5-05 UI** — validity badge, last full check and "إعادة التحقق الآن" on the links index and review page.
+- [x] **P2.5-06 Tests** — `NameReconciliationTest` (10), `SharedAncestryValidityTest` (16 incl. dataset cases), mutation-checked; 303/303 SQLite and PostgreSQL 16; Chrome journeys 11/11.
+- Remaining: actual evidence-based decisions on the 39 differences (data work, not code); bulk actions on the queue; a scheduled sweep that re-checks stale links without a visitor; branch-level dependency tracking if branches ever appear on the shared page.

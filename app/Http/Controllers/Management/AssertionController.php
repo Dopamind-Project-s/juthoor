@@ -55,6 +55,15 @@ class AssertionController extends Controller
         return redirect()->route('management.changes.show', [$familyModel->slug, $change->id, 'tree' => $tree->slug])->with('status', 'أُرسل اقتراح اعتماد الرواية للمراجعة.');
     }
 
+    public function decline(Request $request, string $family, int $assertion): RedirectResponse
+    {
+        [, $tree] = $this->context($family);
+        $reason = $request->validate(['reason' => ['required', 'string', 'max:2000']], ['reason.required' => 'اذكر سبب رفض الرواية.'])['reason'];
+        $this->assertions->decline($this->assertion($tree, $assertion), $request->user(), $reason);
+
+        return back()->with('status', 'رُفضت الرواية مع حفظها وأدلتها في السجل.');
+    }
+
     /** @return array{Family, FamilyTree} */
     private function context(string $slug): array
     {

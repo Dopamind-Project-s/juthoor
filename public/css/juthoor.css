@@ -152,3 +152,9 @@ details:not([open])>:not(summary){display:none}
 .fact-claim{padding:.6rem .8rem;margin:.4rem 0;border:1px solid var(--juthoor-border);border-radius:.6rem;background:#fafbfa}
 .fact-claim .badge{font-weight:600}
 .merge-table td,.merge-table th{vertical-align:top}
+.reconciliation-summary,.reconciliation-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin:1rem 0}
+.reconciliation-summary div,.reconciliation-facts div{padding:.6rem .8rem;background:var(--juthoor-soft-green);border-radius:.6rem;min-width:0}
+.reconciliation-summary dt,.reconciliation-facts dt{font-size:.75rem;color:var(--juthoor-muted);font-weight:600}
+.reconciliation-summary dd{margin:0;font-size:1.4rem;font-weight:800;color:var(--juthoor-primary)}
+.reconciliation-facts{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.reconciliation-facts dd{margin:0;overflow-wrap:anywhere}
+.reconciliation-claim .management-grid{grid-template-columns:1fr}

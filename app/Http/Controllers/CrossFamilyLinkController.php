@@ -33,13 +33,29 @@ class CrossFamilyLinkController extends Controller
     {
         $family = $this->context($request);
         $query = CrossFamilyLink::query()->when($family, fn ($q) => $q->where(fn ($q) => $q->where('left_family_id', $family->id)->orWhere('right_family_id', $family->id)));
-        foreach ((clone $query)->where('status', 'approved')->get() as $link) {
-            $service->current($link);
-        }
         $request->validate(['status' => ['nullable', 'in:pending_review,approved,rejected,disputed,needs_review']]);
-        $links = $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))->latest()->paginate(20)->withQueryString();
+        $links = $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))->with('leftFamily', 'rightFamily')->latest()->paginate(20)->withQueryString();
+        // Persisted validity only; the full check runs on writes and on the explicit revalidation action.
+        $memo = [];
+        $validity = $links->getCollection()->mapWithKeys(fn (CrossFamilyLink $link) => [$link->id => $service->validity($link, $memo)]);
 
-        return view('shared-ancestry.manage', compact('family', 'links'));
+        return view('shared-ancestry.manage', compact('family', 'links', 'validity'));
+    }
+
+    /** Runs the full dependency check now for one approved link and records the outcome. */
+    public function revalidate(Request $request, CrossFamilyLink $link, CrossFamilyLinkService $service)
+    {
+        abort_unless($link->canView($request->user()), 403);
+        if ($link->status !== 'approved') {
+            return back()->withErrors(['link' => 'إعادة التحقق للروابط المعتمدة فقط؛ الروابط الأخرى تنتظر قرار مراجعة.']);
+        }
+        $result = $service->revalidate($link);
+
+        return back()->with('status', match ($result) {
+            'valid' => 'أُعيد التحقق: الرابط ما زال صالحًا وسُجل وقت التحقق.',
+            'stale' => 'الرابط صالح، لكن بياناته تغيرت للتو؛ سيُثبت التحقق في الطلب التالي.',
+            default => 'أُعيد التحقق: تغيرت البيانات أو الأدلة، ونُقل الرابط إلى «يحتاج تأكيدًا جديدًا».',
+        });
     }
 
     public function create(Request $request)
@@ -111,7 +127,8 @@ class CrossFamilyLinkController extends Controller
     public function show(Request $request, CrossFamilyLink $link, CrossFamilyLinkService $service)
     {
         abort_unless($link->canView($request->user()), 403);
-        $service->current($link);
+        // One link on its review page: the full check runs here and its outcome is recorded.
+        $valid = $service->current($link);
         $link->refresh()->load('citations.source', 'reviewer');
         $sides = collect([$link->leftPerson, $link->rightPerson])->map(function ($person) use ($request, $service) {
             if (! $person) {
@@ -125,7 +142,9 @@ class CrossFamilyLinkController extends Controller
             return $service->path($person, ! $own);
         });
 
-        return view('shared-ancestry.review', compact('link', 'sides'));
+        $validity = $valid ? 'valid' : $service->validity($link);
+
+        return view('shared-ancestry.review', compact('link', 'sides', 'validity'));
     }
 
     public function evidence(Request $request, CrossFamilyLink $link, int $citation, AuditLogger $audit)
@@ -164,10 +183,11 @@ class CrossFamilyLinkController extends Controller
 
     public function publicIndex(CrossFamilyLinkService $service)
     {
-        $links = CrossFamilyLink::query()->where('status', 'approved')->with('leftPerson.familyTree.family', 'rightPerson.familyTree.family', 'citations.source', 'reviewer')->get()
-            ->filter(fn ($link) => $service->current($link));
+        $links = $service->verified(CrossFamilyLink::query()->where('status', 'approved')
+            ->with('leftPerson.familyTree.family', 'rightPerson.familyTree.family', 'leftFamily', 'rightFamily', 'citations.source', 'reviewer')->get());
         $families = Family::query()->active()->with(['familyTrees' => fn ($q) => $q->active()])->get();
+        $descendants = $service->descendantsOf($links->flatMap(fn (CrossFamilyLink $link) => [$link->leftPerson, $link->rightPerson]));
 
-        return view('shared-ancestry.public', compact('links', 'families', 'service'));
+        return view('shared-ancestry.public', compact('links', 'families', 'descendants'));
     }
 }

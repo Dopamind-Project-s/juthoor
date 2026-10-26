@@ -18,6 +18,7 @@ use App\Http\Controllers\Management\FamilyController as ManagementFamilyControll
 use App\Http\Controllers\Management\FamilyDashboardController;
 use App\Http\Controllers\Management\LookupController;
 use App\Http\Controllers\Management\MembershipController;
+use App\Http\Controllers\Management\NameReconciliationController;
 use App\Http\Controllers\Management\PersonAttributeController;
 use App\Http\Controllers\Management\PersonController;
 use App\Http\Controllers\Management\PersonMergeController;
@@ -100,6 +101,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/manage/cross-family-links/{link}', [CrossFamilyLinkController::class, 'show'])->name('cross-links.show');
         Route::put('/manage/cross-family-links/{link}/evidence/{citation}', [CrossFamilyLinkController::class, 'evidence'])->whereNumber('citation')->name('cross-links.evidence');
         Route::post('/manage/cross-family-links/{link}/review', [CrossFamilyLinkController::class, 'review'])->name('cross-links.review');
+        Route::post('/manage/cross-family-links/{link}/revalidate', [CrossFamilyLinkController::class, 'revalidate'])->middleware('throttle:20,1')->name('cross-links.revalidate');
         Route::get('/manage/families', [ManagementFamilyController::class, 'index'])->name('management.families.index');
         Route::get('/manage/families/{family}/pages/{section}', [ManagementFamilyController::class, 'show'])->where('section', 'people|relationships|branches|trees|members|invitations|audit')->name('management.sections.index');
         Route::get('/manage/families/{family}/records/{section}/create', [RecordController::class, 'create'])->name('management.records.create');
@@ -148,6 +150,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/manage/families/{family}/assertions/{assertion}', [AssertionController::class, 'update'])->whereNumber('assertion')->name('management.assertions.update');
         Route::post('/manage/families/{family}/assertions/{assertion}/propose', [AssertionController::class, 'propose'])->whereNumber('assertion')->name('management.assertions.propose');
         Route::post('/manage/families/{family}/assertions/{assertion}/citations', [AssertionController::class, 'cite'])->whereNumber('assertion')->name('management.assertions.cite');
+        Route::post('/manage/families/{family}/assertions/{assertion}/decline', [AssertionController::class, 'decline'])->whereNumber('assertion')->name('management.assertions.decline');
+        Route::get('/manage/families/{family}/reconciliation', [NameReconciliationController::class, 'index'])->name('management.reconciliation.index');
         Route::get('/manage/families/{family}/merges', [PersonMergeController::class, 'index'])->name('management.merges.index');
         Route::get('/manage/families/{family}/merges/preview', [PersonMergeController::class, 'preview'])->name('management.merges.preview');
         Route::post('/manage/families/{family}/merges', [PersonMergeController::class, 'store'])->name('management.merges.store');

@@ -32,7 +32,9 @@ class CrossFamilyLinkInvalidator
     public function changed(Model $record): void
     {
         $this->hasTable = $this->hasTable ?: Schema::hasTable('cross_family_links');
-        if (! $this->hasTable) {
+        // Evidence for a recorded claim (before and after the write) is not part of any link's dependencies.
+        $claimEvidence = $record instanceof Citation && $record->assertion_id !== null && ($record->wasRecentlyCreated || $record->getOriginal('assertion_id') !== null);
+        if (! $this->hasTable || $claimEvidence) {
             return;
         }
 
@@ -48,10 +50,14 @@ class CrossFamilyLinkInvalidator
             return;
         }
 
+        $memo = [];
         CrossFamilyLink::query()->where('status', 'approved')
             ->when(! in_array('*', $families, true), fn ($query) => $query->where(fn ($query) => $query->whereIn('left_family_id', $families)->orWhereIn('right_family_id', $families)))
             ->get()
-            ->each(fn (CrossFamilyLink $link) => $this->links->current($link));
+            // Not a short arrow: each() stops at a callback returning false, i.e. at the first invalid link.
+            ->each(function (CrossFamilyLink $link) use (&$memo): void {
+                $this->links->current($link, $memo);
+            });
     }
 
     /** A record whose family cannot be resolved (e.g. a site-wide attribute) re-checks every link. */
