@@ -2,15 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-26, after session 8)
+## Current state (2026-10-26, after session 9)
 
-- Branch `main` at `b1f6bf8`; session 8 (Phase 2.5) changes uncommitted (nothing committed by the assistant).
-- Suite: **303 passed / 0 failed (3183 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1 and Phases 2.1–2.5 complete. The 39 ROOT name differences are reviewable and intentionally still open.
+- Branch `main` at `3d958bb` (Phase 2.5 committed by the maintainer); session 9 (Phase 3.1) changes uncommitted (nothing committed by the assistant).
+- Suite: **319 passed / 0 failed (3374 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1, Phases 2.1–2.5 and Phase 3.1 complete. The 39 ROOT name differences are reviewable and intentionally still open.
+- Priorities changed 2026-10-26: Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are deferred, not cancelled; Phase 3 continues, then Phase 4 without Facebook.
 
 ## Next task to execute
 
-Phase 2, item 6: mothers, spouses and events (JTH-06), then GEDCOM 5.5.1 export (JTH-12). In parallel (data work, no code): review the 39 ROOT differences in the reconciliation queue with sources.
+Phase 3.2, as defined in the approved roadmap: the first content module built on `EntityContentScope` / `HasCommunityEntities` (see `docs/implementation-roadmap.md`, "Phase 3.2 readiness"). In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
 
 ## Work log
 
@@ -86,6 +87,16 @@ Phase 2, item 6: mothers, spouses and events (JTH-06), then GEDCOM 5.5.1 export 
 | Link validity | `validated_at`/`validation_stamp`; full check recorded; stamp-based read path; bounded locked re-check; revalidate action; per-tree descendant loading | migration `2026_10_25_130636_…`, `CrossFamilyLink.php`, `CrossFamilyLinkService.php`, `CrossFamilyLinkController.php`, `shared-ancestry/{manage,review,public}.blade.php`, `shared-ancestry/partials/validity.blade.php` | `SharedAncestryValidityTest` (16), `CrossFamilyLinksTest` unchanged and green |
 | Invalidator | every approved link re-checked per write (D-07); shared tree fingerprint part; claim evidence ignored | `CrossFamilyLinkInvalidator.php` | regression + identity tests |
 
+### Session 9 — Phase 3.1 hierarchical entities & portals
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Data model | entities, entity managers, content links; branch/family relations | migration `2026_10_26_113723_create_community_entities_table`, `CommunityEntity.php`, `CommunityEntityManager.php`, `EntityContentLink.php`, `Branch.php`, `Family.php` | rollback/re-apply and cascade on PostgreSQL |
+| Hierarchy | parent map, ancestors/descendants, public ids, ordering; integrity rules | `Services/Community/CommunityHierarchy.php`, `CommunityEntityIntegrityService.php` | rank, cycle (form and model), family tests |
+| Access | entity-scoped roles; policy | `CommunityEntityAccess.php`, `Policies/CommunityEntityPolicy.php` | scoped-manager, publication and isolation tests |
+| Public pages | index and entity page, reusable breadcrumb / entity card / scope switch components, tree link | `CommunityEntityController.php`, `CommunityEntityPage.php`, `community/{index,show}.blade.php`, `components/community/*`, `genealogy/tree.blade.php`, `juthoor.css`, `routes/web.php` | page, visibility and founder-link tests; Chrome |
+| Administration | hierarchy list, form, managers, dashboard panel, sidebar; branch deletion guard | `Management/CommunityEntityController.php`, `management/entities/{index,form}.blade.php`, `FamilyDashboardService.php`, `dashboard.blade.php`, `family-nav.blade.php`, `GenealogyDeletionService.php` | admin and dashboard tests; Chrome |
+| Content scope | shared placement query, module contract | `EntityContentScope.php`, `Models/Concerns/HasCommunityEntities.php` | `CommunityContentScopeTest` (stand-in module) |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -128,6 +139,26 @@ Phase 2, item 6: mothers, spouses and events (JTH-06), then GEDCOM 5.5.1 export 
 | Fingerprint formula kept byte-identical | Changing it would silently invalidate (or require re-approving) every existing link |
 | Claim evidence is not a link dependency | Claims never change displayed genealogy until accepted, and acceptance writes the person |
 | Reconciliation reuses claim actions; only `decline` is new | One review workflow, one audit trail; no second decision path for names |
+| Community entities are a new table referencing branches, not an extension of `branches` | Branches require a verified founder and drive derived membership; social units must not (v2.0 ch. 3, 5) |
+| Founder shown through the linked branch, no entity → person foreign key | Keeps merge, undo, deletion and recovery services unchanged; one page per branch avoids duplicate pages |
+| Parent map loaded per family and walked in memory, no closure table | Tens to hundreds of entities per family; one indexed query, no path maintenance on moves |
+| Public only when the entity and all ancestors are published | Breadcrumbs and aggregation never reveal unpublished entities |
+| Subject links roll up, audience links flow down; filtering by content key | v2.0 ch. 6: no sibling leakage, targeted parent content reaches descendants, distinct results without `DISTINCT` |
+| Edit rights follow the content owner only | v2.0 ch. 6/13: visibility on a page never grants editing |
+| Entity roles are subtree-scoped and require family membership | Matches the existing family role model; leaving the family revokes them |
+| Editors draft; family/entity admins publish or change published pages | Same governance as `PublicationGuard` for genealogy |
+| Future sections listed as «غير متاح بعد» without links | Stable page layout without presenting unimplemented features |
+
+## Verification evidence (session 9)
+
+| Check | Result |
+|---|---|
+| Full suite, SQLite / PostgreSQL 16 | 319 / 319 passed (303 existing unchanged + 16 new) |
+| Migration up / rollback / up on PostgreSQL 16; family delete cascades through nested entities | pass |
+| Pint, Blade compile (`view:cache`), `git diff --check` | pass (no JS changed) |
+| Mutation checks | 13 rule removals (cycle, ancestor publication, downward audience, inherited scope, publication guard, parent family, rank, direct mode, audience relation, destination authorization, …) each fail at least one test |
+| Chrome journeys (real seeded Al-Zoubi + Qawasmeh data) | 8/8, no page errors: reader refused; dashboard + nav; create clan / fakhds / sub-fakhds linked to existing branches with genealogy counts unchanged (119 people / 118 edges / 6 branches / 1 tree); descendants not offered as parents and level rule enforced; public hierarchy, breadcrumbs and direct/with-descendants switch; founder link into the tree and unpublished branch hidden; scoped entity editor (drafts only, preview); 390 px mobile without overflow |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 8)
 
@@ -153,4 +184,4 @@ Phase 2, item 6: mothers, spouses and events (JTH-06), then GEDCOM 5.5.1 export 
 
 ## Blockers
 
-None for code. Data work: the 39 shared-ancestry spellings (D-06) need sources and reviewer decisions in the reconciliation queue; the platform will not decide them.
+None for code. Deferred by decision: Phase 2.6, Phase 2.7 (GEDCOM), Facebook. Data work: the 39 shared-ancestry spellings (D-06) need sources and reviewer decisions in the reconciliation queue; the platform will not decide them.

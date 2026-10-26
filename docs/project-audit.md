@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-26 (updated after Phase 2.5 — historical name reconciliation and shared-ancestry validity). Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-26 (updated after Phase 3.1 — unified hierarchical entities and portals). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `b1f6bf8` (Phase 2.4 committed by the maintainer); Phase 2.5 changes (session 8) are uncommitted. |
-| Test baseline (start of session 8) | 277 passed, 0 failed (run twice, SQLite). |
-| Test result (end of session 8) | **303 passed, 0 failed, 3183 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `3d958bb` (Phase 2.5 committed by the maintainer); Phase 3.1 changes (session 9) are uncommitted. |
+| Test baseline (start of session 9) | 303 passed, 0 failed (session 8 result, committed as `3d958bb`). |
+| Test result (end of session 9) | **319 passed, 0 failed, 3374 assertions** on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -33,6 +33,8 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Person merge | `people.merged_into_id` + `Person` global scope `active`; `person_merges` (immutable journal); `PersonMergeService`, `MergeCandidateFinder`; `/manage/families/{family}/merges` | Implemented (see §9) |
 | Sources | `sources`, `citations` (field_key, locator, status), private disk, `SourceController` | Partial vs JTH-08 (no assertion model) |
 | Attributes / badges | `person_attributes` (+ family-scoped), assignments, `PersonAttributeSeeder` | Implemented |
+| Community entities (Phase 3.1) | `community_entities` (type, parent, optional `branch_id`/`family_tree_id`, publication, review date), `community_entity_managers`, `CommunityHierarchy`, `CommunityEntityIntegrityService`, `CommunityEntityAccess`, `CommunityEntityPolicy`; public `/families/{family}/entities[/{slug}]`, admin `/manage/families/{family}/entities` | Implemented (see §12) |
+| Entity content scope (Phase 3.1) | `entity_content_links` (subject / audience), `EntityContentScope`, `HasCommunityEntities` contract | Foundation only — no content module uses it yet (see §12) |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
 | CSV import | `ImportBatch`, `CsvImportService` (dry run, checksum, atomic commit) | Implemented (GEDCOM missing) |
 | Ops | `.github/workflows/tests.yml` (SQLite+Pint, PostgreSQL), site health dashboard, rate limits | Partial (no backups/monitoring) |
@@ -44,7 +46,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-01 | Multi-family platform | Implemented | `Family`, memberships, `FamilyDashboardTest`, `AdminFrontendTest` isolation cases | — | P0 | 1 ✓ | Cross-family requests 403/404 (tested) |
 | JTH-02 | Unified tree without copies | Partial | Branch focus derives people; Qawasmeh reuses the existing ROOT-077 and `AZ-RAHAYMEH-SULAYMAN` records (`AlZoubiAnchorReconciliationTest`) | Cross-family sharing uses link records, not shared person rows; the user-supplied shared ancestry still differs from the base dataset in 39 names (D-06) | P1 | 2 | Reconciled ancestry with sources; one person row per identity |
 | JTH-03 | Fakhd & founders at any depth | Implemented | `BranchIntegrityService`, nested branches, `Branch::TYPES`, `FamilyTreeMvpTest` | — | P0 | 1 ✓ | Nested fakhd focus shows ancestors once (tested) |
-| JTH-04 | Independent family portals | Partial | Family admin workspace (done); public portal only static for Al-Zoubi | DB-driven public family portal | P1 | 3 | Each family has a public landing page from DB |
+| JTH-04 | Independent family portals | Partial | Family admin workspace; DB-driven public entity pages per family (`/families/{family}/entities`, Phase 3.1) | Family landing page with sections; static Al-Zoubi portal not yet replaced | P1 | 3 | Each family has a public landing page from DB |
 | JTH-05 | Link families at verified common ancestor | Implemented | `CrossFamilyLinkController`, `CrossFamilyLinksTest` | Public page computes on GET (R-04) | P1 | 2 | Validity stored at write time |
 | JTH-06 | People, relationships, Arabic names | Partial | Arabic normalization (`ArabicNameNormalizer`), father edges | Mothers, spouses, events, date qualifiers | P1 | 2 | Union/mother model with integrity + privacy |
 | JTH-07 | Toggleable attributes, titles, badges | Implemented | `PersonDescriptorsTest`, founder badges added, deactivation test | — | P1 | 1 ✓ | Deactivated badge hidden, assignment kept (tested) |
@@ -53,10 +55,10 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-10 | Duplicate detection & safe merge | Implemented | Candidate review, read-only preview, explicit conflict choices, atomic merge with journal, exact undo with blockers (`PersonMergeTest`, 15; Chrome) | Merges across trees/families (refused by design); bulk merges | P1 | 2 ✓ | Met |
 | JTH-11 | Arabic genealogical search | Partial | Normalized search over names and recorded variants (`alternate_names`), lineage in results; seeded records searchable (D-05 fixed) | Father/fakhd filters, phonetic matching | P1 | 2 | UC-11 filters |
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
-| JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, `AdministrationSecurityTest` | Finer per-module/branch roles | P1 | 2 | Branch/module-scoped permissions |
+| JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, entity-scoped editor/admin roles over an entity subtree (Phase 3.1), `AdministrationSecurityTest`, `CommunityEntityTest` | Per-module roles (news, diwans…) | P1 | 2 | Branch/module-scoped permissions |
 | JTH-14 | Dashboard per family | Implemented | `/manage/families/{family}/dashboard`, `FamilyDashboardTest` | Settings page | P1 | 1 ✓ | Role-aware, family-scoped (tested) |
 | JTH-15 | History, archive, media | Partial | Static history/archive pages; source files | DB archive and media | P2 | 3 | Archive items linked to person/fakhd |
-| JTH-16 | Pages for every clan level | Missing | Static Al-Zoubi pages only | Entity pages | P1 | 3 | UC-13 |
+| JTH-16 | Pages for every clan level | Partial | Independent, manageable pages for tribe / clan / fakhd / sub-fakhd / branch-hamula with breadcrumbs, children, founder/branch links, publication, review date, completeness (`CommunityEntityTest`, Chrome) | Content sections (history, regions, diwans, personalities, news, archive, counters) await their modules; static Al-Zoubi pages not yet migrated | P1 | 3 | UC-13 met; sections filled by JTH-15, 17–20 |
 | JTH-17 | Counters with scope/coverage | Missing | Admin-only counts | Public counters with disclaimer | P2 | 3 | UC-21 |
 | JTH-18 | Personalities, positions, achievements | Partial | Static `prominent-people` page | DB model with sources | P2 | 3 | UC-19 |
 | JTH-19 | Residence regions | Missing | — | — | P2 | 3 | — |
@@ -71,10 +73,10 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-28 | Field-level voluntary privacy | Partial | `PersonPrivacy` levels public / family / restricted on birth/death year and date, gender and notes; default-deny; `PersonPrivacyTest` (17) | Self-managed ("voluntary") consent by the person, member-directory and contact fields (not in schema yet), photos | P1 | 2 | Directory/contact fields reuse the same service when added |
 | JTH-29 | Operations, monitoring, backups | Partial | CI workflow, health dashboard, rate limits | Backups, restore drill, monitoring | P1 | 5 | RPO ≤ 24h, RTO ≤ 4h drill |
 | JTH-30 | Future extensions | Missing | — | — | P3 | 5 | — |
-| JTH-31 | Hierarchical filtering for all sections | Missing | Tree focus only | Content sections | P1 | 3 | UC-20 |
-| JTH-32 | Owner / subject / audience separation | Missing | — | — | P1 | 3 | UC-22 |
-| JTH-33 | Upper-level content flows down when targeted | Missing | — | — | P2 | 3 | — |
-| JTH-34 | No duplicate people/news/diwans in views & counters | Partial | Tree focus de-duplicated (tested) | Content & counters | P1 | 3 | Distinct IDs in aggregates |
+| JTH-31 | Hierarchical filtering for all sections | Partial | `EntityContentScope` (direct / with descendants) shared by all future modules; child-entity listing uses the same switch (`CommunityContentScopeTest`) | No content module yet; search/API/export not yet scoped | P1 | 3 | UC-20 |
+| JTH-32 | Owner / subject / audience separation | Partial | `owner_entity_id` contract + subject/audience links + module `visibleTo` scope; editing follows the owner only (tested) | No module uses it yet; publication channel (site/Facebook) not modelled | P1 | 3 | UC-22 |
+| JTH-33 | Upper-level content flows down when targeted | Partial | Audience links on an ancestor reach every descendant page, never siblings (tested) | No module yet | P2 | 3 | — |
+| JTH-34 | No duplicate people/news/diwans in views & counters | Partial | Tree focus de-duplicated; content scope filters the content table by key, so a record linked to several entities appears once (tested) | Counters (JTH-17) | P1 | 3 | Distinct IDs in aggregates |
 | JTH-35 | Personalities fairness disclaimer | Missing | — | — | P2 | 3 | Appendix A text shown |
 | JTH-36 | Separate genealogical identity, account, directory | Implemented | `people` vs `users` tables, no coupling | Directory n/a yet | P1 | — ✓ | — |
 
@@ -94,7 +96,10 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | UC-10 Import | Partial | CSV, not GEDCOM |
 | UC-11 Genealogical search | Partial | Lineage in results; no father/fakhd filters |
 | UC-12 Living-person privacy | Implemented | Unknown status is private; record rule across page/graph/focus/search; field levels enforced server-side on pages, forms, audit and proposal diffs; JSON endpoints carry no sensitive fields (`PersonPrivacyTest`). No export exists yet. |
-| UC-13 – UC-22 | Missing | Phases 3–4 |
+| UC-13 Create entity page | Implemented | Entity admins add identity, description and links; the page appears in the hierarchy without copies (`CommunityEntityTest`, Chrome) |
+| UC-20 Hierarchical filtering | Partial | Direct / with-descendants switch on child entities; shared content scope tested with a stand-in module; no content sections yet |
+| UC-22 Shared content management | Partial | One record linked to several entities with central edit control (foundation, tested); no content module yet |
+| UC-14 – UC-19, UC-21 | Missing | Phases 3.2+ and 4 |
 
 ## 5. Completion dashboard
 
@@ -103,18 +108,18 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 | Status | Count |
 |---|---|
 | Implemented | 9 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 36) |
-| Partial | 10 (JTH-02, 04, 06, 08, 11, 15, 18, 28, 29, 34) |
-| Missing | 17 |
+| Partial | 14 (JTH-02, 04, 06, 08, 11, 15, 16, 18, 28, 29, 31, 32, 33, 34) |
+| Missing | 13 |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(9 + 5) / 36 = 38.9 %** |
+| **Weighted completion** | **(9 + 7) / 36 = 44.4 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
 | Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 6 | 4 | 0 |
 | Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 2 | 2 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
-| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 2 | 15 |
+| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 0 | 6 | 11 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
 
 Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acceptance criteria met on 2026-10-22 (see roadmap). Overall weighted completion is unchanged because Phase 1 hardened existing requirements rather than adding new ones.
@@ -124,7 +129,7 @@ Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acc
 | ID | Type | Description | Status / resolution |
 |---|---|---|---|
 | D-01 | Data conflict | Base dataset spelled ROOT-077 **ذبيان** and had no ROOT-078; Qawasmeh, shared ancestry and v2.0 use **ذيبان ← سليمان**. | **Resolved** under the 2026-10-22 working decision: ROOT-077 keeps its id, key and `sourced` status; display spelling ذيبان, ذبيان kept in `alternate_names`; audited (`spelling_reconciled`, reason recorded). ROOT-078 is the existing `AZ-RAHAYMEH-SULAYMAN` (only سليمان son of ROOT-077; sources SRC-16/17/18) through an explicit alias with a pending citation — no person created. Not a historical verification. |
-| D-02 | Static content | `/al-zoubi/branches/*` show a hard-coded ancestry strip. | Bridged to the DB branch focus; replacement is Phase 3 (JTH-16). |
+| D-02 | Static content | `/al-zoubi/branches/*` show a hard-coded ancestry strip. | Bridged to the DB branch focus. DB entity pages exist since Phase 3.1; migrating the static Al-Zoubi pages onto them is a separate, data-reviewed step (not done, to avoid inventing content). |
 | D-03 | Inconsistency | Two public rules (`treeVisible` vs `publiclyVisible`) gave different answers per endpoint. | **Resolved**: one rule for people, edges and branches on every public surface. |
 | D-04 | Coupling | Hard-coded ROOT-001..079 + source-reference exception in the visibility scopes. | **Resolved**: explicit `public_narrative` flag; migration backfill proven identical on an old-code database (79 people / 78 edges before and after; draft stayed hidden). |
 | D-05 | Defect (found in session 3) | `DatabaseSeeder` used `WithoutModelEvents`, so seeded people had no `name_search` (not searchable, invisible to duplicate checks) and seeding skipped model integrity validation. | **Resolved**: trait removed; migration `backfill_people_name_search` repairs existing databases (84 → 0 rows on a real seeded DB). |
@@ -259,3 +264,61 @@ Migration `2026_10_22_102302` marks existing explicit values `legacy_recorded` a
 | First public view after that write | — | 5.7 ms (links already `needs_review`) |
 
 Remaining public cost is the descendant listing (~570 KB HTML for ~10,000 listed people), now loaded once per tree instead of once per founder.
+
+## 12. Unified hierarchical entities and portals (Phase 3.1)
+
+**Architecture findings**
+
+| Concept | Repository structure | Role |
+|---|---|---|
+| Person | `people` (+ father edges) | genealogical identity; never created by entity work |
+| User | `users` + `family_memberships` | account and family role; unrelated to `people` (JTH-36) |
+| Family | `families` | tenant, membership and administration boundary |
+| Family tree | `family_trees` | one genealogy graph of a family (root, primary/active) |
+| Branch | `branches` (`root_person_id` required when active, `BranchIntegrityService`: founder in tree, nested founder descends from parent founder) | genealogical founder perspective; membership derived from father edges |
+| Community entity (new) | `community_entities` | content and administration unit (tribe, clan, fakhd, sub-fakhd, branch/hamula); optional reference to a branch or tree |
+
+Before this phase, "community pages" existed only as static Al-Zoubi views fed by `resources/data/al-zoubi/branches.php`; `Branch` already carried the five level labels (`Branch::TYPES`) but requires a verified founder, so it cannot represent social units (v2.0 ch. 3 and 5). Entities are therefore a separate table that references branches instead of extending them; branch rules and services are unchanged.
+
+**Data model** (migration `2026_10_26_113723_create_community_entities_table`, reversible)
+- `community_entities`: `family_id` (cascade), `parent_id` (self, set null), `entity_type` (the `Branch::TYPES` keys), `name_ar`, `name_en`, `slug` (unique per family), `alternate_names` (JSON), `summary`, `description`, `family_tree_id` and `branch_id` (optional, set null; `branch_id` unique: one page per branch), `publication_status` (draft / published / archived), `reviewed_at`, `reviewed_by`, `sort_order`.
+- `community_entity_managers`: `community_entity_id`, `user_id`, `role` (editor / admin), unique per entity and user.
+- `entity_content_links`: `community_entity_id`, `linkable_type`, `linkable_id`, `relation` (subject / audience), unique per record, entity and relation.
+- No foreign key to `people`: the founder is the linked branch's founder, so merge, undo, deletion and recovery services are untouched. Deleting a branch that an entity presents is refused (`GenealogyDeletionService`).
+
+**Hierarchy rules** (`CommunityEntityIntegrityService`, run on every save; writes lock the family row)
+- Parent in the same family; no self-parent; no cycle (checked against the stored ancestor chain); an entity never moves to another family.
+- Levels are optional: any level may sit directly under any higher or equal level (e.g. hamula under clan). A child is never above its parent's level, and a level change may not place an entity below its own children.
+- A linked tree and branch must belong to the entity's family, and the branch to the linked tree.
+
+**Public pages** — `/families/{family}/entities` (hierarchy) and `/families/{family}/entities/{slug}`: type and level, names and alternatives, breadcrumbs, summary and description, parent, child entities with a «هذا المستوى فقط / مع الفروع التابعة» switch, founder and branch links (only when `Branch::published`), tree link, last review date, profile completeness (summary, description, genealogy link, review date — explicitly not a measure of accuracy), correction route, and placeholders for future modules marked «غير متاح بعد». A page is public only when it and every ancestor are published, so breadcrumbs never name an unpublished entity. Entity managers preview other pages with `preview=1`. The public tree page links to the entity index when a family has published entities.
+
+**Content scope foundation** (`EntityContentScope`, `HasCommunityEntities`)
+
+| Page of entity X | Records shown (before the module's own publication/audience rules) |
+|---|---|
+| Direct | subject = X, or audience = X |
+| With descendants (default) | subject ∈ X and its descendants, or audience ∈ X and its ancestors |
+
+Subject links roll up, audience links flow down; a sibling's records never appear (v2.0 ch. 6: news reaches other branches only through an authorised audience). The scope filters the content table by key, so a record linked many times appears once; an optional eligible-entity list removes hidden entities (e.g. drafts) from aggregation. A module implements `scopeVisibleTo($viewer)` for publication and audience; `isEditableBy()` follows `owner_entity_id` only. Links are idempotent and restricted to the owner's family. Tested with a stand-in model; no real module exists yet.
+
+**Authorization** (`CommunityEntityPolicy`, `CommunityEntityAccess`)
+
+| Actor | Create top-level | Edit / create children | Publish, archive, review, edit published | Assign entity managers |
+|---|---|---|---|---|
+| Family admin / super admin | yes | all entities | yes | yes |
+| Family editor | yes (draft) | all entities (drafts) | no | no |
+| Entity admin (any family member) | no | own entity and descendants | own subtree | no |
+| Entity editor (any family member) | no | own entity and descendants (drafts) | no | no |
+| Family reader without scope / other families | no (403) | no | no | no |
+
+Moving an entity requires authority over the destination too. Entity roles lapse when the user leaves the family. Changes and manager assignments are audited (not revertible through audit recovery: no recovery kind is registered for entities).
+
+**Tests** — `CommunityEntityTest` (10), `CommunityContentScopeTest` (6): every level, optional levels, rank and cycle rules (form and model), branch/tree association without genealogy changes, one page per branch, branch deletion guard, community-only entities, public visibility (draft, archived, draft ancestor, disabled family, preview), publication rights, review date, entity-scoped roles, cross-family isolation, dashboard/navigation; direct vs descendants, downward audience, sibling isolation, distinct results, publication and audience rules, eligible entities, edit rights, link integrity. Mutation checks (removing the cycle rule, ancestor publication, downward audience, inherited scope, publication guard, parent family check, rank rule, direct-mode restriction, audience relation, destination authorization) each fail at least one test.
+
+**Limitations**
+- Each entity belongs to one family; a tribe spanning several families needs a shared-ownership decision (cross-family governance, like shared ancestry).
+- Content sections are placeholders until their modules exist; search, API and export are not yet entity-scoped (no such endpoints for content exist).
+- Level labels are the fixed `Branch::TYPES`; per-family custom labels remain a later option.
+- The static Al-Zoubi portal (`/al-zoubi/*`) is unchanged.
+- The admin list shows all entity names of the family to scoped managers (all are family members); edit controls are limited to their scope.

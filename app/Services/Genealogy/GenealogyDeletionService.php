@@ -47,6 +47,9 @@ class GenealogyDeletionService
         if ($branch->childBranches()->exists()) {
             $this->reject('branch', 'لا يمكن حذف فرع له فروع فرعية. انقلها أو احذفها أولًا.');
         }
+        if ($branch->communityEntity()->exists()) {
+            $this->reject('branch', 'الفرع مرتبط بصفحة كيان مجتمعي. أزل الربط من صفحة الكيان أولًا.');
+        }
     }
 
     private function reject(string $key, string $message): never

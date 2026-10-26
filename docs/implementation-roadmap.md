@@ -2,6 +2,11 @@
 
 Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred requirements stay in scope; see `docs/project-audit.md` for statuses.
 
+## Updated priorities (approved 2026-10-26)
+
+- **Deferred, not cancelled:** Phase 2.6 Mothers, spouses & life events (JTH-06); Phase 2.7 GEDCOM import/export (JTH-12); Facebook publishing (JTH-25, UC-17).
+- **Order now:** Phase 3 (starting with 3.1 entity architecture and portals), then Phase 4 without Facebook integration.
+
 ## Phases
 
 | Phase | Objective | v2.0 roadmap steps | Requirements | Depends on | Exit criteria |
@@ -9,8 +14,8 @@ Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred
 | 0 — Audit & stabilization | Verified baseline, traceability, green suite on SQLite + PostgreSQL | 1 | — | — | ✅ Done 2026-10-22: 194/194 green on both engines, CI workflow added |
 | 1 — Family Tree MVP | Database-backed public tree, person/relationship/branch management, publication governance, family dashboard | 1, 3 (partial) | JTH-01–03, 07, 13, 14; UC-01–05, 07–09 | 0 | ✅ Done 2026-10-22: Definition of Done below |
 | 2 — Genealogy governance | Assertions & competing narratives, field-level privacy, merge with undo, revert-any-change, mothers/spouses/events, GEDCOM, branch-scoped roles, notifications | 2, 8 | JTH-06, 08–13, 28 | 1 | UC-06, UC-10, UC-12 fully met; no leak via search/API/export |
-| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 |
-| 4 — Community & extended | News, deaths/condolences, celebrations, events, optional Facebook, member directory & professional profiles | 5, 6, 7 | JTH-21–27 | 3 (audience scopes) | UC-15–18 |
+| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **in progress**: 3.1 done 2026-10-26 |
+| 4 — Community & extended | News, deaths/condolences, celebrations, events, member directory & professional profiles; Facebook deferred | 5, 7 (6 deferred) | JTH-21–24, 26, 27 (25 deferred) | 3 (audience scopes) | UC-15, 16, 18 |
 | 5 — Production readiness | Backups + restore drill, monitoring/error reporting, security headers, 2FA, load tests, caching after measurement | 10 | JTH-29, 30 | continuous | Public-release criteria in v2.0 chapter 22 |
 
 ## Phase 1 Definition of Done (verified 2026-10-22)
@@ -90,7 +95,7 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 3. ✅ Merge workflow with preview and undo (JTH-10, UC-06) — done 2026-10-25 as Phase 2.3, see below.
 4. ✅ Revert audit entries and restore deleted people (JTH-09) — done 2026-10-25 as Phase 2.4, see below.
 5. ✅ Shared-ancestry spelling reconciliation workflow (D-06) and persisted link validity (R-04) — done 2026-10-26 as Phase 2.5, see below. The 39 differences stay open until reviewed with evidence.
-6. Mothers, spouses and events; then GEDCOM 5.5.1 export (JTH-06, JTH-12).
+6. Mothers, spouses and events (JTH-06) — **deferred** as Phase 2.6; GEDCOM 5.5.1 import/export (JTH-12) — **deferred** as Phase 2.7 (priority change 2026-10-26).
 
 ## Phase 2.1 — Field-level privacy & living status (done 2026-10-22)
 
@@ -152,3 +157,22 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **P2.5-05 UI** — validity badge, last full check and "إعادة التحقق الآن" on the links index and review page.
 - [x] **P2.5-06 Tests** — `NameReconciliationTest` (10), `SharedAncestryValidityTest` (16 incl. dataset cases), mutation-checked; 303/303 SQLite and PostgreSQL 16; Chrome journeys 11/11.
 - Remaining: actual evidence-based decisions on the 39 differences (data work, not code); bulk actions on the queue; a scheduled sweep that re-checks stale links without a visitor; branch-level dependency tracking if branches ever appear on the shared page.
+
+## Phase 3.1 — Unified hierarchical entity architecture & portals (done 2026-10-26)
+
+- [x] **P3.1-00 Baseline** — HEAD `3d958bb` (Phase 2.5 committed), 303 tests; v2.0 chapters 3, 5–7, 13, 17–18 re-read.
+- [x] **P3.1-01 Architecture map** — Person / User / Family / Family tree / Branch / Community entity (`docs/project-audit.md` §12). Decision: entities are a separate table referencing branches; `Branch` and its founder rules are unchanged.
+- [x] **P3.1-02 Data model** — `community_entities`, `community_entity_managers`, `entity_content_links` (one reversible migration); `Branch::communityEntity`, `Family::communityEntities`.
+- [x] **P3.1-03 Hierarchy integrity** — same family, no self-parent, no cycle, optional levels, no child above its parent, no family move; family row locked on writes.
+- [x] **P3.1-04 Public pages** — index and entity page with breadcrumbs, children (direct / with descendants), founder/branch/tree links, publication, review date, completeness, correction route, future sections marked unavailable; preview for managers; link from the public tree.
+- [x] **P3.1-05 Content scope foundation** — `EntityContentScope` (direct / with descendants; subject rolls up, audience flows down; distinct ids; eligible entities) and `HasCommunityEntities` (owner, links, `visibleTo`, owner-only edit rights).
+- [x] **P3.1-06 Administration** — dashboard panel, sidebar entry, hierarchy list, create/edit form (parent, type, names, descriptions, tree/branch link, publication, review), entity managers (editor/admin) assigned by family admins; audited.
+- [x] **P3.1-07 Authorization** — `CommunityEntityPolicy`: family editors draft, family/entity admins publish, entity roles limited to the subtree and to family members, destination checked on moves, cross-family requests 403/404.
+- [x] **P3.1-08 Tests** — `CommunityEntityTest` (10), `CommunityContentScopeTest` (6), mutation-checked; 319/319 SQLite and PostgreSQL 16; Chrome journeys 8/8.
+- [x] **P3.1-09 Documentation** — audit §12, this section, progress log session 9.
+- Remaining: content modules (none exists yet), entity-scoped search/API/export once content exists, cross-family tribe ownership, per-family level labels, migrating the static Al-Zoubi portal pages onto entities (needs reviewed content).
+
+### Phase 3.2 readiness
+- A content module needs only: a table with `owner_entity_id`, `HasCommunityEntities`, a `scopeVisibleTo` for its publication/audience rules, and links via `EntityContentScope::link`. Entity pages already reserve its section.
+- Authorization for module records: `isEditableBy()` (owner entity) — visibility on another page grants nothing.
+- Not started (by instruction): Phase 3.2–3.6 modules, Phase 2.6, GEDCOM, Facebook.

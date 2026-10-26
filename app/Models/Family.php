@@ -26,6 +26,11 @@ class Family extends Model
         return $this->hasOne(FamilyTree::class)->where('is_primary', true);
     }
 
+    public function communityEntities(): HasMany
+    {
+        return $this->hasMany(CommunityEntity::class);
+    }
+
     public function sources(): HasMany
     {
         return $this->hasMany(Source::class);

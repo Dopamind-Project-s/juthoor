@@ -12,6 +12,10 @@
 @foreach(['people'=>['الأشخاص','bi-person'],'relationships'=>['العلاقات','bi-link-45deg'],'branches'=>['الفروع','bi-bezier2'],'trees'=>['الأشجار','bi-tree']] as $key=>[$label,$icon])
 <a href="{{ route('management.sections.index',[$workspaceFamily->slug,$key,'tree'=>$treeSlug]) }}" @if($currentSection===$key) aria-current="page" @endif><i class="bi {{ $icon }}"></i> {{ $label }}</a>
 @endforeach
+@can('viewAny',[\App\Models\CommunityEntity::class,$workspaceFamily])
+<span class="workspace-nav-heading">الصفحات المجتمعية</span>
+<a href="{{ route('management.entities.index',$workspaceFamily->slug) }}" @if(request()->routeIs('management.entities.*')) aria-current="page" @endif><i class="bi bi-diagram-2"></i> صفحات الكيانات</a>
+@endcan
 <span class="workspace-nav-heading">التوثيق والمراجعة</span>
 <a href="{{ route('management.sources.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.sources.*')) aria-current="page" @endif><i class="bi bi-journal-text"></i> المصادر والاستشهادات</a>
 <a href="{{ route('management.changes.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.changes.*')) aria-current="page" @endif><i class="bi bi-check2-square"></i> طلبات التغيير والمراجعة</a>

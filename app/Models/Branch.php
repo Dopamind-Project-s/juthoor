@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['family_tree_id', 'parent_branch_id', 'root_person_id', 'branch_type', 'name_ar', 'name_en', 'slug', 'description', 'membership_mode', 'sort_order', 'is_active', 'verification_status'])]
 class Branch extends Model
@@ -58,6 +59,12 @@ class Branch extends Model
     public function childBranches(): HasMany
     {
         return $this->hasMany(self::class, 'parent_branch_id');
+    }
+
+    /** The community page that presents this branch, if any (at most one). */
+    public function communityEntity(): HasOne
+    {
+        return $this->hasOne(CommunityEntity::class);
     }
 
     public function rootPerson(): BelongsTo

@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CommunityEntityController;
 use App\Http\Controllers\CrossFamilyLinkController;
 use App\Http\Controllers\GenealogyGraphController;
 use App\Http\Controllers\GenealogyTreeController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Management\AssertionController;
 use App\Http\Controllers\Management\AuditReversionController;
 use App\Http\Controllers\Management\BranchController;
 use App\Http\Controllers\Management\ChangeRequestController;
+use App\Http\Controllers\Management\CommunityEntityController as ManagementCommunityEntityController;
 use App\Http\Controllers\Management\CsvImportController;
 use App\Http\Controllers\Management\FamilyController as ManagementFamilyController;
 use App\Http\Controllers\Management\FamilyDashboardController;
@@ -70,6 +72,11 @@ Route::prefix('families/{family}')->name('genealogy.')->middleware('throttle:240
     Route::get('/people/{person}', [GenealogyTreeController::class, 'person'])->whereNumber('person')->name('person');
     Route::get('/graph', [GenealogyGraphController::class, 'show'])->name('graph');
     Route::get('/graph/search', [GenealogyGraphController::class, 'search'])->name('search');
+});
+
+Route::prefix('families/{family}/entities')->name('community.entities.')->middleware('throttle:240,1')->group(function () {
+    Route::get('/', [CommunityEntityController::class, 'index'])->name('index');
+    Route::get('/{entity}', [CommunityEntityController::class, 'show'])->name('show');
 });
 
 Route::get('/shared-ancestry', [CrossFamilyLinkController::class, 'publicIndex'])->middleware('throttle:30,1')->name('shared-ancestry.index');
@@ -152,6 +159,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/assertions/{assertion}/citations', [AssertionController::class, 'cite'])->whereNumber('assertion')->name('management.assertions.cite');
         Route::post('/manage/families/{family}/assertions/{assertion}/decline', [AssertionController::class, 'decline'])->whereNumber('assertion')->name('management.assertions.decline');
         Route::get('/manage/families/{family}/reconciliation', [NameReconciliationController::class, 'index'])->name('management.reconciliation.index');
+        Route::get('/manage/families/{family}/entities', [ManagementCommunityEntityController::class, 'index'])->name('management.entities.index');
+        Route::get('/manage/families/{family}/entities/create', [ManagementCommunityEntityController::class, 'create'])->name('management.entities.create');
+        Route::post('/manage/families/{family}/entities', [ManagementCommunityEntityController::class, 'store'])->name('management.entities.store');
+        Route::get('/manage/families/{family}/entities/{entity}/edit', [ManagementCommunityEntityController::class, 'edit'])->whereNumber('entity')->name('management.entities.edit');
+        Route::put('/manage/families/{family}/entities/{entity}', [ManagementCommunityEntityController::class, 'update'])->whereNumber('entity')->name('management.entities.update');
+        Route::post('/manage/families/{family}/entities/{entity}/managers', [ManagementCommunityEntityController::class, 'storeManager'])->whereNumber('entity')->name('management.entities.managers.store');
+        Route::delete('/manage/families/{family}/entities/{entity}/managers/{manager}', [ManagementCommunityEntityController::class, 'destroyManager'])->whereNumber('entity')->whereNumber('manager')->name('management.entities.managers.destroy');
         Route::get('/manage/families/{family}/merges', [PersonMergeController::class, 'index'])->name('management.merges.index');
         Route::get('/manage/families/{family}/merges/preview', [PersonMergeController::class, 'preview'])->name('management.merges.preview');
         Route::post('/manage/families/{family}/merges', [PersonMergeController::class, 'store'])->name('management.merges.store');

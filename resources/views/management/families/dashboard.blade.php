@@ -99,6 +99,14 @@
     </ul>
 </section>
 
+@can('viewAny', [\App\Models\CommunityEntity::class, $family])
+<section class="management-panel" aria-labelledby="entitiesHeading" data-dashboard-entities>
+    <span class="eyebrow">الصفحات المجتمعية</span><h2 class="h4" id="entitiesHeading">القبيلة والعشيرة والأفخاذ</h2>
+    <dl class="dashboard-facts">@foreach(\App\Models\CommunityEntity::STATUSES as $key=>$label)<dt>{{ $label }}</dt><dd>{{ $entityCounts[$key] ?? 0 }}</dd>@endforeach</dl>
+    <a class="btn btn-sm btn-outline-primary mt-3" href="{{ route('management.entities.index',$family->slug) }}">إدارة صفحات الكيانات</a>
+</section>
+@endcan
+
 @if($isAdmin)
 <section class="management-panel" aria-labelledby="membersHeading">
     <span class="eyebrow">الصلاحيات</span><h2 class="h4" id="membersHeading">الأعضاء والأدوار</h2>
