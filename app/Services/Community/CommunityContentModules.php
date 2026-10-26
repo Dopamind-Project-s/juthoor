@@ -2,10 +2,12 @@
 
 namespace App\Services\Community;
 
+use App\Models\ArchiveRecord;
 use App\Models\CommunityLocation;
 use App\Models\Diwan;
 use App\Models\EntityAchievement;
 use App\Models\EntityNarrative;
+use App\Models\MediaItem;
 use Illuminate\Database\Eloquent\Model;
 
 /** The content modules of entity pages; every one uses CommunityContent and EntityContentScope. */
@@ -17,6 +19,8 @@ final class CommunityContentModules
         'locations' => ['model' => CommunityLocation::class, 'label' => 'المناطق والانتشار الجغرافي', 'icon' => 'geo-alt'],
         'diwans' => ['model' => Diwan::class, 'label' => 'الدواوين والمضافات', 'icon' => 'house-door'],
         'achievements' => ['model' => EntityAchievement::class, 'label' => 'شخصيات وإنجازات', 'icon' => 'person-badge'],
+        'archive' => ['model' => ArchiveRecord::class, 'label' => 'الأرشيف والوثائق', 'icon' => 'archive'],
+        'media' => ['model' => MediaItem::class, 'label' => 'مكتبة الوسائط', 'icon' => 'images'],
     ];
 
     /** @return class-string<Model> */

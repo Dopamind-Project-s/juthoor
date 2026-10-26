@@ -2,16 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-26, after session 10)
+## Current state (2026-10-26, after session 11)
 
-- Branch `main` at `80d5c91` (Phase 3.1 committed by the maintainer); session 10 (Phases 3.2–3.6) changes uncommitted (nothing committed by the assistant).
-- Suite: **333 passed / 0 failed (3583 assertions)** on SQLite and PostgreSQL 16.
-- Phase 1, Phases 2.1–2.5 and Phases 3.1–3.6 complete; Phase 3 roadmap items still open: archive & media (JTH-15), diwan images. The 39 ROOT name differences are reviewable and intentionally still open.
+- Branch `main` at `781eb9c` (Phases 3.2–3.6 committed by the maintainer); session 11 (Phase 3.7) changes uncommitted (nothing committed by the assistant).
+- Suite: **346 passed / 0 failed (3790 assertions)** on SQLite and PostgreSQL 16.
+- Phase 1, Phases 2.1–2.5 and Phase 3 (3.1–3.7) complete. Deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook. The 39 ROOT name differences are reviewable and intentionally still open.
 - Priorities changed 2026-10-26: Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are deferred, not cancelled; Phase 3 continues, then Phase 4 without Facebook.
 
 ## Next task to execute
 
-Phase 4 (without Facebook): news and announcements as the first `CommunityContentModules` entry, then deaths/condolences, celebrations and events (see "Phase 4 readiness" in `docs/implementation-roadmap.md`). Open Phase 3 items (archive & media, diwan images) need a public media store decision first. In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
+Phase 4 (without Facebook): news and announcements as the first `CommunityContentModules` entry, then deaths/condolences, celebrations and events (see "Phase 4 readiness" in `docs/implementation-roadmap.md`). Media for Phase 4 records comes from the existing library through `HasMediaAttachments`. In parallel (data work, no code): review the 39 ROOT differences with sources; prepare reviewed content before migrating the static Al-Zoubi pages onto entity pages.
 
 ## Work log
 
@@ -107,6 +107,18 @@ Phase 4 (without Facebook): news and announcements as the first `CommunityConten
 | Integration | person deletion and merge blockers, source deletion guard and usage list, Maps embed config | `GenealogyDeletionService.php`, `PersonMergeService.php`, `SourceController.php`, `sources/show.blade.php`, `config/services.php` | portal tests; existing merge/source tests green |
 | Tests updated | Phase 3.1 assertions for placeholders (now real sections), completeness 4 → 6 items, a text check that the approved disclaimer now matches | `CommunityEntityTest.php` | intent unchanged |
 
+### Session 11 — Phase 3.7 media library & heritage archive
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Storage | private `media` disk and limits; file inspection, storage, metadata-free display copies | `config/filesystems.php`, `config/media.php`, `MediaStorage.php` | upload validation and stripping tests; GD container run |
+| Data model | media, attachments, archive, entity cover, restricted audience | migration `2026_10_26_125915_create_media_and_archive_tables`, `MediaItem.php`, `MediaAttachment.php`, `ArchiveRecord.php`, `Concerns/{HasUsageRights,HasMediaAttachments,CommunityContent}.php`, `CommunityEntity.php`, `Diwan.php`, `EntityNarrative.php` | rollback/re-apply and cascade on PostgreSQL |
+| Services | upload/replace/attach/detach/delete, access rule, publish preconditions, module registry, scope sets | `MediaService.php`, `MediaAccess.php`, `CommunityContentService.php`, `CommunityContentModules.php`, `CommunityEntityAccess.php` | `CommunityMediaTest` (13) |
+| Delivery | authorizing media route | `MediaController.php`, `routes/web.php` | route tests; Chrome guessed-path checks |
+| Portal | archive and gallery sections, attachments in records, cover | `CommunityEntityPage.php`, `community/show.blade.php`, `community/sections/{archive,media,diwans,history}.blade.php`, `components/community/media-strip.blade.php`, `juthoor.css` | portal tests; Chrome |
+| Administration | media/archive forms, attachments, usage, delete, cover choice | `CommunityContentController.php`, `management/entities/content/{form,fields/*}.blade.php`, `Management/CommunityEntityController.php`, `management/entities/form.blade.php` | admin tests; Chrome |
+| Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
+| Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
+
 ## Technical decisions
 
 | Decision | Reason |
@@ -167,6 +179,27 @@ Phase 4 (without Facebook): news and announcements as the first `CommunityConten
 | Keyless Google Maps URLs; Embed API only with a configured key | No paid or assumed key (v2.0 ch. 9) |
 | Achievements hidden unless the person is public (visitors) | Positions must not reveal living or unpublished people |
 | No hard delete of content; archive and restore | Reversible without a replay engine; audit keeps full snapshots |
+| Media is a content module, not a separate system | Same governance, review queue, evidence, scope and audit as every module; Phase 4 reuses it |
+| One file per family (checksum) shared through attachments | No duplicate files; deletion blocked by a foreign key while attached |
+| Private disk + authorizing route, 404 for unreadable files | A public directory is not a privacy policy; existence is not revealed |
+| Type from content, allow-list, no SVG/HTML | Prevents disguised scripts and unsafe markup |
+| Viewers get metadata-free display copies; originals for managers | Protects GPS/EXIF data while keeping the original |
+| Rights gate the audience | No public copyrighted material without permission |
+| `restricted` added to the shared audience | v2.0 Public / Members / Restricted levels, for all modules |
+
+## Verification evidence (session 11)
+
+| Check | Result |
+|---|---|
+| Baseline before changes | 333 / 333 SQLite |
+| Full suite, SQLite / PostgreSQL 16 | 346 / 346 passed (3790 assertions) |
+| Media tests in a PHP 8.3 + GD container; GD smoke (resize, metadata, PNG alpha) | 13 / 13; 1200×800 → display size, no metadata, alpha kept |
+| Migration up / rollback / up on PostgreSQL 16; family delete cascades to media, archive and covers | pass |
+| Pint, Blade compile, `git diff --check` | pass |
+| Mutation checks | 17 media rules (originals, members, hidden entities, drafts, allow-list, extension, markup, metadata, rights, alt text, in-use delete, page visibility, diwan images, upload cleanup, old-file removal, archive person, pixel limit) plus 2 scope-set checks each fail at least one test |
+| Chrome — final Phase 3 regression on one fresh seeded database | 29/29, no page errors: Phase 3.1 (8), 3.2–3.6 (12), 3.7 (9: upload with GPS metadata; metadata-free display, originals and guessed paths refused; archive with image + PDF shared by two fakhds; diwan photo; cover; members-only file; unsafe upload and uncleared rights refused; editor draft and duplicate refused; mobile); `media:verify` clean |
+| Performance | `docs/project-audit.md` §14 (constant queries: 71 visitor / 77 member; 0.39 s at 10,000 people with 168 extra records) |
+| Not run | Repository Playwright scripts; Safari/Firefox; real devices; MySQL; antivirus scanning |
 
 ## Verification evidence (session 10)
 

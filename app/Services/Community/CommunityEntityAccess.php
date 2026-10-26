@@ -5,6 +5,7 @@ namespace App\Services\Community;
 use App\Models\CommunityEntity;
 use App\Models\CommunityEntityManager;
 use App\Models\Family;
+use App\Models\FamilyMembership;
 use App\Models\User;
 
 /**
@@ -28,6 +29,29 @@ class CommunityEntityAccess
             $roles->isNotEmpty() => CommunityEntityManager::ROLE_EDITOR,
             default => null,
         };
+    }
+
+    /**
+     * Ids of the family's entities the user may publish (CommunityEntityPolicy::publish), or null for the whole family.
+     *
+     * @return array<int, int>|null
+     */
+    public function publishableIds(User $user, Family $family): ?array
+    {
+        if (! $user->is_active) {
+            return [];
+        }
+        if ($user->isSuperAdmin() || ($family->is_active && $user->roleFor($family) === FamilyMembership::ROLE_ADMIN)) {
+            return null;
+        }
+        if (! $family->is_active || $user->roleFor($family) === null) {
+            return [];
+        }
+        $nodes = $this->hierarchy->nodes($family->id);
+
+        return CommunityEntity::query()->where('family_id', $family->id)
+            ->whereHas('managers', fn ($managers) => $managers->where('user_id', $user->id)->where('role', CommunityEntityManager::ROLE_ADMIN))->get()
+            ->flatMap(fn (CommunityEntity $entity) => $this->hierarchy->descendantIds($entity, true, $nodes))->unique()->values()->all();
     }
 
     /**

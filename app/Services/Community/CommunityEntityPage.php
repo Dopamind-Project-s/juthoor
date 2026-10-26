@@ -5,6 +5,7 @@ namespace App\Services\Community;
 use App\Models\CommunityEntity;
 use App\Models\CommunityLocation;
 use App\Models\EntityNarrative;
+use App\Models\MediaItem;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -24,11 +25,13 @@ class CommunityEntityPage
     public const SECTIONS = [
         'overview' => ['label' => 'نظرة عامة', 'icon' => 'info-circle'],
         'history' => ['label' => 'التاريخ والأصول', 'icon' => 'hourglass-split'],
+        'archive' => ['label' => 'الأرشيف والوثائق', 'icon' => 'archive'],
         'locations' => ['label' => 'المناطق والانتشار', 'icon' => 'geo-alt'],
         'genealogy' => ['label' => 'المؤسس والنسب', 'icon' => 'diagram-3'],
         'statistics' => ['label' => 'الإحصاءات', 'icon' => 'bar-chart'],
         'diwans' => ['label' => 'الدواوين والمضافات', 'icon' => 'house-door'],
         'achievements' => ['label' => 'شخصيات وإنجازات', 'icon' => 'person-badge'],
+        'media' => ['label' => 'الصور والوسائط', 'icon' => 'images'],
         'sources' => ['label' => 'المصادر', 'icon' => 'journal-text'],
         'children' => ['label' => 'الكيانات التابعة', 'icon' => 'diagram-2'],
         'review' => ['label' => 'المراجعة والتصحيح', 'icon' => 'patch-check'],
@@ -63,7 +66,8 @@ class CommunityEntityPage
             'subFounders' => $scope === EntityContentScope::DIRECT ? collect() : $this->subFounders($genealogy, $descendants, $public),
             'statistics' => (new CommunityStatistics($genealogy))->compute($entity, $inScope, $public),
             'content' => $content,
-            'publicPeople' => $this->publicPeople($content['achievements']),
+            'publicPeople' => $this->publicPeople($content['achievements']->merge($content['archive'])),
+            ...$this->media($entity, $content, $viewer),
             'sources' => $this->sources($content, $entity),
             'completeness' => $this->completeness($entity),
             'sections' => self::SECTIONS,
@@ -102,13 +106,17 @@ class CommunityEntityPage
         foreach (CommunityContentModules::MODULES as $key => $module) {
             $content[$key] = $module['model']::query()->onEntityPage($entity, $scope, $viewer, $eligibleIds)
                 ->with(['citations' => fn ($citations) => $citations->approved()->with('source:id,title,url,source_type'), 'entityLinks.entity:id,name_ar,slug,family_id'])
-                ->when($key === 'achievements', fn ($query) => $query->with('person:id,full_name_ar,family_tree_id', 'person.familyTree:id,slug'))
+                ->when(in_array($key, ['achievements', 'archive'], true), fn ($query) => $query->with('person:id,full_name_ar,family_tree_id', 'person.familyTree:id,slug'))
+                ->when(method_exists($module['model'], 'mediaAttachments'), fn ($query) => $query->with('mediaAttachments.media.ownerEntity'))
+                ->when($key === 'media', fn ($query) => $query->with('ownerEntity'))
                 ->get();
         }
         $sections = array_flip(array_keys(EntityNarrative::SECTIONS));
         $content['history'] = $content['history']->sortBy([fn ($a, $b) => $sections[$a->section] <=> $sections[$b->section], fn ($a, $b) => ($a->account === 'primary' ? 0 : 1) <=> ($b->account === 'primary' ? 0 : 1), ['start_year', 'asc'], ['sort_order', 'asc'], ['id', 'asc']])->values();
         $content['locations'] = $content['locations']->sortBy([['kind', 'asc'], ['name', 'asc']])->values();
         $content['diwans'] = $content['diwans']->sortBy([['name', 'asc'], ['id', 'asc']])->values();
+        $content['archive'] = $content['archive']->sortBy([['start_year', 'asc'], ['title', 'asc'], ['id', 'asc']])->values();
+        $content['media'] = $content['media']->sortBy([['historical_year', 'asc'], ['title', 'asc'], ['id', 'asc']])->values();
         // Alphabetical by person, never by status or importance.
         $content['achievements'] = $content['achievements']->sortBy([fn ($a, $b) => strcmp((string) $a->person?->full_name_ar, (string) $b->person?->full_name_ar), ['title', 'asc']])->values();
 
@@ -131,12 +139,29 @@ class CommunityEntityPage
     }
 
     /**
-     * @param  Collection<int, mixed>  $achievements
+     * Files the viewer may read, by the same rule as the media route: attached files, the gallery and the cover.
+     *
+     * @param  array<string, Collection<int, mixed>>  $content
+     * @return array{visibleMedia: array<int, true>, cover: ?MediaItem}
+     */
+    private function media(CommunityEntity $entity, array $content, ?User $viewer): array
+    {
+        $access = app(MediaAccess::class);
+        $items = collect($content)->flatten(1)->flatMap(fn ($record) => $record->relationLoaded('mediaAttachments') ? $record->mediaAttachments->pluck('media') : [])
+            ->merge($content['media'])->push($entity->coverMedia)->filter()->unique('id');
+        $visible = $items->filter(fn (MediaItem $media) => $access->canView($viewer, $media))->mapWithKeys(fn (MediaItem $media) => [$media->id => true])->all();
+        $cover = $entity->coverMedia && isset($visible[$entity->coverMedia->id]) && $entity->coverMedia->isImage() ? $entity->coverMedia : null;
+
+        return ['visibleMedia' => $visible, 'cover' => $cover];
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $records
      * @return array<int, true>
      */
-    private function publicPeople(Collection $achievements): array
+    private function publicPeople(Collection $records): array
     {
-        $ids = $achievements->pluck('person_id')->unique()->all();
+        $ids = $records->pluck('person_id')->filter()->unique()->all();
 
         return $ids === [] ? [] : array_fill_keys(Person::query()->whereIn('id', $ids)->publiclyVisible()->pluck('id')->map(fn ($id) => (int) $id)->all(), true);
     }

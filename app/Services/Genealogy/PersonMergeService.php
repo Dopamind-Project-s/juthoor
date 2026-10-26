@@ -2,6 +2,7 @@
 
 namespace App\Services\Genealogy;
 
+use App\Models\ArchiveRecord;
 use App\Models\Assertion;
 use App\Models\Branch;
 use App\Models\ChangeRequest;
@@ -111,6 +112,9 @@ class PersonMergeService
         // Community content is not part of the merge journal; it must point at the survivor before merging.
         if (EntityAchievement::query()->where('person_id', $merged->id)->exists()) {
             $blockers[] = 'السجل المدموج مرتبط بسجلات «شخصيات وإنجازات»؛ انقلها إلى السجل الباقي من صفحات الكيانات أولًا.';
+        }
+        if (ArchiveRecord::query()->where('person_id', $merged->id)->exists()) {
+            $blockers[] = 'السجل المدموج مرتبط بمواد أرشيفية؛ اربطها بالسجل الباقي من صفحات الكيانات أولًا.';
         }
 
         $resultAttributes = collect($fields)->map(fn ($field) => $field['result'])->all();

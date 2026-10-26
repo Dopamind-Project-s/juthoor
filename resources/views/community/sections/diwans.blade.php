@@ -9,6 +9,7 @@
                     @if($diwan->description)<p class="mb-2">{{ $diwan->description }}</p>@endif
                     @if($diwan->visit_instructions)<p class="small mb-2"><strong>تعليمات الزيارة:</strong> {{ $diwan->visit_instructions }}</p>@endif
                     @if($diwan->contact_consent && ($diwan->contact_name || $diwan->contact_phone))<p class="small mb-2" data-diwan-contact><strong>للتواصل:</strong> {{ $diwan->contact_name }} @if($diwan->contact_phone)<a href="tel:{{ preg_replace('/[^0-9+]/', '', $diwan->contact_phone) }}" dir="ltr">{{ $diwan->contact_phone }}</a>@endif</p>@endif
+                <x-community.media-strip :attachments="$diwan->mediaAttachments" :visible-media="$visibleMedia" />
                     @if($embed = $diwan->embedUrl())<iframe class="diwan-map" src="{{ $embed }}" title="خريطة {{ $diwan->name }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>@endif
                     @if($directions = $diwan->directionsUrl())<a class="btn btn-sm btn-primary mb-2" href="{{ $directions }}" target="_blank" rel="noopener" data-directions><i class="bi bi-sign-turn-right"></i> فتح الاتجاهات في Google Maps</a>@endif
                     <x-community.evidence :record="$diwan" :entity="$entity" />

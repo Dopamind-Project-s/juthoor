@@ -14,7 +14,7 @@ Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred
 | 0 — Audit & stabilization | Verified baseline, traceability, green suite on SQLite + PostgreSQL | 1 | — | — | ✅ Done 2026-10-22: 194/194 green on both engines, CI workflow added |
 | 1 — Family Tree MVP | Database-backed public tree, person/relationship/branch management, publication governance, family dashboard | 1, 3 (partial) | JTH-01–03, 07, 13, 14; UC-01–05, 07–09 | 0 | ✅ Done 2026-10-22: Definition of Done below |
 | 2 — Genealogy governance | Assertions & competing narratives, field-level privacy, merge with undo, revert-any-change, mothers/spouses/events, GEDCOM, branch-scoped roles, notifications | 2, 8 | JTH-06, 08–13, 28 | 1 | UC-06, UC-10, UC-12 fully met; no leak via search/API/export |
-| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **3.1–3.6 done 2026-10-26**; archive/media (JTH-15) and diwan images remain |
+| 3 — Hierarchical identity & community pages | Entity pages per level, hierarchical filtering (direct/with descendants), counters with coverage, regions, diwans + Maps, personalities with disclaimer, archive | 4, 9 | JTH-04, 15–20, 31–35 | 1, 2 (privacy) | UC-13, 14, 19–22 — **✅ Done 2026-10-26 (3.1–3.7)**; content search/API/export pending until such endpoints exist |
 | 4 — Community & extended | News, deaths/condolences, celebrations, events, member directory & professional profiles; Facebook deferred | 5, 7 (6 deferred) | JTH-21–24, 26, 27 (25 deferred) | 3 (audience scopes) | UC-15, 16, 18 |
 | 5 — Production readiness | Backups + restore drill, monitoring/error reporting, security headers, 2FA, load tests, caching after measurement | 10 | JTH-29, 30 | continuous | Public-release criteria in v2.0 chapter 22 |
 
@@ -195,3 +195,18 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - Time-bound content (events, condolences) needs date-window rules in its `visibleTo` hooks; notifications and approval of sensitive announcements (deaths) are Phase 4 work.
 - Member directory (JTH-26/27) must stay separate from `people` (ADR-008) and reuse `PersonPrivacy`-style levels.
 - Facebook remains deferred.
+
+## Phase 3.7 — Media library, heritage archive & Phase 3 closure (done 2026-10-26)
+
+- [x] **P3.7-00 Baseline** — HEAD `781eb9c`, 333/333; storage, disks and upload handlers audited (source library kept as is).
+- [x] **Secure storage** — private `media` disk (configurable), generated names, content-sniffed allow-list, size and pixel limits, markup refusal, checksums, metadata-free display copies (GD resize when available), authorized delivery with sandboxing headers, 404 for anything unreadable.
+- [x] **Media model** — `media_items` as a content module (owner, links, publication, verification, audience incl. restricted, review, citations, rights, provenance, historical date), one file per family checksum, `media_attachments` with delete protection, consistent upload/replace/delete with cleanup.
+- [x] **Heritage archive (JTH-15)** — `archive_records` with categories, source, period, contributor, person, rights, attached files, shared across entities without copies.
+- [x] **Diwan images, narratives' files, entity covers** — attachments from the library; covers shown only when published for everyone.
+- [x] **Portal & administration** — archive and gallery sections under the shared scope; media library per entity (upload, replace, metadata, rights, links, review, evidence, usage, safe delete); attach/detach on records; cover choice; review queue and dashboard count include the new modules.
+- [x] **Integrity** — person deletion/merge blockers for archive entries; `media:verify`.
+- [x] **Tests** — `CommunityMediaTest` (13), portal admin test covers all six modules; 17 media rule mutations caught; 346/346 SQLite and PostgreSQL 16; media tests also green with GD.
+- [x] **Final Phase 3 regression in Chrome** — Phase 3.1 (8), 3.2–3.6 (12) and 3.7 (9) journeys: 29/29 on one fresh seeded database; `media:verify` clean afterwards.
+
+### Phase 4 readiness (media)
+- News, events, condolences and celebrations attach images and documents through `HasMediaAttachments` and the existing library, with no new upload code; time-bound visibility and notifications remain Phase 4 work.

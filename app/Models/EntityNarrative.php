@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CommunityContent;
+use App\Models\Concerns\HasMediaAttachments;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
 #[Fillable(['owner_entity_id', 'publication_status', 'verification_status', 'audience', 'review_note', 'submitted_at', 'reviewed_at', 'reviewed_by', 'created_by', 'sort_order', 'section', 'account', 'title', 'body', 'period_label', 'start_year', 'end_year'])]
 class EntityNarrative extends Model
 {
-    use CommunityContent;
+    use CommunityContent, HasMediaAttachments;
 
     /** @var array<string, string> */
     public const SECTIONS = [

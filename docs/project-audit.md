@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-26 (updated after Phase 3.2–3.6 — community portal modules). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-26 (updated after Phase 3.7 — media library, heritage archive and Phase 3 closure). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `80d5c91` (Phase 3.1 committed by the maintainer); Phase 3.2–3.6 changes (session 10) are uncommitted. |
-| Test baseline (start of session 10) | 319 passed, 0 failed, 3374 assertions (re-run on SQLite before any change; all migrations apply). |
-| Test result (end of session 10) | **333 passed, 0 failed, 3583 assertions** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `781eb9c` (Phases 3.2–3.6 committed by the maintainer); Phase 3.7 changes (session 11) are uncommitted. |
+| Test baseline (start of session 11) | 333 passed, 0 failed, 3583 assertions (re-run on SQLite before any change). |
+| Test result (end of session 11) | **346 passed, 0 failed, 3790 assertions** on SQLite and on PostgreSQL 16; media tests also green with GD. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -36,6 +36,7 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | Community entities (Phase 3.1) | `community_entities` (type, parent, optional `branch_id`/`family_tree_id`, publication, review date), `community_entity_managers`, `CommunityHierarchy`, `CommunityEntityIntegrityService`, `CommunityEntityAccess`, `CommunityEntityPolicy`; public `/families/{family}/entities[/{slug}]`, admin `/manage/families/{family}/entities` | Implemented (see §12) |
 | Entity content (Phases 3.1–3.6) | `entity_content_links` (subject / audience), `EntityContentScope`, `HasCommunityEntities` + `CommunityContent`; modules `entity_narratives`, `community_locations`, `diwans`, `entity_achievements`; evidence `content_citations`; `CommunityContentService`, `CommunityContentController`, review queue | Implemented (see §13) |
 | Entity portal (Phases 3.3–3.4) | `CommunityEntityPage`, `CommunityGenealogy` (founder, chain, mini tree, related branches, shared ancestors), `CommunityStatistics` | Implemented (see §13) |
+| Media library & archive (Phase 3.7) | private `media` disk, `config/media.php`, `media_items`, `media_attachments`, `archive_records`, `community_entities.cover_media_id`; `MediaStorage`, `MediaService`, `MediaAccess`, `MediaController` (`/media/{uuid}/{variant}`), `media:verify` | Implemented (see §14) |
 | Cross-family links | `cross_family_links`, `CrossFamilyLinkService`, `CrossFamilyLinkInvalidator`, super-admin review | Implemented (see risk R-04) |
 | CSV import | `ImportBatch`, `CsvImportService` (dry run, checksum, atomic commit) | Implemented (GEDCOM missing) |
 | Ops | `.github/workflows/tests.yml` (SQLite+Pint, PostgreSQL), site health dashboard, rate limits | Partial (no backups/monitoring) |
@@ -58,12 +59,12 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 | JTH-12 | GEDCOM import/export | Missing | — | Everything | P2 | 2 | 5.5.1 export with privacy; import via dry run |
 | JTH-13 | Central and family roles | Implemented | Policies, `publish` ability, invitation-only enrollment for family admins, super-admin-only `/site-admin`, entity-scoped editor/admin roles over an entity subtree (Phase 3.1), `AdministrationSecurityTest`, `CommunityEntityTest` | Per-module roles (news, diwans…) | P1 | 2 | Branch/module-scoped permissions |
 | JTH-14 | Dashboard per family | Implemented | `/manage/families/{family}/dashboard`, `FamilyDashboardTest` | Settings page | P1 | 1 ✓ | Role-aware, family-scoped (tested) |
-| JTH-15 | History, archive, media | Partial | Structured, sourced historical narratives with competing accounts on every entity page (`CommunityPortalTest`) | Archive and media (no media store yet); static Al-Zoubi history not migrated | P2 | 3 | Archive items linked to person/fakhd |
+| JTH-15 | History, archive, media | Implemented | Narratives (3.2); heritage archive with categories, provenance, period, contributor, person, rights and attached files; media library with secure delivery (`CommunityMediaTest`, Chrome) | Static Al-Zoubi archive page not migrated | P2 | 3 ✓ | Archive items linked to person/fakhd |
 | JTH-16 | Pages for every clan level | Implemented | Portal per level with overview, history, regions, founder and genealogy, statistics, diwans, notable people, sources, sub-entities and review (`CommunityEntityTest`, `CommunityPortalTest`, Chrome) | Static Al-Zoubi pages kept until reviewed content is migrated | P1 | 3 ✓ | UC-13 |
 | JTH-17 | Counters with scope/coverage | Implemented | Registered / verified / published / living (members) / branches / father-link coverage with explanations, date and the approved disclaimer; sourced estimate; population coverage reported unknown | — | P2 | 3 ✓ | UC-21 |
 | JTH-18 | Personalities, positions, achievements | Implemented | `entity_achievements` on existing people, sources, review, audience, neutral categories, alphabetical order, approved disclaimer | Static `prominent-people` page not migrated | P2 | 3 ✓ | UC-19 |
 | JTH-19 | Residence regions | Implemented | `community_locations` (origin / settlement / migration / gathering, historical / current, period, sources), shared between entities | — | P2 | 3 ✓ | — |
-| JTH-20 | Diwans & Google Maps | Partial | `diwans` shared by several entities, keyless Maps directions, optional Embed API key, validated links, consent for contacts and private residences | Images (no public media store yet) | P2 | 3 | UC-14 |
+| JTH-20 | Diwans & Google Maps | Implemented | Shared diwans, keyless Maps directions, optional Embed key, validated links, consent rules, images from the media library | — | P2 | 3 ✓ | UC-14 |
 | JTH-21 | Hierarchical news | Missing | — | — | P2 | 4 | — |
 | JTH-22 | Deaths, burial, condolences | Missing | — | — | P2 | 4 | UC-15 |
 | JTH-23 | Weddings, graduations | Missing | — | — | P3 | 4 | — |
@@ -111,19 +112,19 @@ Method: each of the 36 JTH requirements is counted once. Weighted completion = (
 
 | Status | Count |
 |---|---|
-| Implemented | 17 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 16, 17, 18, 19, 32, 33, 34, 35, 36) |
-| Partial | 10 (JTH-02, 04, 06, 08, 11, 15, 20, 28, 29, 31) |
+| Implemented | 19 (JTH-01, 03, 05, 07, 09, 10, 13, 14, 15, 16, 17, 18, 19, 20, 32, 33, 34, 35, 36) |
+| Partial | 8 (JTH-02, 04, 06, 08, 11, 28, 29, 31) |
 | Missing | 9 (JTH-12, 21–27, 30) |
 | Broken | 0 |
 | Unverified | 0 |
-| **Weighted completion** | **(17 + 5) / 36 = 61.1 %** |
+| **Weighted completion** | **(19 + 4) / 36 = 63.9 %** |
 
 | Module group | Requirements | Implemented | Partial | Missing |
 |---|---|---|---|---|
 | Genealogy core (JTH-01–03, 05–07, 10–11, 34, 36) | 10 | 7 | 3 | 0 |
 | Governance & data (JTH-08, 09, 12, 13, 28) | 5 | 2 | 2 | 1 |
 | Administration (JTH-04, 14) | 2 | 1 | 1 | 0 |
-| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 7 | 3 | 7 |
+| Community pages & content (JTH-15–27, 31–33, 35) | 17 | 9 | 1 | 7 |
 | Operations & future (JTH-29, 30) | 2 | 0 | 1 | 1 |
 
 Phase 1 (tree MVP): UC-01–UC-05 and UC-07–UC-09 implemented; all Phase 1 acceptance criteria met on 2026-10-22 (see roadmap). Overall weighted completion is unchanged because Phase 1 hardened existing requirements rather than adding new ones.
@@ -379,3 +380,57 @@ Query count is independent of content volume (eager loading; no N+1). The time g
 - Static Al-Zoubi pages unchanged; nothing was copied or published from them.
 - Single-family ownership of entities and content (multi-family governance deferred).
 - Shared-ancestor display on the portal uses `CrossFamilyLinkService::verified`, which may re-check up to two stale links on a page view.
+
+## 14. Media library, heritage archive and Phase 3 closure (Phase 3.7)
+
+**Baseline** — HEAD `781eb9c`, clean tree, 333/333 (3583 assertions) on SQLite before changes.
+
+**Findings** — the only file handling was the private source library (`genealogy_private` disk: evidence documents for reviewers, no publication or audience) and CSV imports. Neither is a media library, so they were kept as they are; media reuses the same patterns (private local disk, generated names, controlled downloads) and the Phase 3 content layer instead of a separate system.
+
+**Storage and delivery**
+- Disk `media` (configurable `MEDIA_DISK` / `MEDIA_ROOT`, any Laravel disk; default `storage/app/media`, outside every served disk root and not linked by `storage:link`). Paths are `{family}/{uuid[0..1]}/{uuid}.{ext}`; the client file name is kept only as display metadata (sanitized).
+- `MediaStorage::inspect`: type from the file's content (`finfo`) against an allow-list (JPEG, PNG, PDF, MP3, OGG); extension must agree; per-category size limits; image dimensions read and capped (`max_pixels_side`); markup or script in the first KB refused; PDF header checked; SHA-256 checksum. SVG, HTML, scripts and archives are never accepted.
+- Images get a display copy without metadata (EXIF/GPS/XMP/comments; PNG text/time chunks): re-encoded and resized to `display_max` with GD, then stripped; without GD, stripped in pure PHP. The unchanged original is served only to the owner entity's managers.
+- `MediaController` (`/media/{uuid}/{display|original}`): `MediaAccess` decides; anything not readable is a 404 (existence not revealed). Responses carry `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, `Cross-Origin-Resource-Policy: same-origin`; only public published display copies are cacheable.
+
+| Media state | Visitor | Family member | Owner-entity manager | Publisher (family / entity admin) |
+|---|---|---|---|---|
+| Published · public (entity page public) | display | display | display + original | display + original |
+| Published · members | — | display | display + original | display + original |
+| Published · restricted | — | — | — | display + original |
+| Draft / submitted / archived | — | — | display + original | display + original |
+
+**Data model** (migration `2026_10_26_125915_create_media_and_archive_tables`, reversible)
+- `media_items`: Phase 3 governance columns + family, uuid, disk, path, display path, original name, extension, MIME, size, checksum (unique per family — a file is stored once), dimensions, category, title, description, alt text, rights (status, holder, note), provenance, historical period/year.
+- `media_attachments`: polymorphic (archive entries, diwans, narratives), unique per file and record; `restrictOnDelete` on the file.
+- `archive_records`: governance + title, description, category (genealogy chart, manuscript, book/excerpt, document, photograph, written account, oral history, other), original source, period/years, contributor, optional person, rights.
+- `community_entities.cover_media_id`.
+- The shared audience gains `restricted` (family and entity administrators) for every content module.
+
+**Rules**
+- Publication checks (on publish and on every save of a published record): usage rights must allow the audience (public needs owned / permission / licensed / public domain; unknown rights stay within the family; «غير مسموح بنشره» stays restricted); published images need alternative text; private-residence diwans keep their consent rule.
+- Archive entries about a person who is not publicly visible are hidden from visitors (members still see them). Uploading never verifies anything; competing accounts remain separate narratives.
+- Attachments: same family only; diwans take images only; changing the files of a published record needs a publisher. Detaching never deletes the library file.
+- Deletion: only unpublished, unattached files that are not a cover; files are removed after the transaction commits. Upload failures after storing remove the stored files; replacement keeps the category, rejects duplicates, and deletes the old files only after commit. People referenced by archive entries cannot be deleted or merged away.
+- `php artisan media:verify [--delete-orphans]`: reports missing files, checksum mismatches and files without rows (left by interrupted uploads or a deleted family).
+- Every upload, replacement, attachment, review decision and deletion is audited; content recovery remains archive/restore (no generic revert for content types).
+
+**Portal** — new sections «الأرشيف والوثائق» and «الصور والوسائط» under the same scope switch; files attached to archive entries, diwans and narratives appear inside their records; an optional cover image in the hero. Each file shown is checked with the same `MediaAccess` rule as the route.
+
+**Performance** (same generator plus 126 images and 42 archive entries with 3 files each; SQLite, median of 3)
+
+| Page | 2,000 people | 10,000 people |
+|---|---|---|
+| Clan, with sub-branches, visitor (508 KB) | 199 ms · 71 queries | 391 ms · 71 queries |
+| Clan, with sub-branches, signed-in member | 255 ms · 77 queries | 393 ms · 77 queries |
+| Sub-fakhd, direct | 68 ms · 68 queries | 247 ms · 68 queries |
+
+A first version checked rights per file for signed-in viewers (177 queries); `MediaAccess` now computes the user's manage/publish scope once per family (`CommunityEntityAccess::manageableIds` / `publishableIds`), keeping the count constant.
+
+**Phase 3 closure** — JTH-15–20 and 32–35 are implemented; JTH-31 stays partial only because content search, API and export do not exist yet (they must reuse `EntityContentScope` + `visibleTo` + `MediaAccess` when built). Static Al-Zoubi pages remain until reviewed content is migrated.
+
+**Limitations**
+- No video, no in-browser image editing, no virus scanning service (signature/allow-list validation only).
+- Display copies are resized only where GD is installed (the PHP 8.3 images used for tests have none; the GD path was verified in a separate PHP 8.3 + GD container). EXIF orientation is not applied.
+- PDFs and audio are served as uploaded (their internal metadata is not rewritten); they are delivered sandboxed.
+- Files of a deleted family remain on disk until `media:verify --delete-orphans`.

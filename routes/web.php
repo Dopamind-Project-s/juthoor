@@ -29,6 +29,7 @@ use App\Http\Controllers\Management\RecordController;
 use App\Http\Controllers\Management\RelationshipController;
 use App\Http\Controllers\Management\SourceController;
 use App\Http\Controllers\Management\TreeController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\SiteAdmin\DashboardController as SiteAdminDashboardController;
 use App\Http\Controllers\SiteAdmin\FamilyController as SiteAdminFamilyController;
 use App\Http\Controllers\SiteAdmin\FamilyTreeController as SiteAdminFamilyTreeController;
@@ -79,6 +80,9 @@ Route::prefix('families/{family}/entities')->name('community.entities.')->middle
     Route::get('/', [CommunityEntityController::class, 'index'])->name('index');
     Route::get('/{entity}', [CommunityEntityController::class, 'show'])->name('show');
 });
+
+// Every community media file is delivered here; the controller applies publication, audience and role rules.
+Route::get('/media/{uuid}/{variant?}', [MediaController::class, 'show'])->whereUuid('uuid')->whereIn('variant', ['display', 'original'])->middleware('throttle:600,1')->name('media.show');
 
 Route::get('/shared-ancestry', [CrossFamilyLinkController::class, 'publicIndex'])->middleware('throttle:30,1')->name('shared-ancestry.index');
 
@@ -168,7 +172,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/entities/{entity}/managers', [ManagementCommunityEntityController::class, 'storeManager'])->whereNumber('entity')->name('management.entities.managers.store');
         Route::delete('/manage/families/{family}/entities/{entity}/managers/{manager}', [ManagementCommunityEntityController::class, 'destroyManager'])->whereNumber('entity')->whereNumber('manager')->name('management.entities.managers.destroy');
         Route::get('/manage/families/{family}/entity-review', [CommunityContentController::class, 'queue'])->name('management.entities.review');
-        Route::prefix('/manage/families/{family}/entities/{entity}/content/{module}')->where(['entity' => '[0-9]+', 'module' => 'history|locations|diwans|achievements'])->name('management.entities.content.')->group(function () {
+        Route::prefix('/manage/families/{family}/entities/{entity}/content/{module}')->where(['entity' => '[0-9]+', 'module' => 'history|locations|diwans|achievements|archive|media'])->name('management.entities.content.')->group(function () {
             Route::get('/', [CommunityContentController::class, 'index'])->name('index');
             Route::get('/create', [CommunityContentController::class, 'create'])->name('create');
             Route::post('/', [CommunityContentController::class, 'store'])->name('store');
@@ -179,6 +183,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/{record}/citations', [CommunityContentController::class, 'cite'])->whereNumber('record')->name('citations.store');
             Route::put('/{record}/citations/{citation}', [CommunityContentController::class, 'reviewCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.update');
             Route::delete('/{record}/citations/{citation}', [CommunityContentController::class, 'removeCitation'])->whereNumber('record')->whereNumber('citation')->name('citations.destroy');
+            Route::delete('/{record}', [CommunityContentController::class, 'destroy'])->whereNumber('record')->name('destroy');
+            Route::post('/{record}/media', [CommunityContentController::class, 'attach'])->whereNumber('record')->name('media.store');
+            Route::delete('/{record}/media/{attachment}', [CommunityContentController::class, 'detach'])->whereNumber('record')->whereNumber('attachment')->name('media.destroy');
         });
         Route::get('/manage/families/{family}/merges', [PersonMergeController::class, 'index'])->name('management.merges.index');
         Route::get('/manage/families/{family}/merges/preview', [PersonMergeController::class, 'preview'])->name('management.merges.preview');

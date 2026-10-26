@@ -1,0 +1,3 @@
+<label>حقوق الاستخدام<select class="form-select" name="rights_status">@foreach(\App\Models\ArchiveRecord::RIGHTS as $key => $label)<option value="{{ $key }}" @selected($v('rights_status', 'unknown') === $key)>{{ $label }}</option>@endforeach</select><small class="text-muted fw-normal">النشر للعامة يتطلب حقوقًا واضحة؛ الحقوق غير المحددة تُبقي المادة لأعضاء العائلة.</small>@error('rights_status')<span class="field-error">{{ $message }}</span>@enderror</label>
+<label>صاحب الحقوق<input class="form-control" name="rights_holder" value="{{ $v('rights_holder') }}" maxlength="255"></label>
+<label>ملاحظات الحقوق والإذن<textarea class="form-control" name="rights_note" rows="2" maxlength="2000">{{ $v('rights_note') }}</textarea></label>

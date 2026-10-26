@@ -5,7 +5,7 @@
     $selectedSubjects = array_map('intval', old('subjects', $subjects));
     $selectedAudiences = array_map('intval', old('audiences', $audiences));
     $locked = $record->exists && ! $canPublish && in_array($record->publication_status, ['published', 'archived'], true);
-    $actionLabels = ['created' => 'إنشاء', 'updated' => 'تعديل', 'submitted' => 'إرسال للمراجعة', 'review_publish' => 'نشر', 'review_decline' => 'إعادة إلى المسودة', 'review_archive' => 'أرشفة', 'review_restore' => 'استعادة من الأرشيف', 'deleted' => 'حذف'];
+    $actionLabels = ['created' => 'إنشاء', 'updated' => 'تعديل', 'submitted' => 'إرسال للمراجعة', 'review_publish' => 'نشر', 'review_decline' => 'إعادة إلى المسودة', 'review_archive' => 'أرشفة', 'review_restore' => 'استعادة من الأرشيف', 'deleted' => 'حذف', 'file_replaced' => 'استبدال الملف'];
 @endphp
 @section('page-heading', $moduleInfo['label'])
 @section('title', ($record->exists ? $record->content_title : 'سجل جديد').' — '.$entity->name_ar)
@@ -20,7 +20,7 @@
 </section>
 
 <section class="management-panel">
-    <form method="post" action="{{ $record->exists ? route('management.entities.content.update', [$family->slug, $entity->id, $module, $record->id]) : route('management.entities.content.store', [$family->slug, $entity->id, $module]) }}" class="management-grid entity-form" data-content-form>
+    <form method="post" action="{{ $record->exists ? route('management.entities.content.update', [$family->slug, $entity->id, $module, $record->id]) : route('management.entities.content.store', [$family->slug, $entity->id, $module]) }}" class="management-grid entity-form" data-content-form enctype="multipart/form-data">
         @csrf
         @if($record->exists) @method('PUT') @endif
         @include('management.entities.content.fields.'.$module)
@@ -63,9 +63,52 @@
                 @if($record->publication_status !== 'archived')<button class="btn btn-outline-secondary" name="decision" value="archive">أرشفة</button>@else<button class="btn btn-outline-primary" name="decision" value="restore">استعادة كمسودة</button>@endif
             </div>
             @error('residence_consent')<span class="field-error">{{ $message }}</span>@enderror
+            @error('rights_status')<span class="field-error">{{ $message }}</span>@enderror
+            @error('alt_text')<span class="field-error">{{ $message }}</span>@enderror
         </form>
     @endif
 </section>
+
+@if($attachments !== null)
+<section class="management-panel" aria-labelledby="attachments-heading" data-attachments>
+    <h2 class="h5" id="attachments-heading">الملفات المرفقة</h2>
+    <p class="small text-muted">تُرفق الملفات من مكتبة وسائط العائلة دون نسخها. يظهر الملف للزوار فقط إذا كان هو نفسه منشورًا لهم.</p>
+    <div class="management-list">
+        @forelse($attachments as $attachment)
+            <article data-attachment="{{ $attachment->id }}">
+                <div><strong>{{ $attachment->media?->title }}</strong><small>{{ $attachment->media?->status_label }} · {{ \App\Models\MediaItem::AUDIENCES[$attachment->media?->audience] ?? '' }}@if($attachment->caption) · {{ $attachment->caption }}@endif</small></div>
+                <form method="post" action="{{ route('management.entities.content.media.destroy', [$family->slug, $entity->id, $module, $record->id, $attachment->id]) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">إزالة من السجل</button></form>
+            </article>
+        @empty
+            <p class="text-muted mb-0">لا توجد ملفات مرفقة.</p>
+        @endforelse
+    </div>
+    <form method="post" action="{{ route('management.entities.content.media.store', [$family->slug, $entity->id, $module, $record->id]) }}" class="management-grid mt-3" data-attach-form>
+        @csrf
+        <label>ملف من المكتبة<select class="form-select" name="media_item_id" required><option value="">اختر ملفًا</option>@foreach($library as $item)<option value="{{ $item->id }}">{{ $item->title }} — {{ \App\Models\MediaItem::CATEGORIES[$item->category] ?? '' }} · {{ $item->status_label }}</option>@endforeach</select>@error('media_item_id')<span class="field-error">{{ $message }}</span>@enderror</label>
+        <label>تعليق (اختياري)<input class="form-control" name="caption" maxlength="500"></label>
+        <button class="btn btn-outline-primary">إرفاق</button>
+    </form>
+    <p class="small mt-2 mb-0"><a href="{{ route('management.entities.content.create', [$family->slug, $entity->id, 'media']) }}">رفع ملف جديد إلى المكتبة</a></p>
+</section>
+@endif
+
+@if($module === 'media')
+<section class="management-panel" aria-labelledby="usage-heading" data-media-usage>
+    <h2 class="h5" id="usage-heading">استخدامات الملف</h2>
+    <ul class="small">
+        @foreach($usage as $attachment)<li>{{ $attachment->attachable?->content_title }} ({{ class_basename($attachment->attachable_type) }})</li>@endforeach
+        @foreach($coverOf as $covered)<li>صورة غلاف: {{ $covered->name_ar }}</li>@endforeach
+        @if($usage->isEmpty() && $coverOf->isEmpty())<li class="text-muted">غير مستخدم في سجلات أخرى.</li>@endif
+    </ul>
+    @if($usage->isEmpty() && $coverOf->isEmpty() && $record->publication_status !== 'published')
+        <form method="post" action="{{ route('management.entities.content.destroy', [$family->slug, $entity->id, $module, $record->id]) }}" onsubmit="return confirm('حذف الملف نهائيًا؟')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" data-delete-media>حذف الملف نهائيًا</button></form>
+    @else
+        <p class="small text-muted mb-0">لا يُحذف ملف منشور أو مستخدم؛ يمكن أرشفته.</p>
+    @endif
+    @error('media')<span class="field-error">{{ $message }}</span>@enderror
+</section>
+@endif
 
 <section class="management-panel" aria-labelledby="citations-heading">
     <h2 class="h5" id="citations-heading">المصادر والاستشهادات</h2>

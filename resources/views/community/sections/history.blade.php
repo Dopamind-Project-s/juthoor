@@ -11,6 +11,7 @@
                     @if($narrative->period_label || $narrative->start_year)<span class="small text-muted">{{ $narrative->period_label }}@if($narrative->start_year) ({{ $narrative->start_year }}@if($narrative->end_year)–{{ $narrative->end_year }}@endif)@endif</span>@endif
                 </div>
                 <div class="entity-description">{!! nl2br(e($narrative->body)) !!}</div>
+                <x-community.media-strip :attachments="$narrative->mediaAttachments" :visible-media="$visibleMedia" />
                 <x-community.evidence :record="$narrative" :entity="$entity" />
             </article>
         @endforeach

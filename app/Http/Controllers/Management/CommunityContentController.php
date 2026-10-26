@@ -6,18 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\CommunityEntity;
 use App\Models\ContentCitation;
+use App\Models\Diwan;
 use App\Models\EntityContentLink;
 use App\Models\Family;
+use App\Models\MediaItem;
 use App\Services\Community\CommunityContentModules;
 use App\Services\Community\CommunityContentService;
 use App\Services\Community\CommunityEntityAccess;
 use App\Services\Community\CommunityHierarchy;
+use App\Services\Community\MediaService;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -59,7 +64,9 @@ class CommunityContentController extends Controller
     {
         [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
         $model = CommunityContentModules::model($module);
-        $record = $this->content->save($request->user(), $entityModel, new $model, ...$this->input($request, $familyModel, $model));
+        $record = $module === 'media'
+            ? app(MediaService::class)->upload($request->user(), $entityModel, $this->file($request, true), ...$this->input($request, $familyModel, $model))
+            : $this->content->save($request->user(), $entityModel, new $model, ...$this->input($request, $familyModel, $model));
 
         return redirect()->route('management.entities.content.edit', [$familyModel->slug, $entityModel->id, $module, $record->id])->with('status', 'تم حفظ السجل.');
     }
@@ -72,6 +79,13 @@ class CommunityContentController extends Controller
         return view('management.entities.content.form', [
             ...$this->formData($request, $familyModel, $entityModel, $module, $recordModel),
             'citations' => $recordModel->citations()->with('source:id,title')->orderBy('id')->get(),
+            'attachments' => method_exists($recordModel, 'mediaAttachments') ? $recordModel->mediaAttachments()->with('media')->get() : null,
+            'library' => method_exists($recordModel, 'mediaAttachments')
+                ? MediaItem::query()->where('family_id', $familyModel->id)->where('publication_status', '!=', MediaItem::STATUS_ARCHIVED)
+                    ->when($recordModel instanceof Diwan, fn ($query) => $query->where('category', 'image'))->orderBy('title')->limit(300)->get(['id', 'title', 'category', 'publication_status', 'audience'])
+                : collect(),
+            'usage' => $recordModel instanceof MediaItem ? $recordModel->attachments()->with('attachable')->get() : collect(),
+            'coverOf' => $recordModel instanceof MediaItem ? CommunityEntity::query()->where('cover_media_id', $recordModel->id)->get(['id', 'name_ar']) : collect(),
             'sources' => $familyModel->sources()->whereDoesntHave('citations', fn ($citations) => $citations->whereNotNull('cross_family_link_id'))->orderBy('title')->limit(300)->get(['id', 'title']),
             'history' => AuditLog::query()->where('family_id', $familyModel->id)->visibleToMember($request->user(), $familyModel)
                 ->where(fn ($logs) => $logs->where(fn ($own) => $own->where('auditable_type', $recordModel->getMorphClass())->where('auditable_id', $recordModel->id))
@@ -84,9 +98,46 @@ class CommunityContentController extends Controller
     {
         [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
         $recordModel = $this->record($entityModel, $module, $record);
-        $this->content->save($request->user(), $entityModel, $recordModel, ...$this->input($request, $familyModel, $recordModel::class));
+        $input = $this->input($request, $familyModel, $recordModel::class);
+        if ($module === 'media' && $request->hasFile('file')) {
+            app(MediaService::class)->replace($request->user(), $recordModel, $this->file($request, false));
+        }
+        $this->content->save($request->user(), $entityModel, $recordModel->refresh(), ...$input);
 
         return back()->with('status', 'تم تحديث السجل.');
+    }
+
+    /** Deletes an unused, unpublished media file; anything else is archived instead. */
+    public function destroy(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
+    {
+        [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
+        abort_unless($module === 'media', 404);
+        app(MediaService::class)->delete($request->user(), $this->record($entityModel, $module, $record));
+
+        return redirect()->route('management.entities.content.index', [$familyModel->slug, $entityModel->id, $module])->with('status', 'حُذف الملف.');
+    }
+
+    public function attach(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
+    {
+        [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
+        $recordModel = $this->record($entityModel, $module, $record);
+        abort_unless(method_exists($recordModel, 'mediaAttachments'), 404);
+        $data = $request->validate(['media_item_id' => ['required', 'integer'], 'caption' => ['nullable', 'string', 'max:500']]);
+        $media = MediaItem::query()->where('family_id', $familyModel->id)->whereKey($data['media_item_id'])->first()
+            ?? throw ValidationException::withMessages(['media_item_id' => 'الملف ليس من مكتبة العائلة نفسها.']);
+        app(MediaService::class)->attach($request->user(), $recordModel, $media, $data['caption'] ?? null);
+
+        return back()->with('status', 'أُرفق الملف.');
+    }
+
+    public function detach(Request $request, string $family, int $entity, string $module, int $record, int $attachment): RedirectResponse
+    {
+        [, $entityModel] = $this->context($family, $entity, 'update');
+        $recordModel = $this->record($entityModel, $module, $record);
+        abort_unless(method_exists($recordModel, 'mediaAttachments'), 404);
+        app(MediaService::class)->detach($request->user(), $recordModel, $recordModel->mediaAttachments()->findOrFail($attachment));
+
+        return back()->with('status', 'أُزيل الملف من السجل دون حذفه من المكتبة.');
     }
 
     public function submit(Request $request, string $family, int $entity, string $module, int $record): RedirectResponse
@@ -196,8 +247,16 @@ class CommunityContentController extends Controller
             'subjects' => $record->exists ? $links->where('relation', EntityContentLink::RELATION_SUBJECT)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all() : [$entity->id],
             'audiences' => $links->where('relation', EntityContentLink::RELATION_AUDIENCE)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all(),
             'canPublish' => $request->user()->can('publish', $entity),
-            'citations' => collect(), 'sources' => collect(), 'history' => collect(),
+            'citations' => collect(), 'sources' => collect(), 'history' => collect(), 'attachments' => null, 'library' => collect(), 'usage' => collect(), 'coverOf' => collect(),
         ];
+    }
+
+    private function file(Request $request, bool $required): UploadedFile
+    {
+        // Type, signature, size and dimensions are checked by MediaStorage::inspect from the file's content.
+        $request->validate(['file' => [$required ? 'required' : 'nullable', 'file']], ['file.required' => 'اختر ملفًا لرفعه.']);
+
+        return $request->file('file');
     }
 
     /** @return array{Family, CommunityEntity} */

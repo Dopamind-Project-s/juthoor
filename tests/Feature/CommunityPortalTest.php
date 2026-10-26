@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Source;
 use App\Models\User;
+use App\Services\Community\CommunityContentModules;
 use App\Services\Community\CommunityContentService;
 use App\Services\Genealogy\PersonMergeService;
 use Illuminate\Database\Eloquent\Model;
@@ -361,7 +362,7 @@ test('administration pages for every module render for managers', function () {
 
     $this->get(route('management.entities.edit', ['zain', $this->fakhd->id]))->assertOk()->assertSee('محتوى الصفحة')
         ->assertSee(route('management.entities.content.index', ['zain', $this->fakhd->id, 'achievements']), false);
-    foreach (['history', 'locations', 'diwans', 'achievements'] as $module) {
+    foreach (array_keys(CommunityContentModules::MODULES) as $module) {
         $this->get(route('management.entities.content.index', ['zain', $this->fakhd->id, $module]))->assertOk();
         $this->get(route('management.entities.content.create', ['zain', $this->fakhd->id, $module]))->assertOk()->assertSee('data-content-form', false);
     }

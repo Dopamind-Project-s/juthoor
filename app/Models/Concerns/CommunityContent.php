@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /**
  * Governance shared by every community content module: owner entity and entity links (HasCommunityEntities),
  * publication (draft → submitted → published / archived), verification, audience, review and evidence.
- * Published public records are visible to everyone; published member records only to members of the owner's family.
+ * Published public records are visible to everyone; published member records only to members of the owner's family;
+ * restricted records never appear on pages and are reached only through administration (and the media route).
  */
 trait CommunityContent
 {
@@ -36,7 +37,7 @@ trait CommunityContent
     ];
 
     /** @var array<string, string> */
-    public const AUDIENCES = ['public' => 'العامة', 'members' => 'أعضاء العائلة فقط'];
+    public const AUDIENCES = ['public' => 'العامة', 'members' => 'أعضاء العائلة فقط', 'restricted' => 'مقيد (مدراء العائلة والكيان)'];
 
     /** @var array<string, string> */
     public const VERIFICATION_STATUSES = [

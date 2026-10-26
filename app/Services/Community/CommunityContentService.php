@@ -7,6 +7,7 @@ use App\Models\ContentCitation;
 use App\Models\Diwan;
 use App\Models\EntityContentLink;
 use App\Models\Family;
+use App\Models\MediaItem;
 use App\Models\Source;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -66,8 +67,11 @@ class CommunityContentService
             if ($status === $record::STATUS_SUBMITTED && $record->getOriginal('publication_status') !== $record::STATUS_SUBMITTED) {
                 $record->submitted_at = now();
             }
-            if ($status === $record::STATUS_PUBLISHED && $record->getOriginal('publication_status') !== $record::STATUS_PUBLISHED) {
+            // Re-checked on every save of a published record, so a later audience or rights change cannot slip through.
+            if ($status === $record::STATUS_PUBLISHED) {
                 $this->assertPublishable($record);
+            }
+            if ($status === $record::STATUS_PUBLISHED && $record->getOriginal('publication_status') !== $record::STATUS_PUBLISHED) {
                 $record->fill(['reviewed_at' => now(), 'reviewed_by' => $user->id]);
             }
             $record->save();
@@ -183,11 +187,20 @@ class CommunityContentService
         $wanted->each(fn ($pair) => $this->scope->link($record, $entities[$pair[1]], $pair[0]));
     }
 
-    /** A private residence is published only with the owner's recorded consent. */
+    /**
+     * Publication preconditions: a private residence needs recorded consent; heritage material needs usage rights that
+     * allow its audience (no public copyrighted material without permission); published images need alternative text.
+     */
     private function assertPublishable(Model $record): void
     {
         if ($record instanceof Diwan && $record->is_private_residence && ! $record->residence_consent) {
             throw ValidationException::withMessages(['residence_consent' => 'لا يُنشر منزل خاص بوصفه ديوانًا إلا بموافقة مسجلة من صاحبه.']);
+        }
+        if (method_exists($record, 'rightsAllowAudience') && ! $record->rightsAllowAudience($record->audience)) {
+            throw ValidationException::withMessages(['rights_status' => 'حقوق الاستخدام لا تسمح بهذا الجمهور: النشر للعامة يتطلب حقوقًا واضحة (ملكية أو إذن أو رخصة أو ملك عام)، والمواد غير المسموح بنشرها تبقى مقيدة.']);
+        }
+        if ($record instanceof MediaItem && $record->isImage() && blank($record->alt_text)) {
+            throw ValidationException::withMessages(['alt_text' => 'أضف نصًا بديلًا يصف الصورة قبل نشرها.']);
         }
     }
 

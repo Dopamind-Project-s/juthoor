@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CommunityContent;
+use App\Models\Concerns\HasMediaAttachments;
 use Closure;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Illuminate\Validation\Rule;
 #[Fillable(['owner_entity_id', 'publication_status', 'verification_status', 'audience', 'review_note', 'submitted_at', 'reviewed_at', 'reviewed_by', 'created_by', 'sort_order', 'name', 'kind', 'description', 'governorate', 'city', 'public_address', 'latitude', 'longitude', 'google_place_id', 'maps_url', 'contact_name', 'contact_phone', 'contact_consent', 'visit_instructions', 'is_private_residence', 'residence_consent'])]
 class Diwan extends Model
 {
-    use CommunityContent;
+    use CommunityContent, HasMediaAttachments;
 
     /** @var array<string, string> */
     public const KINDS = ['diwan' => 'ديوان', 'madafa' => 'مضافة', 'hall' => 'قاعة مناسبات'];

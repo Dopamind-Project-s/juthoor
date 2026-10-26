@@ -29,6 +29,9 @@ return [
     */
 
     'disks' => [
+        // Community media: never served directly; every file goes through the authorizing media route.
+        'media' => ['driver' => 'local', 'root' => env('MEDIA_ROOT') ?: storage_path('app/media'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
+
         'genealogy_private' => ['driver' => 'local', 'root' => env('GENEALOGY_PRIVATE_ROOT') ?: storage_path('app/private/genealogy'), 'serve' => false, 'visibility' => 'private', 'throw' => true],
 
         'local' => [

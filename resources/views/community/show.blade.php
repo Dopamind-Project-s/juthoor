@@ -5,10 +5,11 @@
     $counts = [
         'history' => $content['history']->count(), 'locations' => $content['locations']->count(), 'diwans' => $content['diwans']->count(),
         'achievements' => $content['achievements']->count(), 'sources' => $sources->count(), 'children' => $children->count(),
+        'archive' => $content['archive']->count(), 'media' => $content['media']->filter(fn ($media) => isset($visibleMedia[$media->id]))->count(),
     ];
 @endphp
 @section('content')
-<section class="branch-hero entity-hero">
+<section class="branch-hero entity-hero {{ $cover ? 'has-cover' : '' }}" @if($cover) style="--entity-cover: url('{{ $cover->url() }}')" data-entity-cover @endif>
     <div class="container">
         <x-community.breadcrumb :family="$family" :ancestors="$ancestors" :current="$entity" :preview="$preview" light />
         <div class="d-flex flex-wrap gap-2 mt-3">
@@ -40,11 +41,13 @@
         <div class="col-lg-8 d-grid gap-4 align-content-start">
             @include('community.sections.overview')
             @include('community.sections.history')
+            @include('community.sections.archive')
             @include('community.sections.locations')
             @include('community.sections.genealogy')
             @include('community.sections.statistics')
             @include('community.sections.diwans')
             @include('community.sections.achievements')
+            @include('community.sections.media')
             @include('community.sections.sources')
             @include('community.sections.children')
         </div>

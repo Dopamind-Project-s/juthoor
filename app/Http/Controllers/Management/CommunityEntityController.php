@@ -8,6 +8,7 @@ use App\Models\CommunityEntity;
 use App\Models\CommunityEntityManager;
 use App\Models\Family;
 use App\Models\FamilyMembership;
+use App\Models\MediaItem;
 use App\Services\AuditLogger;
 use App\Services\Community\CommunityContentModules;
 use App\Services\Community\CommunityEntityAccess;
@@ -153,11 +154,12 @@ class CommunityEntityController extends Controller
             'publication_status' => ['required', Rule::in(array_keys(CommunityEntity::STATUSES))],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'mark_reviewed' => ['nullable', 'boolean'],
+            'cover_media_id' => ['nullable', 'integer', Rule::exists('media_items', 'id')->where('family_id', $family->id)->where('category', 'image')],
             'population_estimate' => ['nullable', 'integer', 'min:1', 'max:100000000'],
             'population_estimate_year' => ['nullable', 'integer', 'between:1800,2100', 'required_with:population_estimate'],
             // An estimate is shown only with an independent source from the family library.
             'population_estimate_source_id' => ['nullable', 'integer', 'required_with:population_estimate', Rule::exists('sources', 'id')->where('family_id', $family->id)],
-        ], ['population_estimate_source_id.required_with' => 'التعداد التقديري يتطلب مصدرًا مستقلًا من مكتبة المصادر.', 'slug.unique' => 'الرابط المختصر مستخدم لكيان آخر في هذه العائلة.', 'branch_id.unique' => 'لهذا الفرع صفحة كيان أخرى؛ لكل فرع صفحة واحدة.']);
+        ], ['cover_media_id.exists' => 'صورة الغلاف يجب أن تكون صورة من مكتبة العائلة.', 'population_estimate_source_id.required_with' => 'التعداد التقديري يتطلب مصدرًا مستقلًا من مكتبة المصادر.', 'slug.unique' => 'الرابط المختصر مستخدم لكيان آخر في هذه العائلة.', 'branch_id.unique' => 'لهذا الفرع صفحة كيان أخرى؛ لكل فرع صفحة واحدة.']);
 
         $parent = isset($data['parent_id']) ? $this->entity($family, (int) $data['parent_id']) : null;
         if (! $entity->exists || (int) $entity->parent_id !== (int) $parent?->id) {
@@ -186,6 +188,7 @@ class CommunityEntityController extends Controller
                     'branch_id' => $branch?->id,
                     'publication_status' => $data['publication_status'],
                     'sort_order' => $data['sort_order'] ?? 0,
+                    'cover_media_id' => $data['cover_media_id'] ?? null,
                     'population_estimate' => $data['population_estimate'] ?? null,
                     'population_estimate_year' => isset($data['population_estimate']) ? ($data['population_estimate_year'] ?? null) : null,
                     'population_estimate_source_id' => isset($data['population_estimate']) ? ($data['population_estimate_source_id'] ?? null) : null,
@@ -248,6 +251,8 @@ class CommunityEntityController extends Controller
                 ->whereDoesntHave('communityEntity', fn ($entities) => $entities->whereKeyNot($entity->id ?? 0))
                 ->with('familyTree:id,name_ar', 'rootPerson:id,full_name_ar')->orderBy('name_ar')->get(),
             'canPublish' => $request->user()->can('publish', $entity),
+            // The cover is chosen among the family's images; the public page shows it only while it is published for everyone.
+            'coverImages' => MediaItem::query()->where('family_id', $family->id)->where('category', 'image')->where('publication_status', '!=', MediaItem::STATUS_ARCHIVED)->orderBy('title')->limit(300)->get(['id', 'title', 'publication_status', 'audience']),
             'estimateSources' => $family->sources()->whereDoesntHave('citations', fn ($citations) => $citations->whereNotNull('cross_family_link_id'))->orderBy('title')->limit(300)->get(['id', 'title']),
             'canCreateRoot' => $request->user()->can('create', [CommunityEntity::class, $family, null]),
         ];
