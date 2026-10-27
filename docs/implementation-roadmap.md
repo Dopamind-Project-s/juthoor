@@ -321,7 +321,7 @@ Details: `docs/project-audit.md` §19.
 - [x] **Verification (E)**:
   - 13 new tests.
   - SQLite 441/441, PostgreSQL 16 441/441, Node 11/11.
-  - Chrome 16/16 journeys.
+  - Chrome 20/20 journeys.
   - Performance measured.
   - Screenshots in `docs/screenshots/ux-p0.4-p0.5/`.
 - [x] **Fixture**: `HeritageShowcaseFixtureSeeder`, synthetic, labelled, opt-in, local/testing only.

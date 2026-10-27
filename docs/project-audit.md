@@ -799,9 +799,9 @@ The directory on a 10,000-person tree now loads the public graph once to count p
 
 ### 19.7 Screenshots
 
-`docs/screenshots/ux-p0.4-p0.5/` contains 14 before-shots and 14 after-shots at desktop and 390 px.
+`docs/screenshots/ux-p0.4-p0.5/` contains 14 before-shots and 17 after-shots at desktop and 390 px.
 - **Before:** the platform home, the Al-Zoubi portal and legacy page, the directory, the clan and fakhd pages, and the person page.
-- **After:** the Al-Zoubi portal, the showcase landing, the directory, the history, tree, archive and sub-fakhd tabs, a diwan page and the mobile pages.
+- **After:** the Al-Zoubi portal, the showcase landing, the directory, the history, tree, archive and sub-fakhd tabs, a diwan page, the mobile pages, a second family's branding, an entity preview and the entity editor.
 
 ### 19.8 Limitations
 

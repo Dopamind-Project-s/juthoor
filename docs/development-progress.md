@@ -4,7 +4,7 @@ Use this file to resume work without repeating the audit. Statuses and IDs refer
 
 ## Current state (2026-10-27, after session 16 — UX-P0.4 + UX-P0.5)
 
-- Branch `main` at `5ef3cb3` (UX-P0.3 committed by the maintainer). Session 16 changes are uncommitted: nothing was committed, pushed, tagged or deployed by the assistant.
+- Branch `main` at `66951e2` (UX-P0.4 + UX-P0.5 committed by the maintainer). Journeys 17–20, their three screenshots and these doc updates came after that commit and are uncommitted. Nothing was committed, pushed, tagged or deployed by the assistant.
 - Suite: **441 passed / 0 failed** on SQLite and on PostgreSQL 16 (4913 assertions). Node layout tests: 11/11.
 - UX-P0.4 and UX-P0.5 are complete:
   - unified design system and family-site frame;
@@ -127,7 +127,7 @@ UX-P0.6 (see `docs/implementation-roadmap.md`, "UX-P0.6 readiness").
 ### Session 16 — UX-P0.4 + UX-P0.5 portals and heritage experience
 | Area | Change | Files | Tests / verification |
 |---|---|---|---|
-| Design system | Tokens, legacy aliases and `.j-*` components; loaded by all layouts | `public/css/design-system.css`, `layouts/*.blade.php`, `components/ui/*` | Chrome 16/16 |
+| Design system | Tokens, legacy aliases and `.j-*` components; loaded by all layouts | `public/css/design-system.css`, `layouts/*.blade.php`, `components/ui/*` | Chrome 20/20 |
 | Family frame | Shared header, mobile menu, footer, branding and navigation (`FamilySiteChrome`, view composer) | `layouts/family-site.blade.php`, `components/family-site/*`, `app/Services/Portal/FamilySiteChrome.php`, `AppServiceProvider.php`, portal, news, events and directory views | `FamilyPortalTest` (palette assertions now `--j-brand`), `EntityPortalExperienceTest` |
 | Landing | Geography and gallery sections; new sections merged into saved settings | `PortalSettings.php`, `portal/sections/geography.blade.php`, `gallery.blade.php` | `EntityPortalExperienceTest` |
 | Directory | `EntityDirectory` (founders, counts, covers, search, filters) | `app/Services/Community/EntityDirectory.php`, `CommunityEntityController.php`, `community/index.blade.php` | `EntityPortalExperienceTest`, `CommunityEntityTest` |
@@ -299,7 +299,7 @@ UX-P0.6 (see `docs/implementation-roadmap.md`, "UX-P0.6 readiness").
 | Full suite, PostgreSQL 16 | 441 / 441 (4913 assertions) |
 | Node | 11 / 11 |
 | Pint | pass |
-| Chrome 16/16, no console errors | 1. Al-Zoubi host landing<br>2. Geography and gallery sections<br>3. Directory order and founders<br>4. Search by founder<br>5. Level filter<br>6. Tabs by click and RTL keys<br>7. Deep link and alternative-account filter<br>8. Tree embed on demand, chrome hidden, one graph request<br>9. Scope narrowing<br>10. Founder card and breadcrumb<br>11. Shared diwan page<br>12. Contact hidden without consent<br>13. Notable-people privacy<br>14. Archive filter and secure gallery<br>15. Sources and labels<br>16. 390 px with no overflow and a working menu |
+| Chrome 20/20, no console errors | 1. Al-Zoubi host landing<br>2. Geography and gallery sections<br>3. Directory order and founders<br>4. Search by founder<br>5. Level filter<br>6. Tabs by click and RTL keys<br>7. Deep link and alternative-account filter<br>8. Tree embed on demand, chrome hidden, one graph request<br>9. Scope narrowing<br>10. Founder card and breadcrumb<br>11. Shared diwan page<br>12. Contact hidden without consent<br>13. Notable-people privacy<br>14. Archive filter and secure gallery<br>15. Sources and labels<br>16. 390 px with no overflow and a working menu<br>17. Founder → person page → tree focused on the person<br>18. Two families with distinct branding on the same frame<br>19. Authorized preview of a draft entity (visitors get 404)<br>20. Management: new portal sections and entity cover selection |
 | Performance | `docs/project-audit.md` §19.6 |
 | Not run | Safari/Firefox; real devices; MySQL |
 
