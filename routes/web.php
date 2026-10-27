@@ -28,6 +28,7 @@ use App\Http\Controllers\Management\NameReconciliationController;
 use App\Http\Controllers\Management\PersonAttributeController;
 use App\Http\Controllers\Management\PersonController;
 use App\Http\Controllers\Management\PersonMergeController;
+use App\Http\Controllers\Management\PortalSettingsController;
 use App\Http\Controllers\Management\RecordController;
 use App\Http\Controllers\Management\RelationshipController;
 use App\Http\Controllers\Management\SourceController;
@@ -35,8 +36,10 @@ use App\Http\Controllers\Management\TreeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MemberDirectoryController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Portal\FamilyPortalController;
 use App\Http\Controllers\SiteAdmin\DashboardController as SiteAdminDashboardController;
 use App\Http\Controllers\SiteAdmin\FamilyController as SiteAdminFamilyController;
+use App\Http\Controllers\SiteAdmin\FamilyDomainController as SiteAdminFamilyDomainController;
 use App\Http\Controllers\SiteAdmin\FamilyTreeController as SiteAdminFamilyTreeController;
 use App\Http\Controllers\SiteAdmin\ResourceController;
 use App\Http\Controllers\SiteAdmin\RoleController as SiteAdminRoleController;
@@ -44,21 +47,32 @@ use App\Http\Controllers\SiteAdmin\SeedAuditController;
 use App\Http\Controllers\SiteAdmin\UserController as SiteAdminUserController;
 use App\Models\Family;
 use App\Services\Community\CommunityContentModules;
+use App\Services\Portal\FamilyHosts;
 use Illuminate\Support\Facades\Route;
 
 $data = static fn (string $file): array => require resource_path("data/al-zoubi/{$file}.php");
 
-Route::get('/', fn () => view('juthoor.home', ['family' => $data('family'), 'publicFamilies' => Family::query()->active()->whereHas('familyTrees', fn ($query) => $query->active())->with(['familyTrees' => fn ($query) => $query->active()])->orderBy('name_ar')->get()]))->name('home');
+Route::get('/', [FamilyPortalController::class, 'home'])->name('home');
 Route::view('/ui', 'pages.ui')->name('ui');
-Route::redirect('/families/al-zoubi', '/al-zoubi');
+// Migration: the static Al-Zoubi site stays the default until JUTHOOR_PORTAL_CANONICAL is enabled after comparison.
+$canonicalPortal = (bool) config('portals.canonical_portal');
+if (! $canonicalPortal) {
+    Route::redirect('/families/al-zoubi', '/al-zoubi');
+}
+Route::get('/families/{family}', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.show');
+Route::get('/families/{family}/portal', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.page');
 Route::redirect('/families/al-zoubi/branches', '/al-zoubi/branches');
 Route::redirect('/al-zoubi/tree', '/families/al-zoubi/tree')->name('family.tree');
 
-Route::prefix('al-zoubi')->name('family.')->group(function () use ($data) {
-    Route::view('/', 'families.al-zoubi.home', [
-        'family' => $data('family'), 'genealogy' => $data('genealogy'), 'branches' => $data('branches'),
-        'history' => $data('history'), 'people' => $data('people'), 'archive' => $data('archive'),
-    ])->name('home');
+Route::prefix('al-zoubi')->name('family.')->group(function () use ($data, $canonicalPortal) {
+    if ($canonicalPortal) {
+        Route::get('/', fn () => redirect()->to(app(FamilyHosts::class)->portalUrl(Family::query()->active()->where('slug', 'al-zoubi')->firstOrFail())))->name('home');
+    } else {
+        Route::view('/', 'families.al-zoubi.home', [
+            'family' => $data('family'), 'genealogy' => $data('genealogy'), 'branches' => $data('branches'),
+            'history' => $data('history'), 'people' => $data('people'), 'archive' => $data('archive'),
+        ])->name('home');
+    }
     Route::view('/history', 'families.al-zoubi.history', ['history' => $data('history')])->name('history');
     Route::view('/branches', 'families.al-zoubi.branches.index', ['branches' => $data('branches')])->name('branches');
 
@@ -245,6 +259,15 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/site-admin/users', [SiteAdminUserController::class, 'store'])->name('site-admin.users.store');
         Route::get('/site-admin/seed-audit', SeedAuditController::class)->name('site-admin.seed-audit');
+        Route::get('/site-admin/domains', [SiteAdminFamilyDomainController::class, 'index'])->name('site-admin.domains.index');
+        Route::post('/site-admin/domains', [SiteAdminFamilyDomainController::class, 'store'])->middleware('throttle:30,1')->name('site-admin.domains.store');
+        Route::post('/site-admin/domains/{domain}/{action}', [SiteAdminFamilyDomainController::class, 'transition'])->whereNumber('domain')->whereIn('action', ['verify', 'activate', 'disable', 'reopen'])->name('site-admin.domains.transition');
+        Route::get('/manage/families/{family}/portal', [PortalSettingsController::class, 'edit'])->name('management.portal.edit');
+        Route::put('/manage/families/{family}/portal', [PortalSettingsController::class, 'update'])->name('management.portal.update');
+        Route::post('/manage/families/{family}/portal/publish', [PortalSettingsController::class, 'publish'])->name('management.portal.publish');
+        Route::get('/manage/families/{family}/portal/preview', [FamilyPortalController::class, 'preview'])->name('management.portal.preview');
+        Route::post('/manage/families/{family}/domains', [PortalSettingsController::class, 'requestDomain'])->middleware('throttle:10,1')->name('management.domains.store');
+        Route::delete('/manage/families/{family}/domains/{domain}', [PortalSettingsController::class, 'withdrawDomain'])->whereNumber('domain')->name('management.domains.destroy');
         Route::get('/site-admin/roles', [SiteAdminRoleController::class, 'index'])->name('site-admin.roles.index');
         Route::post('/site-admin/roles', [SiteAdminRoleController::class, 'store'])->name('site-admin.roles.store');
         Route::put('/site-admin/roles/{role}', [SiteAdminRoleController::class, 'update'])->whereNumber('role')->name('site-admin.roles.update');

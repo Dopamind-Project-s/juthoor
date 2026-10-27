@@ -2,16 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-27, after session 13 — UX-P0.1)
+## Current state (2026-10-27, after session 14 — UX-P0.2)
 
-- Branch `main` at `4ed00b1`; session 13 (UX-P0.1) changes are uncommitted (nothing committed, pushed or tagged by the assistant).
-- Suite: **404 passed / 0 failed** on SQLite and PostgreSQL 16 (367 before the session + 37 new).
-- UX-P0.1 complete: person management from the tree, guided creation, sectioned editing, review context; permission catalog with functional roles and a safe role seeder; create-only family/genealogy seeders, seed preflight audit, family bootstrap, opt-in demo fixtures. Details in `docs/project-audit.md` §16.
-- Still deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook, multi-family entity ownership, subdomains, portal redesign. The 39 ROOT spellings and 34 pending Qawasmeh records remain for human review.
+- Branch `main` at `9882e9f` (UX-P0.1 committed by the maintainer); session 14 (UX-P0.2) changes are uncommitted (nothing committed, pushed, tagged or deployed by the assistant).
+- Suite: **421 passed / 0 failed** on SQLite (404 before the session + 17 new). PostgreSQL 16: baseline 404/404 verified; the final run after the changes did not complete — re-run before release.
+- UX-P0.2 complete in code: private datasets out of the web root; family domain lifecycle and host routing (off by default); dynamic, database-backed family portals with branding draft/preview/publish. `al-zoubi.juthoor.dopamind.cloud` is **not** live: DNS, TLS and proxy are unverified.
+- Still deferred: Phase 2.6, 2.7 (GEDCOM), Facebook, CV/job backends, multi-family entity ownership.
 
 ## Next task to execute
 
-UX-P0.2 / UX-00–01 — design system and portal screens built on the verified workflows (see `docs/implementation-roadmap.md`, "UX-P0.2 readiness"); Phase 5 production readiness follows.
+UX-P0.3 — tree experience behind the existing tree route (see `docs/implementation-roadmap.md`, "UX-P0.3 readiness"); production enablement of the Al-Zoubi host is an infrastructure task (`docs/project-audit.md` §17.2).
 
 ## Work log
 
@@ -118,6 +118,16 @@ UX-P0.2 / UX-00–01 — design system and portal screens built on the verified 
 | Administration | media/archive forms, attachments, usage, delete, cover choice | `CommunityContentController.php`, `management/entities/content/{form,fields/*}.blade.php`, `Management/CommunityEntityController.php`, `management/entities/form.blade.php` | admin tests; Chrome |
 | Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
 | Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
+
+### Session 14 — UX-P0.2 family domains, portals & branding
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Baseline | `9882e9f`, 404/404 both engines (PostgreSQL re-run on a clean HEAD worktree) | — | — |
+| SD-08 | 30 private dataset/source files moved to `resources/data/source-documents/`; resolver; consumers updated; audit expectations now `ok` | `Imports/SourceDocuments.php`, `AlZoubiDataset.php`, `AlQawasmehBranchImporter.php`, `SeedAuditService.php`, `SeedAuditCommandTest.php` | `PrivateDatasetExposureTest` (3); checksums verified before/after |
+| Domains | lifecycle model, request/verify/activate/disable/reopen/withdraw, reserved labels, host middleware, platform redirects keep the port | migration `2026_10_27_082059_create_family_domains_and_portal_settings_tables`, `FamilyDomain.php`, `Portal/FamilyHosts.php`, `Middleware/ResolveFamilyHost.php`, `bootstrap/app.php`, `config/portals.php`, `SiteAdmin/FamilyDomainController.php`, `site-admin/domains/index.blade.php`, `SiteAdmin/FamilyController.php`, `FamilyBootstrapService.php` | `FamilyDomainTest` (6) |
+| Portal | view model over existing services, controller (path, host, preview), layout, 13 section partials, stylesheet, tree `?q=` | `Portal/FamilyPortalPage.php`, `Portal/FamilyPortalController.php`, `layouts/portal.blade.php`, `portal/home.blade.php`, `portal/sections/*`, `public/css/portal.css`, `public/js/genealogy-tree.js`, `routes/web.php` | `FamilyPortalTest` (8) |
+| Branding | settings model and service, management screen, dashboard panel, nav entries | `FamilyPortalSetting.php`, `Portal/PortalSettings.php`, `Management/PortalSettingsController.php`, `management/portal/edit.blade.php`, `FamilyDashboardService.php`, `families/dashboard.blade.php`, `family-nav.blade.php`, `site-nav.blade.php`, `Family.php` | `FamilyPortalTest` |
+| Fixes during the session | missing `@endsection` (unclosed output buffer), hierarchy rows from `ordered()`, platform redirect losing the port, monogram skipping «ال», hierarchy grid layout | as above | re-run; Chrome |
 
 ### Session 13 — UX-P0.1 person management, RBAC & seeders
 | Area | Change | Files | Tests / verification |
@@ -235,6 +245,25 @@ UX-P0.2 / UX-00–01 — design system and portal screens built on the verified 
 | Branch membership shown from the father chain only | Branches are derived from approved ancestry, never from labels |
 | Seeders are bootstrap only | Approved data changes go through reviewed operations, not reruns |
 | Bootstrap creates families inactive and never invents genealogy | Portals are published after review; no fabricated ancestors, founders or statistics |
+| Host routing in one middleware, off by default | One application and database; nothing changes until infrastructure is verified |
+| Family hosts serve only public family pages; everything else goes to the platform host | Host-only sessions, no administration or other family reachable under a family's name |
+| One active domain per family; reserved labels; family admins request only their slug | No hostname squatting or hijacking; canonical URL is unambiguous |
+| Verification is an audited confirmation by a platform administrator | The application cannot prove TLS/proxy correctness; it records who confirmed what |
+| Portal reuses `CommunityEntityPage` on a root entity | Same scope, audience, scheduling, media and privacy rules as entity pages; no new public aggregation |
+| Landing page always uses public rules | A shared public page must not vary with the viewer's memberships |
+| Branding as structured values with approved palettes | No executable HTML, scripts or CSS from administrators |
+| Private datasets moved, not deleted; provenance path kept | Closes SD-08 without changing imports, checksums or recorded sources |
+
+## Verification evidence (session 14 — UX-P0.2)
+
+| Check | Result |
+|---|---|
+| Baseline before changes | 404 / 404 SQLite and PostgreSQL 16 |
+| Full suite, SQLite / PostgreSQL 16 | SQLite 421 / 421 (4693 assertions); PostgreSQL final run **not completed** |
+| Pint, `node --check`, `git diff --check` | pass |
+| Chrome (host routing on, `*.localhost`, seeded Al-Zoubi + Qawasmeh, local test entities, synthetic demo family) | 10/10, no page errors besides the expected 403 when a family admin is redirected to `/site-admin/domains`: desktop landing; mobile; hero search → tree on the family host; fakhd card → entity page on the family host; media upload + branding draft; private preview then publication; cover via the media route (original and unknown uuid 404); no draft entities, QW keys or phone data in anonymous HTML; second family portal; unknown host, other-family paths and administration redirects |
+| Performance | 53 ms seeded / 494 ms with 10,000 extra people (median, server time); constant queries |
+| Not run | Final PostgreSQL 16 suite and PostgreSQL migration rollback for the new migration; real DNS/TLS/proxy for `juthoor.dopamind.cloud`; Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 13 — UX-P0.1)
 

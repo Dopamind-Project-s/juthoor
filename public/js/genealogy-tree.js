@@ -394,6 +394,9 @@
             } catch (cause) { if (ticket === searchSequence && cause.name !== 'AbortError') { results.textContent = 'تعذر البحث. حاول مجددًا.'; results.hidden = false; } }
         }, 250);
     });
+    // A search started elsewhere (family portal hero) arrives as ?q=; it runs through the same public search endpoint.
+    const initialQuery = new URLSearchParams(location.search).get('q');
+    if (initialQuery && initialQuery.trim().length >= 2) { input.value = initialQuery.trim().slice(0, 80); input.dispatchEvent(new Event('input')); }
     document.fonts?.ready.then(() => { if (graph.nodes.length) render(); });
     new ResizeObserver(() => transform()).observe(stage);
     load();

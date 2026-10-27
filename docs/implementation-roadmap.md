@@ -247,5 +247,21 @@ First phase of the approved Experience v3.0 transformation (P0-A, P0-B, P0-C of 
 ### UX-P0.2 readiness
 Ready. Person, role and seeder foundations are in place and tested, so the design system and Figma work (UX-00/01) and the screens of UX-02…09 can use real workflows and the demo fixture family. Open inputs: decision on a "needs information" review state; whether media should become module-aware for news-only editors; reviewer decisions on the 39 ROOT spellings and the 34 pending Qawasmeh records; moving raw datasets out of `public/docs` (SD-08).
 
+## UX-P0.2 — Family subdomains, dynamic landing pages & branding foundation (done 2026-10-27)
+
+Details: `docs/project-audit.md` §17.
+
+- [x] **Baseline** — HEAD `9882e9f`, 404/404 SQLite and PostgreSQL 16.
+- [x] **Security prerequisite (SD-08)** — private datasets and source images moved out of the web root (30 files, checksums and provenance unchanged); exposure tests.
+- [x] **Domain foundation** — `family_domains` lifecycle (unconfigured → pending → verified → active → disabled), request rules, platform-only verification/activation, reserved labels, `ResolveFamilyHost` (unknown hosts refused, cross-family paths 404, administration on the platform host), feature flag `JUTHOOR_FAMILY_HOSTS`.
+- [x] **Dynamic family portal** — `FamilyPortalPage` over existing services; 17 sections with empty states; database statistics with disclaimer; hierarchy from entities or published branches; tree entry with search.
+- [x] **Branding** — draft/preview/publish with audit, approved palettes, public media only, section visibility/order, contact links; dashboard panel.
+- [x] **Transition** — legacy `/al-zoubi` unchanged; portal at `/families/{slug}/portal`; canonical redirects behind `JUTHOOR_PORTAL_CANONICAL`.
+- [x] **Tests** — 17 new; 421/421 SQLite; Chrome 10/10. PostgreSQL 16 final run not completed — to re-run.
+- [ ] **Production enablement** — DNS, TLS, proxy for `al-zoubi.juthoor.dopamind.cloud`, then verify/activate in site-admin and enable the flags (infrastructure task, not done here).
+
+### UX-P0.3 readiness
+Ready: the portal links to the unified tree through one entry point (`genealogy.tree`, `?q=`), so a new tree renderer (compact single-child chains, enlarged founder nodes, new pan/zoom) can replace `genealogy-tree.js` behind the same route without touching family sites. Dependencies: approved Al-Zoubi cover image and entity pages (data, not code); decision on caching the tree graph if production timings require it.
+
 ### Next recommended phase
-UX-P0.2 / UX-00–01 (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.
+UX-P0.3 (tree experience), then UX-00–01 (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.

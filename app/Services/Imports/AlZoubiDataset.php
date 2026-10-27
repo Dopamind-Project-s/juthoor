@@ -7,6 +7,7 @@ use RuntimeException;
 
 class AlZoubiDataset
 {
+    /** Provenance path recorded on the dataset source; the file itself is read from SourceDocuments. */
     public const PATH = 'docs/juthoor_alzoubi_genealogy_dataset_v4.json';
 
     /** @var array<string, mixed>|null */
@@ -56,7 +57,7 @@ class AlZoubiDataset
             return $this->data;
         }
 
-        $path = public_path(self::PATH);
+        $path = SourceDocuments::path(self::PATH);
 
         if (! is_file($path)) {
             throw new RuntimeException("Genealogy dataset not found at [{$path}].");

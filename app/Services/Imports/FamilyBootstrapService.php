@@ -155,7 +155,7 @@ class FamilyBootstrapService
 
         return Validator::make($manifest, [
             'family' => ['required', 'array'],
-            'family.slug' => ['required', 'alpha_dash', 'max:100'],
+            'family.slug' => ['required', 'alpha_dash', 'max:100', Rule::notIn(config('portals.reserved_labels'))],
             'family.name_ar' => ['required', 'string', 'max:255'],
             'family.name_en' => ['nullable', 'string', 'max:255'],
             'family.short_description' => ['nullable', 'string', 'max:1000'],

@@ -7,6 +7,7 @@
 <span class="workspace-nav-heading">البيانات المرجعية والمراجعة</span>
 <a href="{{ route('site-admin.roles.index') }}" @if(request()->routeIs('site-admin.roles.*')) aria-current="page" @endif><i class="bi bi-shield-lock"></i> الأدوار والصلاحيات</a>
 <a href="{{ route('site-admin.seed-audit') }}" @if(request()->routeIs('site-admin.seed-audit')) aria-current="page" @endif><i class="bi bi-clipboard-data"></i> تدقيق البيانات والسيدرز</a>
+<a href="{{ route('site-admin.domains.index') }}" @if(request()->routeIs('site-admin.domains.*')) aria-current="page" @endif><i class="bi bi-globe2"></i> نطاقات العائلات</a>
 <a href="{{ route('site-admin.attributes.index') }}" @if(request()->routeIs('site-admin.attributes.*')) aria-current="page" @endif><i class="bi bi-tags"></i> صفات الأشخاص المشتركة</a>
 <a href="{{ route('cross-links.index') }}" @if(request()->routeIs('cross-links.*')) aria-current="page" @endif><i class="bi bi-share"></i> مراجعة الروابط بين العائلات</a>
 <span class="workspace-nav-heading">التنقل</span>

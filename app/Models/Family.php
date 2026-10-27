@@ -61,4 +61,14 @@ class Family extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(FamilyDomain::class);
+    }
+
+    public function portalSetting(): HasOne
+    {
+        return $this->hasOne(FamilyPortalSetting::class);
+    }
 }

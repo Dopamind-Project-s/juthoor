@@ -26,7 +26,7 @@ class FamilyController extends Controller
         $this->authorizeSuperAdmin();
         $data = $request->validate([
             'name_ar' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'alpha_dash', 'max:255', 'unique:families,slug'],
+            'slug' => ['required', 'alpha_dash', 'max:255', 'unique:families,slug', Rule::notIn(config('portals.reserved_labels'))],
             'tree_name_ar' => ['required', 'string', 'max:255'],
             'manager_email' => ['nullable', 'email'],
         ] + TreeRootService::rules());
@@ -71,7 +71,7 @@ class FamilyController extends Controller
         $familyModel = Family::query()->findOrFail($family);
         $data = $request->validate([
             'name_ar' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'alpha_dash', 'max:255', Rule::unique('families')->ignore($familyModel)],
+            'slug' => ['required', 'alpha_dash', 'max:255', Rule::unique('families')->ignore($familyModel), Rule::notIn(config('portals.reserved_labels'))],
             'is_active' => ['nullable', 'boolean'],
             'tree_is_active' => ['nullable', 'boolean'],
         ]);

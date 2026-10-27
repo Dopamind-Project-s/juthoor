@@ -8,11 +8,14 @@ use App\Models\Citation;
 use App\Models\CrossFamilyLink;
 use App\Models\Family;
 use App\Models\FamilyMembership;
+use App\Models\FamilyRoleAssignment;
 use App\Models\FamilyTree;
 use App\Models\ImportBatch;
 use App\Models\User;
 use App\Services\Community\CommunityContentModules;
 use App\Services\Genealogy\NameReconciliationService;
+use App\Services\Portal\FamilyHosts;
+use App\Services\Portal\PortalSettings;
 
 /**
  * Builds the family workspace dashboard. Every figure is scoped to the given family
@@ -63,6 +66,7 @@ class FamilyDashboardService
                 ->visibleToMember($user, $family)
                 ->latest()->limit(8)->get(),
             'members' => $isAdmin ? $family->memberships()->toBase()->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role')->map(fn ($total) => (int) $total)->all() : [],
+            'portal' => $this->portal($family),
             'pendingInvitations' => $isAdmin ? $family->invitations()->whereNull('accepted_at')->whereNull('cancelled_at')->where('expires_at', '>', now())->count() : null,
             'pendingSharedAncestry' => $isAdmin ? CrossFamilyLink::query()->where('status', 'pending_review')
                 ->where(fn ($query) => $query->where('left_family_id', $family->id)->orWhere('right_family_id', $family->id))->count() : null,
@@ -74,6 +78,33 @@ class FamilyDashboardService
      *
      * @return array<int, array{slug: string, name: string, role: string}>
      */
+    /**
+     * Family website status: publication of the branding, completeness of its main elements, domain lifecycle and
+     * functional role holders.
+     *
+     * @return array<string, mixed>
+     */
+    private function portal(Family $family): array
+    {
+        $setting = $family->portalSetting;
+        $published = app(PortalSettings::class)->published($family);
+
+        return [
+            'state' => ! $setting?->published ? 'default' : ($setting->hasUnpublishedChanges() ? 'draft' : 'published'),
+            'publishedAt' => $setting?->published_at,
+            'url' => app(FamilyHosts::class)->portalUrl($family),
+            'completeness' => [
+                'تعريف مفصل' => filled($published['description']),
+                'صورة واجهة معتمدة' => filled($published['cover_media']),
+                'شعار' => filled($published['logo_media']),
+                'روابط تواصل عامة' => $published['contact_links'] !== [] || filled($published['public_email']),
+                'كيان رئيسي منشور' => $family->communityEntities()->whereNull('parent_id')->where('publication_status', 'published')->exists(),
+            ],
+            'domains' => $family->domains()->orderByDesc('id')->get(['id', 'host', 'status']),
+            'roleHolders' => FamilyRoleAssignment::query()->whereHas('membership', fn ($query) => $query->where('family_id', $family->id))->distinct('family_membership_id')->count('family_membership_id'),
+        ];
+    }
+
     public static function accessibleFamilies(?User $user): array
     {
         if (! $user) {

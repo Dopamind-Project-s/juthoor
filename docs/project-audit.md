@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-27 (updated after UX-P0.1 — person management, RBAC, seeders; see §16). Previous: Phase 4 (2026-10-26). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-27 (updated after UX-P0.2 — family domains, portals, branding; see §17; UX-P0.1 in §16). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `4ed00b1` (Phase 4 and docs committed by the maintainer); UX-P0.1 changes (session 13) are uncommitted. |
-| Test baseline (start of session 13) | 367 passed, 0 failed, 4048 assertions on SQLite and on PostgreSQL 16 (re-run before any change). |
-| Test result (end of session 13) | **404 passed, 0 failed** (4477 assertions) on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `9882e9f` (UX-P0.1 committed by the maintainer); UX-P0.2 changes (session 14) are uncommitted. |
+| Test baseline (start of session 14) | 404 passed, 0 failed, 4477 assertions on SQLite and on PostgreSQL 16 (re-run before any change). |
+| Test result (end of session 14) | **421 passed, 0 failed** (4693 assertions) on SQLite. The final PostgreSQL 16 run was started but did not complete before the session ended — **not verified**. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -573,3 +573,77 @@ Migration `2026_10_27_071232_create_roles_and_permissions_tables`: `permissions`
 - Sources are attached from the person page after creation, not inside the guided form.
 - No "needs more information" review state; no platform auditor role (not needed: super admins audit).
 - The tree layout is unchanged (UX-P0.2/Tree Experience).
+
+## 17. Family websites, domains and branding (UX-P0.2, 2026-10-27)
+
+**Baseline** — `main` at `9882e9f` (UX-P0.1 committed by the maintainer), clean tree; 404/404 on SQLite and on PostgreSQL 16 (PostgreSQL re-run on a clean worktree of HEAD, because the first run overlapped the dataset move below).
+
+### 17.1 Security prerequisite — public datasets (SD-08 closed)
+
+| Finding | Detail |
+|---|---|
+| Reachable | Everything under `public/docs` is served directly by the web server (no PHP involved), whatever `Options -Indexes` says. |
+| Private data | `juthoor_alzoubi_genealogy_dataset_v4.json`/`.xlsx` (+ byte-identical "(1)" copies): 1,505 canonical records, **1,428 unimported branch people** (recent generations, likely living), raw source readings, blank-name resolutions. 19 handwritten fakhd charts (بكر/عيد/خميس/رحايمه/عودتلات) and the 9 Qawasmeh source images/PDF behind the **34 pending Qawasmeh records**. |
+| Consumers | `AlZoubiDataset` (seeders), `AlQawasmehBranchImporter` (sha256-checked attachments), `SeedAuditService`. `sources.file_path` stores `docs/<file>` as provenance; the source download route reads a private disk, not `public/`. |
+| Intentionally public / harmless | UI mock-ups (sample "Sanders" tree, showcase PNGs, blueprint/spec PDFs) and published-style research notes (`*_no_people_*`, site-content JSON) — no private person data; left in place. |
+| Remediation | 30 files moved (not deleted) to `resources/data/source-documents/` (outside the web root) with identical names and sha256 (verified before/after); `SourceDocuments::path()` resolves them; `AlZoubiDataset::PATH` keeps `docs/…` as the recorded provenance. Seed audit now reports `ok`. |
+| Tests | `PrivateDatasetExposureTest`: no file under `public/` matches any private file's checksum or name pattern; importers read the relocated files with unchanged checksums; former URLs return 404. |
+| Note | The repository-root `.htaccess` (committed by the maintainer) contains `Options All` and duplicated rewrite rules; an unconditional rewrite into `public/` keeps root files unreachable, but the file should be reviewed with the server configuration. Not changed here. |
+
+### 17.2 Domain architecture
+
+One application, one database, the `Family` model as the only tenant identity. `family_domains` (host unique, kind subdomain/custom, status, verification token, requester/verifier/activator, timestamps). Lifecycle: *no row* = unconfigured → `pending_verification` → `verified` → `active` → `disabled` (→ reopened as pending). Rules (`FamilyHosts`):
+
+- Family administrators (`family.settings`) may request only `<their slug>.<suffix>` or a custom domain (proved by a `juthoor-verify=<token>` TXT record); never a reserved label (`config/portals.php`), a platform host or a platform subdomain, an IP, or a host held by any family (the refusal does not say which). Super admins may choose any non-reserved label.
+- Only super admins verify (explicit DNS, TLS and proxy confirmations plus notes), activate (family active, one active domain per family) and disable; every transition is audited without the token.
+- Reserved labels can no longer be family slugs (site-admin create/update, bootstrap).
+
+`ResolveFamilyHost` (first in the web group) when `JUTHOOR_FAMILY_HOSTS=true`: platform host and aliases → platform; an **active** host of an **active** family → that family's website (`/`, `/families/<own slug>/…`, `/media/…`); other families' paths → 404; any other GET (administration, login, notifications) → redirect to the platform host; non-GET → 404; unknown host → 404 (no Host-header confusion). With the flag off, behaviour is exactly as before.
+
+**Production configuration (not applied here; the host is not claimed live):**
+
+| Item | Requirement |
+|---|---|
+| DNS | `al-zoubi.juthoor.dopamind.cloud` (or `*.juthoor.dopamind.cloud`) A/AAAA → platform server; custom domains also need the TXT record |
+| TLS | certificate covering the platform host and each family host (wildcard or per host) |
+| Reverse proxy | pass the original `Host`; configure `TrustProxies` for the proxy so `https` and host are correct |
+| Environment | `APP_URL=https://juthoor.dopamind.cloud`, `JUTHOOR_PLATFORM_HOST=juthoor.dopamind.cloud`, `JUTHOOR_FAMILY_DOMAIN_SUFFIX=juthoor.dopamind.cloud`, `JUTHOOR_PLATFORM_ALIASES=` (empty in production), `JUTHOOR_FAMILY_HOSTS=true` only after the checks |
+| Sessions | keep `SESSION_DOMAIN` empty (host-only cookies): family hosts are public sites and send sign-in to the platform host; `SESSION_SECURE_COOKIE=true` |
+| Activation | site-admin → نطاقات العائلات → verify (with confirmations) → activate |
+
+### 17.3 Family portal
+
+`FamilyPortalPage` (view model) assembles the website from existing services only: `CommunityHierarchy` (public entities), `CommunityEntityPage::build()` on the family's root entity with descendants (content scope, audiences, publication windows, sensitive news rules, media access, public people), `CommunityGenealogy` (public graph: registered / published / verified, per-founder public counts, root preview), `Branch::published` (fallback hierarchy when a family has no entities), `MemberDirectory` (public profiles, public fields ∩ photo/profession/sector/city — never contact or workplace) and `MediaAccess`. The landing page applies public rules to every viewer, signed-in members included. Routes: `/families/{slug}` and `/families/{slug}/portal` (platform path), `/` on an active family host, `/manage/families/{slug}/portal/preview` (draft, `noindex`, `no-store`).
+
+Sections (each with an empty state, none filled with legacy or invented data): hero with search (to the unified tree, `?q=` now pre-fills the tree search), summary, published statistics with timestamp and the coverage disclaimer, fakhds and branches (hierarchy grid, founder only when public, public record counts, links to entity or branch pages), genealogy preview, history, diwans, achievements, archive, latest news, upcoming events, directory preview, contribution CTA, footer with approved links and platform attribution.
+
+### 17.4 Branding
+
+`family_portal_settings` (draft and published JSON, who/when). Values are structured and validated (`PortalSettings`): display name, intro, description (plain text, escaped), hero title/subtitle, cover and logo (media uuid of this family that is a **publicly viewable** image — re-checked at publication and at render), accent from five approved palettes (CSS variables from config, no free colours or CSS), CTA label/target, up to six `https` links and a public e-mail, footer text, root entity, section visibility and order. Edit/preview/publish need `family.settings` (family administrators); both steps audited (`portal.draft_saved`, `portal.published`). The family dashboard gains a website/domain/roles panel (publication state, completeness, domains, functional role holders, entity counts).
+
+### 17.5 Legacy routes and transition
+
+`/al-zoubi/*` static pages unchanged and default; `/families/al-zoubi` still redirects there. The dynamic portal is reachable at `/families/al-zoubi/portal`. `JUTHOOR_PORTAL_CANONICAL=true` (after comparison) makes `/al-zoubi` redirect (302) to the canonical portal URL and `/families/al-zoubi` render it. Genealogy, branch, person, entity, news and directory URLs are unchanged.
+
+### 17.6 Performance
+
+| Scenario | Server time (median of 5) | Queries |
+|---|---|---|
+| Seeded Al-Zoubi (123 people, 6 local test entities), family host | 53 ms | constant (test: adding 16 entities with 48 records adds 0 queries) |
+| Same + 10,000 published people | 494 ms | constant |
+| Legacy static `/al-zoubi` | 21 ms | — |
+
+The portal is dominated by the single tree-graph load (as entity pages, §13); caching only if production measurements require it.
+
+### 17.7 Screenshots
+
+`docs/screenshots/ux-p0.2/` — Al-Zoubi desktop hero (synthetic test cover labelled as such), hierarchy grid, mobile header and menu, tree entry from the hero search, branding administration, draft preview, second (synthetic demo) family portal, site-admin domains, family dashboard panel. Entities named «(اختبار)» exist only in the local verification database; the repository seeds none.
+
+### 17.8 Limitations
+
+- Content sections use one root entity (configurable); a family with several top-level entities shows all of them in the hierarchy but takes content from the root.
+- Verification is an audited administrative confirmation; the application does not perform DNS/TLS checks itself.
+- Internationalized (non-ASCII) domain names are not accepted; punycode must be entered.
+- Branding publication needs one family administrator (no second approver); every change is audited.
+- Logged-in members see the public version of the landing page; members-only content stays on entity pages.
+- The tree page itself is unchanged (UX-P0.3).

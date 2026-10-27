@@ -327,7 +327,7 @@ class SeedAuditService
     private function datasets(): array
     {
         $files = [
-            ['Al-Zoubi genealogy dataset', public_path(AlZoubiDataset::PATH), null],
+            ['Al-Zoubi genealogy dataset', SourceDocuments::path(AlZoubiDataset::PATH), null],
             ['Shared ancestry list', resource_path('data/al-zoubi/shared-ancestry.php'), null],
             ['Branch founder resolution', resource_path('data/al-zoubi/branch-founder-resolution.php'), null],
             ['Branch founder review', resource_path('data/al-zoubi/branch-founder-review.php'), null],
@@ -335,7 +335,7 @@ class SeedAuditService
         ];
         try {
             foreach ($this->qawasmeh->manifest()['sources'] as $row) {
-                $files[] = ['Qawasmeh attachment', public_path('docs/'.$row['file']), $row['sha256']];
+                $files[] = ['Qawasmeh attachment', SourceDocuments::path($row['file']), $row['sha256']];
             }
         } catch (Throwable) {
             // A missing or invalid manifest is already reported by its own entry.
@@ -369,8 +369,8 @@ class SeedAuditService
     }
 
     /**
-     * Raw genealogy data files served from the web root (SD-08). Reported only; moving them requires updating the
-     * import paths and checksums first.
+     * Raw genealogy data or source images left in the web root (SD-08). Private sources live in SourceDocuments;
+     * anything reported here was added to `public/docs` again and is downloadable.
      *
      * @return array<int, string>
      */
@@ -382,7 +382,7 @@ class SeedAuditService
         }
 
         return collect(scandir($directory))
-            ->filter(fn (string $file) => preg_match('/\.(json|xlsx|csv|xls)$/i', $file) === 1)
+            ->filter(fn (string $file) => preg_match('/\.(xlsx|csv|xls)$/i', $file) === 1 || preg_match('/genealogy_dataset|قواسمه|بكر|رحايمه|عودتلات/u', $file) === 1)
             ->map(fn (string $file) => 'public/docs/'.$file)->values()->all();
     }
 

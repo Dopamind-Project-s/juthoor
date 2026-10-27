@@ -114,7 +114,7 @@ class AlQawasmehBranchImporter
                     "مرسى {$key} في التسلسل المقدم هو السجل القائم {$person->canonical_key} (الابن الوحيد المسمى سليمان لـ ROOT-077)؛ لم يُنشأ شخص جديد. قيد المراجعة.");
             }
             foreach ($manifest['sources'] as $row) {
-                $path = public_path('docs/'.$row['file']);
+                $path = SourceDocuments::path($row['file']);
                 if (! is_file($path) || ! hash_equals($row['sha256'], hash_file('sha256', $path))) {
                     throw new DomainException('Qawasmeh: missing or changed attachment '.$row['file']);
                 }

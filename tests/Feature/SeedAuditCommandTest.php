@@ -60,12 +60,14 @@ test('the dry-run audit on seeded data reports counts checksums and privacy with
         ->and($report['counts'])->toMatchArray(['people' => 119, 'father_edges' => 118, 'branches' => 6, 'founders' => 5])
         ->and($report['expected'])->toMatchArray(['ready_root' => 77, 'ready_root_present' => 77, 'qawasmeh' => 34, 'qawasmeh_present' => 34])
         ->and($report['privacy']['qawasmeh_pending'])->toBe(34)
-        ->and($report['privacy']['webroot_datasets'])->toContain('public/docs/juthoor_alzoubi_genealogy_dataset_v4.json')
+        // SD-08 remediated (UX-P0.2): private datasets and source images live outside the web root.
+        ->and($report['privacy']['webroot_datasets'])->toBe([])
         ->and(collect($report['datasets'])->firstWhere('label', 'Al-Zoubi genealogy dataset'))->toMatchArray(['exists' => true, 'version' => 'v4'])
         ->and(collect($report['datasets'])->where('label', 'Qawasmeh attachment')->pluck('matches')->unique()->all())->toBe([true])
         ->and($report['preserved_edits'])->toBe([])
         ->and($report['duplicate_candidates'])->toBe([])
-        ->and($report['status'])->toBe(SeedAuditService::STATUS_WARNINGS);
+        // The raw files in public/docs were the only warning; they are now outside the web root.
+        ->and($report['status'])->toBe(SeedAuditService::STATUS_OK);
 });
 
 test('the audit reports preserved edits identity conflicts duplicates and integrity problems', function () {
@@ -102,7 +104,7 @@ test('the audit of another family skips curated dataset comparisons', function (
 
     $report = app(SeedAuditService::class)->report('other');
 
-    expect($report['status'])->toBe(SeedAuditService::STATUS_WARNINGS)
+    expect($report['status'])->toBe(SeedAuditService::STATUS_OK)
         ->and($report['datasets'])->toBe([])
         ->and($report['counts']['people'])->toBe(1)
         ->and(Person::query()->count())->toBe(1);

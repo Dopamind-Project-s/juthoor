@@ -53,6 +53,13 @@
 </div>
 
 <div class="dashboard-columns">
+<section class="management-panel" aria-labelledby="portalHeading"><div class="d-flex flex-wrap justify-content-between gap-2"><h2 class="h5" id="portalHeading">موقع العائلة والنطاق والأدوار</h2>
+<div class="d-flex gap-2"><a class="btn btn-sm btn-outline-primary" href="{{ $portal['url'] }}" target="_blank" rel="noopener">فتح الموقع</a>@can('update',$family)<a class="btn btn-sm btn-primary" href="{{ route('management.portal.edit',$family->slug) }}">إعدادات الموقع</a>@endcan</div></div>
+<div class="row g-3"><div class="col-md-4"><strong>الهوية:</strong> {{ ['default'=>'افتراضية (لم تُنشر هوية)','draft'=>'منشورة مع مسودة غير منشورة','published'=>'منشورة'][$portal['state']] }}@if($portal['publishedAt'])<small class="d-block text-muted">آخر نشر {{ $portal['publishedAt']->format('Y-m-d') }}</small>@endif
+<ul class="list-unstyled small mt-2 mb-0">@foreach($portal['completeness'] as $label=>$done)<li><i class="bi {{ $done ? 'bi-check-circle text-success' : 'bi-circle text-muted' }}"></i> {{ $label }}</li>@endforeach</ul></div>
+<div class="col-md-4"><strong>النطاق:</strong>@forelse($portal['domains'] as $domain)<div class="small"><span dir="ltr">{{ $domain->host }}</span> — {{ \App\Models\FamilyDomain::STATUSES[$domain->status] }}</div>@empty<div class="small text-muted">غير مهيأ؛ الموقع على مسار المنصة.</div>@endforelse</div>
+<div class="col-md-4"><strong>الأدوار:</strong><div class="small">{{ $portal['roleHolders'] }} عضوًا يحملون أدوارًا وظيفية.</div>@can('manageMembers',$family)<a class="small" href="{{ route('management.roles.index',[$family->slug,'tree'=>$tree->slug]) }}">مصفوفة الأدوار والصلاحيات</a>@endcan
+<div class="small mt-1">كيانات منشورة: {{ $entityCounts['published'] ?? 0 }} · مسودات: {{ $entityCounts['draft'] ?? 0 }}</div></div></div></section>
 <section class="management-panel" aria-labelledby="healthHeading">
     <span class="eyebrow">جودة البيانات</span><h2 class="h4" id="healthHeading">مؤشرات صحة الشجرة</h2>
     <ul class="health-list">

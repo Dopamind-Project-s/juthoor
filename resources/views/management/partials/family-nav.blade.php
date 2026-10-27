@@ -32,6 +32,7 @@
 @if($isFamilyAdmin)
 <span class="workspace-nav-heading">إدارة العائلة</span>
 <a href="{{ route('management.sections.index',[$workspaceFamily->slug,'members','tree'=>$treeSlug]) }}" @if($currentSection==='members') aria-current="page" @endif><i class="bi bi-people"></i> الأعضاء</a>
+@can('update',$workspaceFamily)<a href="{{ route('management.portal.edit',$workspaceFamily->slug) }}" @if(request()->routeIs('management.portal.*')) aria-current="page" @endif><i class="bi bi-window"></i> موقع العائلة</a>@endcan
 @can('manageMembers',$workspaceFamily)<a href="{{ route('management.roles.index',[$workspaceFamily->slug,'tree'=>$treeSlug]) }}" @if(request()->routeIs('management.roles.*')) aria-current="page" @endif><i class="bi bi-shield-lock"></i> الأدوار والصلاحيات</a>@endcan
 <a href="{{ route('management.sections.index',[$workspaceFamily->slug,'invitations','tree'=>$treeSlug]) }}" @if($currentSection==='invitations') aria-current="page" @endif><i class="bi bi-envelope"></i> الدعوات</a>
 @can('manageMembers',$workspaceFamily)<a href="{{ route('management.attributes.index',$workspaceFamily->slug) }}" @if(request()->routeIs('management.attributes.*')) aria-current="page" @endif><i class="bi bi-tags"></i> صفات الأشخاص</a>@endcan
