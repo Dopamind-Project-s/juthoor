@@ -18,7 +18,14 @@ final class MaintenanceTools
 
     public static function enabled(string $name): bool
     {
-        return isset(self::LABELS[$name]) && Schema::hasTable('maintenance_tool_settings')
-            && (bool) DB::table('maintenance_tool_settings')->where('name', $name)->value('enabled');
+        if (! isset(self::LABELS[$name])) {
+            return false;
+        }
+        $default = in_array($name, ['audit_viewer', 'genealogy_administration', 'permissions_administration'], true);
+        if (! Schema::hasTable('maintenance_tool_settings')) {
+            return $default;
+        }
+
+        return (bool) (DB::table('maintenance_tool_settings')->where('name', $name)->value('enabled') ?? $default);
     }
 }

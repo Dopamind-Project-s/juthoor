@@ -156,15 +156,13 @@ class Person extends Model
         ]);
     }
 
-    /**
-     * The single public-display rule for people on every public surface (tree, graph, focus, person pages, search,
-     * branch listings): historical, explicitly deceased (unknown is private), and either verified/sourced or a submitted narrative that
-     * an administrator explicitly published while it remains pending review. Verification is never raised by this.
+    /** Public name/graph eligibility is independent of living status, classification and optional profile fields.
+     * Sensitive fields still require PersonPrivacy authorization; merged identities remain globally excluded.
      */
     public function scopePubliclyVisible($query)
     {
-        return $query->where('status', self::STATUS_HISTORICAL)
-            ->where('is_living', false)
+        return $query->whereNotNull('full_name_ar')
+            ->whereRaw("TRIM(full_name_ar) <> ''")
             ->where(fn ($query) => $query->verified()
                 ->orWhere(fn ($query) => $query->where('verification_status', Source::VERIFICATION_PENDING_REVIEW)->where('public_narrative', true)));
     }

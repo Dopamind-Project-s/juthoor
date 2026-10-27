@@ -61,3 +61,20 @@ Only the super administrator can update these switches; the dashboard and its se
 ## Removal of resources/data
 
 At the explicit request to remove every file, deleted all remaining 88 files under resources/data, including the original images/documents and legacy datasets. Runtime importers, shared-ancestry fixtures and historical compatibility readers now read the one embedded UnifiedGenealogyDataset snapshot. Historical names, identities, parent mappings, provenance filenames, hashes and review observations are retained in that snapshot. No person or relationship identities were remapped. The former source resolver and the five extraction scripts that depended on removed originals were removed. The removed original binaries are not downloadable or visually inspectable from this checkout; Git history contains the previously tracked originals. References to old filenames are provenance, not filesystem dependencies. Existing private-exposure assertions now inspect retained hashes against public files without requiring original files. No tests, database migrations or import commands were executed.
+
+
+## Administrator activation and seed approval
+
+The three administration/viewer switches now default to enabled; explicit later administrator choices still override defaults. A new migration enables existing switch rows and approves existing canonical Al-Zoubi seed identities in the main tree. People, accepted father relationships, their person/father citations, seed sources and branch classifications become verified; entities become published. Conflicting assertions and unresolved observations remain separate review items. The migration does not insert missing genealogy, rewrite parent relationships, set living status or remove privacy protections. Known-deceased seed people become historical so the existing public visibility rule works; living/unknown people remain active/private. Rerunning the unified seeder applies the same classifications. The migration records the approval in the audit log.
+
+Deploy with php artisan migrate --force and php artisan optimize:clear. No migration or tests were run in this session, and no live Hostinger database was accessed.
+
+
+## Explicit public approval of seed names and graph
+
+The administrator explicitly requested public display of all Al-Zoubi seed identities, including unknown living status. A migration sets public_narrative for matching embedded canonical keys in the Al-Zoubi main tree; rerunning the seeder applies it too. The shared public scope now includes verified/sourced identities with explicit public narrative approval regardless of living/historical status. Records without that approval keep the former eligibility rule. Name, graph and search visibility therefore agree. No deceased status is inferred, sensitive person fields retain PersonPrivacy protections, and verifiedHistorical remains strict for cross-family historical linking. Approval is audit logged. Deploy using php artisan migrate --force and php artisan optimize:clear. No migrations or tests were run locally.
+
+
+## System-wide name eligibility
+
+At the administrator's request, every nonblank verified/sourced person name is publicly eligible across families, independent of living status, person classification, public_narrative and optional profile fields. Explicitly published pending narratives remain eligible as before. The shared Person::publiclyVisible scope governs tree loading, search, profiles and portal people/founder selection; callers still enforce family/tree availability, branch publication and relationship evidence. Sensitive profile fields continue using PersonPrivacy. No father relationship is invented for an isolated eligible person. Strict verifiedHistorical is retained for historical cross-family claims, not ordinary name display. This is a query change: no database migration or reseeding is needed. No tests were run.

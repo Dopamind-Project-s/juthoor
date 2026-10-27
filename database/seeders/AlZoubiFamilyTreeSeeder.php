@@ -45,8 +45,8 @@ class AlZoubiFamilyTreeSeeder extends Seeder
             $source = function (string $file) use (&$sources, $family, $audit, $checksums) {
                 return $sources[$file] ??= $audit($this->createMissing($family->sources(), ['reference' => 'unified:'.hash('sha256', $file)], [
                     'source_type' => str_starts_with($file, 'user:') ? 'user_submission' : 'document',
-                    'title' => $file, 'verification_status' => 'pending_review',
-                    'notes' => 'Canonical seed proposal / source observation. Not historical verification. SHA256: '.($checksums[$file] ?? 'user submission'),
+                    'title' => $file, 'verification_status' => 'verified',
+                    'notes' => 'Canonical seed proposal / source observation. Seed classified as verified by administrator request; original evidence not independently re-reviewed. SHA256: '.($checksums[$file] ?? 'user submission'),
                 ]));
             };
             $people = [];
@@ -67,14 +67,14 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                     'first_name_ar' => $row['name'], 'full_name_ar' => $row['name'], 'alternate_names' => $row['aliases'] ?? [],
                     'title' => $row['title'] ?? null,
                     'honorific' => in_array('prophet', $row['attributes'] ?? [], true) ? 'عليه السلام' : ($row['key'] === 'ROOT-049' ? 'كرم الله وجهه' : null),
-                    'status' => Person::STATUS_ACTIVE,
+                    'status' => (($row['is_living'] ?? null) === false ? Person::STATUS_HISTORICAL : Person::STATUS_ACTIVE),
                     'is_living' => $row['is_living'] ?? null, 'living_status_basis' => $row['living_status_basis'] ?? null,
-                    'public_narrative' => $row['public_narrative'] ?? false, 'verification_status' => 'verified',
+                    'public_narrative' => true, 'verification_status' => 'verified',
                 ]));
-                // Apply the requested seed classification on reruns, without changing living status or privacy.
+                // Apply the requested seed approval/public name display without changing living status or field privacy.
                 $before = app(AuditLogger::class)->snapshot($person);
-                $person->fill(['status' => Person::STATUS_ACTIVE, 'verification_status' => 'verified']);
-                if ($person->isDirty(['status', 'verification_status'])) {
+                $person->fill(['status' => ($person->is_living === false ? Person::STATUS_HISTORICAL : Person::STATUS_ACTIVE), 'verification_status' => 'verified', 'public_narrative' => true]);
+                if ($person->isDirty(['status', 'verification_status', 'public_narrative'])) {
                     $person->save();
                     app(AuditLogger::class)->record(null, $family, $person, 'seed_status_updated', $before, app(AuditLogger::class)->snapshot($person));
                 }
@@ -84,7 +84,7 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                     $s = $source($evidence['file']);
                     $person->sources()->syncWithoutDetaching([$s->id => ['relation_type' => 'unified_seed']]);
                     $audit($this->createMissing($s->citations(), ['family_tree_id' => $tree->id, 'person_id' => $person->id, 'field_key' => 'person', 'locator' => $evidence['locator']], [
-                        'notes' => json_encode($evidence, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'verification_status' => 'pending_review',
+                        'notes' => json_encode($evidence, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'verification_status' => 'verified',
                     ]));
                 }
                 if ($person->wasRecentlyCreated) {
@@ -116,17 +116,17 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                 $edge = $audit($this->createMissing($tree->personRelationships(), [
                     'person_id' => $person->id, 'related_person_id' => $people[$row['father']]->id, 'relationship_type' => 'father',
                 ], ['canonical_key' => $edgeKey, 'is_primary' => true, 'source_id' => $firstSource->id,
-                    'verification_status' => 'pending_review', 'public_narrative' => $row['public_narrative'] ?? false]));
+                    'verification_status' => 'verified', 'public_narrative' => true]));
                 foreach ($row['sources'] as $evidence) {
                     $s = $source($evidence['file']);
                     $audit($this->createMissing($s->citations(), ['family_tree_id' => $tree->id, 'person_relationship_id' => $edge->id, 'field_key' => 'father', 'locator' => $evidence['locator']], [
-                        'notes' => json_encode($evidence + ['father_key' => $row['father']], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'verification_status' => 'pending_review',
+                        'notes' => json_encode($evidence + ['father_key' => $row['father']], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'verification_status' => 'verified',
                     ]));
                 }
             }
             $entities = [];
             $clan = $audit($this->createMissing(CommunityEntity::query(), ['family_id' => $family->id, 'slug' => 'al-zoubi'], [
-                'entity_type' => 'clan', 'name_ar' => 'عشيرة الزعبي', 'family_tree_id' => $tree->id, 'publication_status' => 'draft',
+                'entity_type' => 'clan', 'name_ar' => 'عشيرة الزعبي', 'family_tree_id' => $tree->id, 'publication_status' => 'published',
             ]));
             $branches = [];
             foreach ($data['branches'] as $row) {
@@ -135,7 +135,7 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                     'name_ar' => $row['name'], 'root_person_id' => $founder?->id,
                     'parent_branch_id' => $row['parent'] ? $branches[$row['parent']]->id : null,
                     'branch_type' => $row['type'], 'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
-                    'is_active' => false, 'verification_status' => 'pending_review',
+                    'is_active' => true, 'verification_status' => 'verified',
                 ]));
                 if ($branch->root_person_id !== $founder?->id) {
                     throw new DomainException('Existing founder requires reconciliation: '.$row['slug']);
@@ -143,7 +143,7 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                 $branches[$row['slug']] = $branch;
                 $entities[$row['slug']] = $audit($this->createMissing(CommunityEntity::query(), ['family_id' => $family->id, 'slug' => $row['slug']], [
                     'name_ar' => $row['name'], 'family_tree_id' => $tree->id, 'branch_id' => $branch->id, 'entity_type' => $row['type'],
-                    'parent_id' => $row['parent'] ? $entities[$row['parent']]->id : $clan->id, 'publication_status' => 'draft',
+                    'parent_id' => $row['parent'] ? $entities[$row['parent']]->id : $clan->id, 'publication_status' => 'published',
                 ]));
             }
             foreach ($reviews as $review) {
@@ -174,6 +174,17 @@ class AlZoubiFamilyTreeSeeder extends Seeder
         $record = $query->firstOrNew($identity, $values);
         if (! $record->exists) {
             $record->save();
+        } else {
+            $classification = array_intersect_key($values, array_flip(['verification_status', 'is_active', 'publication_status']));
+            if ($classification !== []) {
+                $before = app(AuditLogger::class)->snapshot($record);
+                $record->fill($classification);
+                if ($record->isDirty(array_keys($classification))) {
+                    $record->save();
+                    $family = isset($record->family_id) ? Family::find($record->family_id) : ($record->family_tree_id ? \App\Models\FamilyTree::find($record->family_tree_id)?->family : null);
+                    app(AuditLogger::class)->record(null, $family, $record, 'seed_approved', $before, app(AuditLogger::class)->snapshot($record));
+                }
+            }
         }
 
         return $record;
