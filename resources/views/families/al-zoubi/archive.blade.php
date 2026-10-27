@@ -1,6 +1,0 @@
-@extends('layouts.family')
-@section('title','أرشيف العشيرة')
-@section('content')
-<x-family-page-header title="أرشيف عشيرة الزعبي" icon="archive" description="بوابة تحريرية للمشجرات والوثائق والدراسات والذاكرة المحلية المتاحة حالياً."><span class="status-badge verified">مواد مصدرية محفوظة</span></x-family-page-header>
-<section class="section-space"><div class="container"><div class="category-strip">@foreach(['الكل','مشجرات العائلة','مشجرات الأفخاذ','وثائق تاريخية','دراسات ومراجع','ذاكرة العشيرة'] as $label)<button class="{{ $loop->first ? 'active' : '' }}">{{ $label }}</button>@endforeach</div><div class="demo-alert mt-4"><i class="bi bi-shield-lock"></i><div><strong>واجهة أرشيفية، لا مجلد مطورين</strong><p>تعرض الصفحة فئات المواد ووصفها، ولا تنشر ملفات JSON أو Excel الداخلية أو تنزيلات المصادر الخام مباشرة.</p></div></div><div class="row g-4 mt-2">@foreach($archive as $item)<div class="col-sm-6 col-lg-3"><article class="archive-card"><div class="archive-preview"><i class="bi bi-{{ $item['icon'] }}"></i><span>{{ $item['type'] }}</span></div><div class="p-3"><h3 class="h6">{{ $item['title'] }}</h3><small class="text-muted">{{ $item['note'] }}</small></div></article></div>@endforeach</div></div></section>
-@endsection

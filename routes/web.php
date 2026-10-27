@@ -50,57 +50,27 @@ use App\Services\Community\CommunityContentModules;
 use App\Services\Portal\FamilyHosts;
 use Illuminate\Support\Facades\Route;
 
-$data = static fn (string $file): array => require resource_path("data/al-zoubi/{$file}.php");
-
 Route::get('/', [FamilyPortalController::class, 'home'])->name('home');
-Route::view('/ui', 'pages.ui')->name('ui');
-// Migration: the static Al-Zoubi site stays the default until JUTHOOR_PORTAL_CANONICAL is enabled after comparison.
-$canonicalPortal = (bool) config('portals.canonical_portal');
-if (! $canonicalPortal) {
-    Route::redirect('/families/al-zoubi', '/al-zoubi');
-}
 Route::get('/families/{family}', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.show');
 Route::get('/families/{family}/portal', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.page');
-Route::redirect('/families/al-zoubi/branches', $canonicalPortal ? '/families/al-zoubi/entities' : '/al-zoubi/branches');
+Route::redirect('/families/al-zoubi/branches', '/families/al-zoubi/entities');
 Route::redirect('/al-zoubi/tree', '/families/al-zoubi/tree')->name('family.tree');
 
-Route::prefix('al-zoubi')->name('family.')->group(function () use ($data, $canonicalPortal) {
-    if ($canonicalPortal) {
-        Route::get('/', fn () => redirect()->to(app(FamilyHosts::class)->portalUrl(Family::query()->active()->where('slug', 'al-zoubi')->firstOrFail())))->name('home');
-    } else {
-        Route::view('/', 'families.al-zoubi.home', [
-            'family' => $data('family'), 'genealogy' => $data('genealogy'), 'branches' => $data('branches'),
-            'history' => $data('history'), 'people' => $data('people'), 'archive' => $data('archive'),
-        ])->name('home');
-    }
-    Route::view('/history', 'families.al-zoubi.history', ['history' => $data('history')])->name('history');
-    if ($canonicalPortal) {
-        Route::redirect('/branches', '/families/al-zoubi/entities')->name('branches');
-    } else {
-        Route::view('/branches', 'families.al-zoubi.branches.index', ['branches' => $data('branches')])->name('branches');
-    }
-
-    foreach ($data('branches') as $branch) {
-        if ($canonicalPortal) {
-            Route::get("/branches/{$branch['slug']}", fn () => redirect()->route('community.entities.show', ['al-zoubi', $branch['slug'], 'preview' => request()->boolean('preview') ? 1 : null]))->name('branches.'.$branch['slug']);
-        } else {
-            Route::view("/branches/{$branch['slug']}", 'families.al-zoubi.branches.show', ['branch' => $branch])->name('branches.'.$branch['slug']);
-        }
-        foreach ($branch['children'] as $child) {
-            if ($canonicalPortal) {
-                $entitySlug = basename($child['slug']);
-                Route::get("/branches/{$child['slug']}", fn () => redirect()->route('community.entities.show', ['al-zoubi', $entitySlug, 'preview' => request()->boolean('preview') ? 1 : null]))->name('branches.'.str_replace('/', '.', $child['slug']));
-            } else {
-                Route::view("/branches/{$child['slug']}", 'families.al-zoubi.branches.show', ['branch' => $child, 'parent' => $branch])->name('branches.'.str_replace('/', '.', $child['slug']));
-            }
-        }
-    }
-
+// Legacy URLs use the same database-backed portals and visibility rules.
+Route::prefix('al-zoubi')->name('family.')->group(function () {
+    Route::get('/', fn () => redirect()->to(app(FamilyHosts::class)->portalUrl(Family::query()->active()->where('slug', 'al-zoubi')->firstOrFail())))->name('home');
+    Route::redirect('/branches', '/families/al-zoubi/entities')->name('branches');
     Route::redirect('/branches/al-awdat', '/al-zoubi/branches/al-awtalat');
-    Route::view('/archive', 'families.al-zoubi.archive', ['archive' => $data('archive')])->name('archive');
-    Route::view('/achievements', 'families.al-zoubi.achievements')->name('achievements');
-    Route::view('/prominent-people', 'families.al-zoubi.prominent-people', ['people' => $data('people')])->name('people');
-    Route::view('/members', 'families.al-zoubi.members', ['branches' => $data('branches')])->name('members');
+    Route::get('/branches/{branch}', fn (string $branch) => redirect()->route('community.entities.show', [
+        'family' => 'al-zoubi',
+        'entity' => basename($branch),
+        'preview' => request()->boolean('preview') ? 1 : null,
+    ]))->where('branch', '[^/]+(?:/[^/]+)*')->name('branches.show');
+    Route::redirect('/history', '/families/al-zoubi')->name('history');
+    Route::redirect('/archive', '/families/al-zoubi')->name('archive');
+    Route::redirect('/achievements', '/families/al-zoubi')->name('achievements');
+    Route::redirect('/prominent-people', '/families/al-zoubi/directory')->name('people');
+    Route::redirect('/members', '/families/al-zoubi/directory')->name('members');
 });
 
 Route::prefix('families/{family}')->name('genealogy.')->middleware('throttle:240,1')->group(function () {

@@ -25,7 +25,7 @@ class FamilyPortalController extends Controller
         }
 
         return view('juthoor.home', [
-            'family' => require resource_path('data/al-zoubi/family.php'),
+            'featuredFamily' => Family::query()->active()->where('slug', 'al-zoubi')->whereHas('familyTrees', fn ($query) => $query->active())->first(),
             'publicFamilies' => Family::query()->active()->whereHas('familyTrees', fn ($query) => $query->active())->with(['familyTrees' => fn ($query) => $query->active()])->orderBy('name_ar')->get(),
         ]);
     }

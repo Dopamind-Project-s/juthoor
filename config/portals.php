@@ -26,9 +26,6 @@ return [
 
     'scheme' => env('JUTHOOR_PORTAL_SCHEME', 'https'),
 
-    // When true, the legacy static Al-Zoubi pages redirect (302) to the dynamic portal. Enable only after comparison.
-    'canonical_portal' => (bool) env('JUTHOOR_PORTAL_CANONICAL', false),
-
     // Hostname labels and family slugs that can never belong to a family.
     'reserved_labels' => [
         'www', 'juthoor', 'admin', 'site-admin', 'manage', 'management', 'api', 'app', 'auth', 'login', 'register', 'account',

@@ -49,11 +49,6 @@ class AppServiceProvider extends ServiceProvider
 
             return $user->isSuperAdmin() ? true : null;
         });
-        // Static Al-Zoubi portal pages link to the database-backed branch focus when that branch is published.
-        View::composer(['families.al-zoubi.branches.index', 'families.al-zoubi.branches.show'], function ($view): void {
-            $tree = Family::query()->active()->where('slug', 'al-zoubi')->first()?->primaryTree()->active()->first();
-            $view->with('publishedBranchSlugs', $tree ? $tree->branches()->published()->pluck('slug')->all() : []);
-        });
         // Family website frame: every page extending layouts.family-site gets the family's published (or previewed) branding.
         // Child views render their sections before the layout, so they receive the frame data too.
         View::composer(['layouts.family-site', 'community.index', 'community.show', 'community.diwans.show', 'community.news.*', 'community.events.*', 'directory.*'], function ($view): void {
