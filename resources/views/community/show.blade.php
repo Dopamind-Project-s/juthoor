@@ -72,6 +72,7 @@
 </nav>
 
 <div class="j-shell entity-portal" data-entity-scope="{{ $scope }}">
+    <a class="btn btn-outline-primary mt-3" href="{{ route('directory.index', [$family->slug, 'entity' => $entity->id, 'scope' => $scope]) }}"><i class="bi bi-person-vcard" aria-hidden="true"></i> دليل السند في {{ $entity->name_ar }}</a>
     <p class="small text-muted mt-3 mb-0" role="status">{{ $scope === \App\Services\Community\EntityContentScope::DIRECT ? 'تعرض الأقسام محتوى هذا المستوى فقط.' : 'تعرض الأقسام محتوى هذا المستوى وفروعه التابعة، والمحتوى الموجه إليه من المستويات الأعلى.' }}</p>
     @foreach($tabs as $key => $tab)
         <div class="j-tabpanel" role="tabpanel" id="panel-{{ $key }}" aria-labelledby="tab-{{ $key }}" data-panel="{{ $key }}" data-aliases="{{ $tab['aliases'] }}" tabindex="-1">

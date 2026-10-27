@@ -59,8 +59,12 @@ class DirectoryProfileController extends Controller
             }
         }
         $fields = collect($data)->except(['visibility', 'is_listed', 'photo', 'remove_photo'])->all();
-        $this->directory->save($request->user(), $familyModel, [...$fields, 'skills' => $skills ?: null, 'links' => $links ?: null],
+        $profile = $this->directory->save($request->user(), $familyModel, [...$fields, 'skills' => $skills ?: null, 'links' => $links ?: null],
             array_intersect_key($data['visibility'] ?? [], MemberProfile::FIELDS), $request->boolean('is_listed'), $request->file('photo'), $request->boolean('remove_photo'));
+
+        if ($profile->suspended_at) {
+            return back()->with('status', 'حُفظ ملفك، لكن ظهوره ما زال موقوفًا حتى مراجعة إدارة الدليل.');
+        }
 
         return back()->with('status', $request->boolean('is_listed') ? 'حُفظ ملفك وهو ظاهر في الدليل وفق إعدادات الخصوصية.' : 'حُفظ ملفك وهو غير ظاهر في الدليل.');
     }
@@ -83,9 +87,10 @@ class DirectoryProfileController extends Controller
         return view('management.directory.review', [
             'family' => $familyModel, 'tree' => app(SelectedFamilyTree::class)->resolve($familyModel),
             // Administrators see the claim and the display name only, never the member's private fields.
-            'pending' => (clone $profiles)->where('affiliation_status', 'pending')->with('entity:id,name_ar', 'user:id,name')->get(['id', 'user_id', 'display_name', 'entity_id', 'affiliation_status']),
-            'reports' => DirectoryReport::query()->where('status', 'open')->whereIn('member_profile_id', (clone $profiles)->select('id'))->with('profile:id,display_name', 'reporter:id,name')->latest('id')->get(),
-            'suspended' => (clone $profiles)->whereNotNull('suspended_at')->get(['id', 'display_name', 'suspended_at', 'suspension_note']),
+            'pending' => (clone $profiles)->where('affiliation_status', 'pending')->with('entity:id,name_ar', 'user:id,name')->paginate(15, ['id', 'user_id', 'display_name', 'entity_id', 'affiliation_status'], 'affiliations_page')->withQueryString(),
+            'reports' => DirectoryReport::query()->where('status', 'open')->whereIn('member_profile_id', (clone $profiles)->select('id'))->with('profile:id,display_name', 'reporter:id,name')->latest('id')->paginate(15, ['*'], 'reports_page')->withQueryString(),
+            'history' => DirectoryReport::query()->where('status', '!=', 'open')->whereIn('member_profile_id', (clone $profiles)->select('id'))->with('profile:id,display_name')->latest('resolved_at')->paginate(15, ['*'], 'history_page')->withQueryString(),
+            'suspended' => (clone $profiles)->whereNotNull('suspended_at')->paginate(15, ['id', 'display_name', 'suspended_at', 'suspension_note'], 'suspended_page')->withQueryString(),
         ]);
     }
 

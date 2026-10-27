@@ -30,6 +30,9 @@ class MemberDirectoryController extends Controller
             'q' => ['nullable', 'string', 'max:100'], 'profession' => ['nullable', 'string', 'max:100'], 'skill' => ['nullable', 'string', 'max:60'],
             'sector' => ['nullable', Rule::in(array_keys(MemberProfile::SECTORS))], 'city' => ['nullable', 'string', 'max:120'],
             'business_category' => ['nullable', Rule::in(array_keys(MemberProfile::BUSINESS_CATEGORIES))], 'entity' => ['nullable', 'integer'],
+            'service' => ['nullable', 'string', 'max:100'], 'collaboration' => ['nullable', 'string', 'max:100'],
+            'verified' => ['nullable', 'boolean'], 'layout' => ['nullable', Rule::in(['grid', 'list'])],
+            'scope' => ['nullable', Rule::in(['direct', 'descendants'])],
         ]);
         $level = $this->directory->viewerLevel($request->user(), $familyModel);
         $fieldsColumn = $level === 'members' ? 'member_fields' : 'public_fields';
@@ -37,13 +40,15 @@ class MemberDirectoryController extends Controller
 
         return response()->view('directory.index', [
             'family' => $familyModel, 'filters' => $filters, 'level' => $level,
-            'profiles' => $this->directory->search($request->user(), $familyModel, $filters)->with('entity:id,name_ar')->paginate(20)->withQueryString(),
+            'categories' => $this->directory->categories($request->user(), $familyModel),
+            'visibleFields' => fn (MemberProfile $profile) => $this->directory->visibleFields($request->user(), $profile),
+            'profiles' => $this->directory->search($request->user(), $familyModel, $filters)->with(['entity:id,name_ar', 'family'])->paginate(20)->withQueryString(),
             // Filter choices come only from values the audience may already read.
             'cities' => $this->directory->listed($familyModel, $level)->where($fieldsColumn, 'like', '%|city|%')->whereNotNull('city')->distinct()->orderBy('city')->pluck('city'),
             'entities' => CommunityEntity::query()->whereIn('id', $entityIds)->orderBy('name_ar')->get(['id', 'name_ar']),
             'ownProfile' => $request->user() ? MemberProfile::query()->where('user_id', $request->user()->id)->where('family_id', $familyModel->id)->first() : null,
             'canHaveProfile' => $request->user() && $this->directory->canHaveProfile($request->user(), $familyModel),
-        ])->header('X-Robots-Tag', 'noindex, nofollow');
+        ])->header('X-Robots-Tag', 'noindex, nofollow')->header('Cache-Control', 'private, no-store');
     }
 
     public function show(Request $request, string $family, int $profile): Response
@@ -53,7 +58,7 @@ class MemberDirectoryController extends Controller
         return response()->view('directory.show', [
             'family' => $familyModel, 'profile' => $profileModel, 'fields' => $this->directory->visibleFields($request->user(), $profileModel),
             'isOwner' => $request->user()?->id === $profileModel->user_id,
-        ])->header('X-Robots-Tag', 'noindex, nofollow');
+        ])->header('X-Robots-Tag', 'noindex, nofollow')->header('Cache-Control', 'private, no-store');
     }
 
     public function photo(Request $request, string $family, int $profile): StreamedResponse
@@ -70,8 +75,8 @@ class MemberDirectoryController extends Controller
     public function contact(Request $request, string $family, int $profile): RedirectResponse
     {
         [, $profileModel] = $this->profile($request, $family, $profile);
-        $data = $request->validate(['message' => ['required', 'string', 'min:10', 'max:1000']]);
-        $this->directory->contact($request->user(), $profileModel, $data['message']);
+        $data = $request->validate(['message' => ['nullable', 'string', 'max:1000']]);
+        $this->directory->contact($request->user(), $profileModel, $data['message'] ?? null);
 
         return back()->with('status', 'أُرسل طلب التواصل داخل المنصة دون كشف بياناتك أو بياناته.');
     }
@@ -89,7 +94,7 @@ class MemberDirectoryController extends Controller
     private function profile(Request $request, string $family, int $id): array
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
-        $profile = MemberProfile::query()->where('family_id', $familyModel->id)->whereKey($id)->with('entity:id,name_ar', 'family')->firstOrFail();
+        $profile = MemberProfile::query()->where('family_id', $familyModel->id)->whereKey($id)->with('entity:id,name_ar', 'family', 'user')->firstOrFail();
         abort_unless($this->directory->canView($request->user(), $profile), 404);
 
         return [$familyModel, $profile];

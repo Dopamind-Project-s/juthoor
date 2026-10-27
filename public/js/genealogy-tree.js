@@ -44,15 +44,22 @@
         const nodes = [], edges = [];
         let cursor = 0, payload;
         do {
-            const endpoint = new URL(app.dataset.graphUrl, location.href);
-            endpoint.searchParams.set('all', 1); endpoint.searchParams.set('batch', 1000); endpoint.searchParams.set('cursor', cursor);
-            const response = await fetch(endpoint, {headers: {Accept: 'application/json'}});
+            // Keep API requests on the page origin, including behind Hostinger TLS termination.
+            const configured = new URL(app.dataset.graphUrl, location.href);
+            const endpoint = new URL(configured.pathname + configured.search, location.origin);
+            endpoint.searchParams.set('all', 1); endpoint.searchParams.set('batch', 200); endpoint.searchParams.set('cursor', cursor);
+            const response = await fetch(endpoint, {headers: {Accept: 'application/json'}, credentials: 'same-origin', cache: 'no-store'});
             if (!response.ok) {
                 const failure = new Error('graph');
                 failure.status = response.status;
                 throw failure;
             }
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) throw new Error('graph-non-json');
             payload = await response.json();
+            if (!Array.isArray(payload.nodes) || !Array.isArray(payload.edges) || !payload.meta || typeof payload.meta.complete !== 'boolean') {
+                throw new Error('graph-invalid-payload');
+            }
             nodes.push(...payload.nodes); edges.push(...payload.edges);
             (payload.meta.attributes || []).forEach(attribute => attributes.set(attribute.id, attribute));
             templates = payload.meta.templates || templates; placeholder = String(payload.meta.id_placeholder || placeholder);
@@ -607,11 +614,14 @@
             await loadAll();
         } catch (cause) {
             state(error);
+            console.error('Juthoor graph loading failed', {status: cause.status || null, reason: cause.message});
             const reason = cause.status === 401 || cause.status === 403 ? 'تحقق من تسجيل الدخول وصلاحية عرض الشجرة.'
                 : cause.status === 404 ? 'العائلة أو الشجرة المطلوبة غير متاحة.'
                 : cause.status === 429 ? 'طلبات كثيرة؛ انتظر قليلًا ثم أعد المحاولة.'
                 : cause.status >= 500 ? 'تعذر تحميل البيانات من الخادم؛ راجع سجل Laravel.'
-                : 'تعذر الاتصال أو قراءة استجابة الشجرة.';
+                : cause.message === 'graph-non-json' ? 'الخادم أعاد صفحة HTML بدل بيانات JSON؛ تحقق من مسار graph وإعدادات الاستضافة.'
+                : cause.message === 'graph-invalid-payload' || cause.message === 'cursor' ? 'استجابة بيانات الشجرة غير متوافقة؛ حدّث ملفات التطبيق وامسح ذاكرته المؤقتة.'
+                : 'تعذر الاتصال بالخادم؛ تحقق من رابط الطلب في Network.';
             progress.textContent = `التحميل غير مكتمل${cause.status ? ` (HTTP ${cause.status})` : ''}؛ ${reason}`;
             return;
         }

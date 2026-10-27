@@ -1,12 +1,17 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\CommunityEntity;
 use App\Models\DirectoryReport;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\MemberProfile;
 use App\Models\Person;
+use App\Models\Role;
 use App\Models\User;
+use App\Notifications\CommunityNotification;
+use App\Services\Community\MemberDirectory;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -167,4 +172,77 @@ test('only verified family members have profiles, per family', function () {
     $this->actingAs($this->other)->get(route('directory.show', ['other', $profile->id]))->assertNotFound();
     $this->actingAs($this->member)->put(route('management.directory.update', 'zain'), directoryForm(['entity_id' => CommunityEntity::query()->create(['family_id' => $other->id, 'entity_type' => 'clan', 'name_ar' => 'x', 'slug' => 'x', 'publication_status' => 'published'])->id]))->assertSessionHasErrors('entity_id');
     $this->actingAs($this->member)->put(route('management.directory.update', 'zain'), directoryForm(['links' => 'javascript:alert(1)']))->assertSessionHasErrors('links');
+});
+
+test('sanad filters normalize Arabic within each consented field without matching another field', function () {
+    $profile = saveProfile($this, $this->member, ['display_name' => 'أحمد السند', 'audience' => 'public', 'profession' => 'إدارة الأعمال', 'skills' => 'إشراف هندسي', 'services' => 'إرشاد تقني', 'collaboration' => 'إرشاد الطلاب'], ['profession' => 'public', 'skills' => 'public', 'business' => 'public', 'collaboration' => 'members']);
+    $this->app['auth']->forgetGuards();
+    foreach (['q' => 'احمد', 'profession' => 'اداره', 'skill' => 'اشراف', 'service' => 'ارشاد'] as $filter => $value) {
+        // Normalization deliberately preserves taa marbuta, matching the existing Arabic normalizer.
+        if ($filter === 'profession') {
+            $value = 'ادارة';
+        }
+        $this->get(route('directory.index', ['zain', $filter => $value]))->assertOk()->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 1);
+    }
+    $this->get(route('directory.index', ['zain', 'profession' => 'اشراف']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+    $this->get(route('directory.index', ['zain', 'collaboration' => 'ارشاد الطلاب']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+    $this->actingAs($this->other)->get(route('directory.index', ['zain', 'collaboration' => 'ارشاد الطلاب']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 1);
+});
+
+test('sanad categories and cards never disclose hidden sectors skills or services', function () {
+    saveProfile($this, $this->member, ['audience' => 'public', 'skills' => 'مهارة سرية', 'services' => 'خدمة سرية', 'sector' => 'health'], ['profession' => 'public', 'skills' => 'hidden', 'business' => 'hidden', 'sector' => 'hidden']);
+    $this->app['auth']->forgetGuards();
+    $this->get(route('directory.index', 'zain'))->assertOk()->assertDontSee('مهارة سرية')->assertDontSee('خدمة سرية')
+        ->assertViewHas('categories', fn ($categories) => $categories->isEmpty())->assertHeader('Cache-Control', 'no-store, private');
+    $this->get(route('directory.show', ['zain', MemberProfile::sole()->id]))->assertDontSee('مهارة سرية')->assertDontSee('خدمة سرية');
+});
+
+test('sanad current affiliation publication controls public filters cards and general search', function () {
+    $profile = saveProfile($this, $this->member, ['audience' => 'public', 'entity_id' => $this->sub->id], ['affiliation' => 'public']);
+    app(MemberDirectory::class)->reviewAffiliation($this->admin, $profile, 'verified', null);
+    $this->clan->update(['publication_status' => 'draft']);
+    $this->app['auth']->forgetGuards();
+    $this->get(route('directory.index', ['zain', 'verified' => 1]))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+    $this->get(route('directory.show', ['zain', $profile->id]))->assertDontSee('كيان s');
+    $this->get(route('directory.index', ['zain', 'q' => 'كيان s']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+});
+
+test('sanad direct scope excludes subfakhd profiles while descendants includes them', function () {
+    $profile = saveProfile($this, $this->member, ['entity_id' => $this->sub->id], ['affiliation' => 'members']);
+    app(MemberDirectory::class)->reviewAffiliation($this->admin, $profile, 'verified', null);
+    $this->actingAs($this->other)->get(route('directory.index', ['zain', 'entity' => $this->fakhd->id, 'scope' => 'direct']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+    $this->get(route('directory.index', ['zain', 'entity' => $this->fakhd->id, 'scope' => 'descendants']))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 1);
+});
+
+test('sanad hidden profile and search counts disappear when membership is revoked', function () {
+    $profile = saveProfile($this, $this->member, ['audience' => 'public'], ['profession' => 'public']);
+    FamilyMembership::query()->where('user_id', $this->member->id)->delete();
+    $this->actingAs($this->other)->get(route('directory.index', 'zain'))->assertViewHas('profiles', fn ($profiles) => $profiles->total() === 0);
+    $this->get(route('directory.show', ['zain', $profile->id]))->assertNotFound();
+});
+
+test('sanad contact message is optional and reveals no contact fields', function () {
+    $profile = saveProfile($this, $this->member, [], ['messages' => 'members']);
+    $this->actingAs($this->other)->post(route('directory.contact', ['zain', $profile->id]), [])->assertRedirect()->assertSessionHasNoErrors();
+    $notification = $this->member->notifications()->where('type', CommunityNotification::class)->latest()->first();
+    expect($notification)->not->toBeNull();
+    expect(json_encode($notification->data, JSON_UNESCAPED_UNICODE))->toContain('دليل السند')->not->toContain('private@example.com')->not->toContain('+962 7');
+});
+
+test('a scoped Directory Moderator can close reports without acquiring genealogy or other-family powers', function () {
+    app(RolePermissionSeeder::class)->run();
+    $membership = FamilyMembership::query()->where('family_id', $this->family->id)->where('user_id', $this->other->id)->sole();
+    $role = Role::query()->where('key', 'directory-moderator')->sole();
+    $membership->roleAssignments()->create(['role_id' => $role->id]);
+    $profile = saveProfile($this, $this->member);
+    $directory = app(MemberDirectory::class);
+    $report = $directory->report($this->other, $profile, 'incorrect', 'بلاغ تجريبي');
+    $this->actingAs($this->other)->get(route('management.directory.review', 'zain'))->assertOk();
+    $this->post(route('management.directory.resolve', ['zain', $report->id]), ['action' => 'dismiss', 'note' => 'تمت المراجعة'])->assertRedirect();
+    expect($report->fresh()->status)->toBe('dismissed');
+    expect($this->other->can('moderateDirectory', $this->family->fresh()))->toBeTrue()
+        ->and($this->other->hasFamilyPermission($this->family, 'person.create'))->toBeFalse()
+        ->and(AuditLog::query()->where('action', 'directory_report_closed')->exists())->toBeTrue();
+    $elsewhere = Family::query()->create(['name_ar' => 'عائلة أخرى', 'slug' => 'elsewhere']);
+    $this->get(route('management.directory.review', $elsewhere->slug))->assertForbidden();
 });

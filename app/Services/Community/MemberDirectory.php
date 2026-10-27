@@ -26,6 +26,8 @@ use Throwable;
  */
 class MemberDirectory
 {
+    private array $publicEntityIds = [];
+
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly CommunityHierarchy $hierarchy,
@@ -133,25 +135,44 @@ class MemberDirectory
         // Wildcards are dropped rather than escaped: SQLite and PostgreSQL treat LIKE escapes differently.
         $like = fn (string $value) => '%'.str_replace(['%', '_'], '', mb_strtolower($this->normalizer->normalize($value))).'%';
 
+        $normalized = $level === 'members' ? 'search_fields_members' : 'search_fields_public';
+        $fieldLike = fn (Builder $query, string $field, string $value) => $visible($query, $field)->where($normalized.'->'.$field, 'like', $like($value));
+
         return $this->listed($family, $level)
             ->when(filled($filters['q'] ?? null), fn (Builder $query) => $query->where($text, 'like', $like($filters['q'])))
-            ->when(filled($filters['profession'] ?? null), fn (Builder $query) => $visible($query, 'profession')->where(fn (Builder $any) => $any->where('profession', 'like', '%'.str_replace(['%', '_'], '', $filters['profession']).'%')->orWhere('specialization', 'like', '%'.str_replace(['%', '_'], '', $filters['profession']).'%')))
-            ->when(filled($filters['skill'] ?? null), fn (Builder $query) => $visible($query, 'skills')->where('skills', 'like', '%'.str_replace(['%', '_'], '', $filters['skill']).'%'))
+            ->when(filled($filters['profession'] ?? null), fn (Builder $query) => $fieldLike($query, 'profession', $filters['profession']))
+            ->when(filled($filters['skill'] ?? null), fn (Builder $query) => $fieldLike($query, 'skills', $filters['skill']))
+            ->when(filled($filters['collaboration'] ?? null), fn (Builder $query) => $fieldLike($query, 'collaboration', $filters['collaboration']))
+            ->when(filled($filters['service'] ?? null), fn (Builder $query) => $fieldLike($query, 'business', $filters['service']))
+            ->when(! empty($filters['verified']), fn (Builder $query) => $visible($query, 'affiliation')->where('affiliation_status', 'verified'))
             ->when(filled($filters['sector'] ?? null), fn (Builder $query) => $visible($query, 'sector')->where('sector', $filters['sector']))
             ->when(filled($filters['city'] ?? null), fn (Builder $query) => $visible($query, 'city')->where('city', $filters['city']))
             ->when(filled($filters['business_category'] ?? null), fn (Builder $query) => $visible($query, 'business')->where('business_category', $filters['business_category']))
             ->when(filled($filters['entity'] ?? null), function (Builder $query) use ($family, $filters, $visible): void {
                 $entity = CommunityEntity::query()->where('family_id', $family->id)->whereKey($filters['entity'])->first();
                 // The hierarchy decides the scope: an entity's filter includes its sub-entities.
-                $visible($query, 'affiliation')->where('affiliation_status', 'verified')->whereIn('entity_id', $entity ? $this->hierarchy->descendantIds($entity) : [0]);
+                $visible($query, 'affiliation')->where('affiliation_status', 'verified')->whereIn('entity_id', $entity ? (($filters['scope'] ?? 'descendants') === 'direct' ? [$entity->id] : $this->hierarchy->descendantIds($entity)) : [0]);
             })
+            ->when($level === 'public' && (! empty($filters['entity']) || ! empty($filters['verified'])), fn (Builder $query) => $query->whereIn('entity_id', $this->publicEntities($family->id)))
             ->orderBy('display_name')->orderBy('id');
+    }
+
+    /** @return Collection<int, object> */
+    public function categories(?User $viewer, Family $family): Collection
+    {
+        $level = $this->viewerLevel($viewer, $family);
+        $column = $level === 'members' ? 'member_fields' : 'public_fields';
+
+        return $this->listed($family, $level)->where($column, 'like', '%|sector|%')
+            ->whereIn('sector', array_keys(MemberProfile::SECTORS))->select('sector')
+            ->selectRaw('count(*) as total')->groupBy('sector')->orderByDesc('total')->limit(8)->get();
     }
 
     /** Listed, not suspended, and open to this audience. */
     public function listed(Family $family, string $level): Builder
     {
         return MemberProfile::query()->where('family_id', $family->id)->where('is_listed', true)->whereNull('suspended_at')
+            ->whereHas('user', fn (Builder $user) => $user->where('is_active', true)->whereNotNull('email_verified_at')->whereHas('familyMemberships', fn (Builder $membership) => $membership->where('family_id', $family->id)))
             ->when($level === 'public', fn (Builder $query) => $query->where('audience', 'public'));
     }
 
@@ -161,20 +182,26 @@ class MemberDirectory
             return true;
         }
 
-        return $profile->isVisibleInDirectory() && ($profile->audience === 'public' || $this->viewerLevel($viewer, $profile->family) === 'members');
+        return $profile->user?->is_active && $profile->user->hasVerifiedEmail() && $profile->user->roleFor($profile->family) !== null && $profile->isVisibleInDirectory() && ($profile->audience === 'public' || $this->viewerLevel($viewer, $profile->family) === 'members');
     }
 
     /** @return array<int, string> */
     public function visibleFields(?User $viewer, MemberProfile $profile): array
     {
-        return $viewer && $profile->user_id === $viewer->id ? $profile->fieldsFor('owner') : $profile->fieldsFor($this->viewerLevel($viewer, $profile->family));
+        $fields = $viewer && $profile->user_id === $viewer->id ? $profile->fieldsFor('owner') : $profile->fieldsFor($this->viewerLevel($viewer, $profile->family));
+        if ($viewer?->id !== $profile->user_id && $this->viewerLevel($viewer, $profile->family) === 'public'
+            && ! in_array($profile->entity_id, $this->publicEntities($profile->family_id), true)) {
+            $fields = array_values(array_diff($fields, ['affiliation']));
+        }
+
+        return $fields;
     }
 
     /** A message delivered in-app; neither side's e-mail or phone is revealed. */
-    public function contact(User $sender, MemberProfile $profile, string $message): void
+    public function contact(User $sender, MemberProfile $profile, ?string $message): void
     {
         abort_unless($this->canView($sender, $profile) && $profile->user_id !== $sender->id && in_array('messages', $this->visibleFields($sender, $profile), true), 403);
-        $this->notifier->send(collect([$profile->user]), 'directory_contact', 'طلب تواصل من '.$sender->name.' عبر الدليل', mb_substr($message, 0, 1000), null);
+        $this->notifier->send(collect([$profile->user]), 'directory_contact', 'طلب تواصل من '.$sender->name.' عبر الدليل', mb_substr($message ?: 'أرغب بالتواصل والتعاون معك عبر دليل السند.', 0, 1000), null);
         $this->audit->record($sender, $profile->family, $profile, 'contact_requested', null, ['to_profile' => $profile->id]);
     }
 
@@ -209,7 +236,9 @@ class MemberDirectory
         $profile = $report->profile;
         $this->authorizeAdmin($admin, $profile->family);
         DB::transaction(function () use ($admin, $report, $profile, $action, $note): void {
+            $before = ['status' => $report->status];
             $report->forceFill(['status' => $action === 'suspend' ? 'actioned' : 'dismissed', 'resolved_by' => $admin->id, 'resolved_at' => now(), 'resolution_note' => $note])->save();
+            $this->audit->record($admin, $profile->family, $report, 'directory_report_closed', $before, ['status' => $report->status, 'member_profile_id' => $profile->id]);
             if ($action === 'suspend') {
                 $this->suspend($admin, $profile, $note ?: DirectoryReport::REASONS[$report->reason]);
             }
@@ -246,16 +275,24 @@ class MemberDirectory
                 'city' => [$profile->city], 'governorate' => [$profile->governorate], 'collaboration' => [$profile->collaboration],
                 'affiliation' => [$profile->affiliation_status === 'verified' ? $profile->entity?->name_ar : null],
             ];
+            $searchFields = [];
             foreach ($map as $field => $fieldValues) {
-                if (in_array($field, $fields, true)) {
+                if (in_array($field, $fields, true) && ! ($level === 'public' && $field === 'affiliation')) {
+                    $searchFields[$field] = mb_strtolower($this->normalizer->normalize(implode(' ', array_filter($fieldValues, fn ($value) => is_string($value)))));
                     $values = [...$values, ...$fieldValues];
                 }
             }
             $profile->forceFill([
+                'search_fields_'.$level => $searchFields,
                 $fieldsColumn => '|'.implode('|', $fields).'|',
                 $textColumn => mb_strtolower($this->normalizer->normalize(implode(' ', array_filter($values, fn ($value) => is_string($value) && $value !== '')))),
             ]);
         }
+    }
+
+    private function publicEntities(int $familyId): array
+    {
+        return $this->publicEntityIds[$familyId] ??= $this->hierarchy->publicIds($familyId);
     }
 
     /** @return Collection<int, User> */

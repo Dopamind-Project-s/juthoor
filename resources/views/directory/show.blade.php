@@ -2,20 +2,24 @@
 @section('nav-current', 'directory')
 @section('title', $profile->display_name)
 @php($has = fn (string $field) => in_array($field, $fields, true))
+@push('styles')<link href="{{ asset('css/sanad.css') }}" rel="stylesheet">@endpush
 @section('content')
 <section class="section-space"><div class="container">
     @if(session('status'))<div class="alert alert-success" role="status">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>@endif
-    <nav class="family-breadcrumb mb-3" aria-label="مسار"><a href="{{ route('directory.index', $family->slug) }}">دليل أبناء العشيرة</a><i class="bi bi-chevron-left" aria-hidden="true"></i><span>{{ $profile->display_name }}</span></nav>
+    <nav class="family-breadcrumb mb-3" aria-label="مسار"><a href="{{ route('directory.index', $family->slug) }}">دليل السند</a><i class="bi bi-chevron-left" aria-hidden="true"></i><span>{{ $profile->display_name }}</span></nav>
     @if($isOwner)<p class="alert alert-info">هذا ملفك؛ تراه كاملًا. يرى الآخرون الحقول التي أتحتها فقط. <a href="{{ route('management.directory.edit', $family->slug) }}">تعديل الملف والخصوصية</a></p>@endif
     <div class="row g-4">
         <article class="col-lg-8">
-            <section class="entity-section" data-directory-profile>
-                <div class="d-flex gap-3 align-items-center mb-3">
+            <section class="sanad-profile-section" data-directory-profile>
+                <div class="sanad-profile-heading">
                     @if($has('photo') && $profile->photo_path)<img class="directory-photo" src="{{ route('directory.photo', [$family->slug, $profile->id]) }}" alt="صورة {{ $profile->display_name }}" width="88" height="88">@endif
-                    <div><h1 class="h4 fw-bold mb-1">{{ $profile->display_name }}</h1>
+                    <div><span class="eyebrow">{{ $family->name_ar }} · دليل السند</span><h1 class="h4 fw-bold mb-1">{{ $profile->display_name }}</h1>
                         @if($has('affiliation') && $profile->affiliation_status === 'verified' && $profile->entity)<span class="status-badge" data-field="affiliation"><i class="bi bi-patch-check"></i> {{ $profile->entity->name_ar }} — انتماء موثق</span>@endif</div>
                 </div>
+                <p class="small text-muted">توثيق الانتماء يخص صلتك بالعائلة، ولا يُعد اعتمادًا للمؤهلات المهنية.</p>
+                @if($has('skills') && $profile->skills)<section class="mb-4"><h2>المهارات والخبرات</h2><div class="sanad-tags" data-field="skills">@foreach($profile->skills as $skill)<span>{{ $skill }}</span>@endforeach</div></section>@endif
+                <h2>الملف المهني ومجالات التعاون</h2>
                 <dl class="entity-facts mb-0">
                     @if($has('profession') && ($profile->profession || $profile->specialization))<div data-field="profession"><dt>المهنة والتخصص</dt><dd>{{ collect([$profile->profession, $profile->specialization])->filter()->implode(' — ') }}</dd></div>@endif
                     @if($has('sector') && $profile->sector)<div data-field="sector"><dt>القطاع</dt><dd>{{ \App\Models\MemberProfile::SECTORS[$profile->sector] }}</dd></div>@endif
@@ -34,10 +38,10 @@
         <aside class="col-lg-4 d-grid gap-3 align-content-start">
             @auth
                 @if(! $isOwner && $has('messages'))
-                    <section class="entity-aside" data-contact-form>
-                        <h2 class="h6 fw-bold">طلب تواصل</h2>
+                    <section class="entity-aside sanad-profile-section" id="contact-request" data-contact-form>
+                        <h2 class="h6 fw-bold">تواصل وتعاون</h2>
                         <p class="small text-muted">يصل طلبك داخل المنصة دون كشف بريدك أو هاتفك أو بياناته.</p>
-                        <form method="post" action="{{ route('directory.contact', [$family->slug, $profile->id]) }}" class="d-grid gap-2">@csrf<textarea class="form-control" name="message" rows="3" minlength="10" maxlength="1000" required aria-label="نص الطلب"></textarea>@error('message')<span class="field-error">{{ $message }}</span>@enderror<button class="btn btn-primary btn-sm">إرسال</button></form>
+                        <form method="post" action="{{ route('directory.contact', [$family->slug, $profile->id]) }}" class="d-grid gap-2">@csrf<textarea class="form-control" name="message" rows="3" maxlength="1000" aria-label="رسالة اختيارية" placeholder="رسالة اختيارية للتعريف بطلبك"></textarea>@error('message')<span class="field-error">{{ $message }}</span>@enderror<button class="btn btn-primary btn-sm">إرسال</button></form>
                     </section>
                 @endif
                 @unless($isOwner)

@@ -56,7 +56,7 @@ class MemberProfile extends Model
     protected function casts(): array
     {
         // Unicode JSON keeps Arabic skills readable by the skill filter.
-        return ['skills' => 'json:unicode', 'links' => 'json:unicode', 'field_visibility' => 'array', 'is_listed' => 'boolean', 'listed_at' => 'datetime',
+        return ['search_fields_public' => 'array', 'search_fields_members' => 'array', 'skills' => 'json:unicode', 'links' => 'json:unicode', 'field_visibility' => 'array', 'is_listed' => 'boolean', 'listed_at' => 'datetime',
             'suspended_at' => 'datetime', 'affiliation_reviewed_at' => 'datetime'];
     }
 

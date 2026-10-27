@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "desktop landing, privacy and real categories",
+    "Arabic normalized member search",
+    "profession filter and compact list",
+    "fakhd filter uses current affiliation",
+    "profile detail respects field consent",
+    "mobile landing search and filters",
+    "mobile profile",
+    "guided onboarding and privacy preview",
+    "mobile profile editing and privacy controls",
+    "in-app contact without private contact disclosure",
+    "moderation review and decision history",
+    "cross-family profile editing isolation",
+    "voluntary directory withdrawal preserves account"
+  ],
+  "errors": [],
+  "syntheticData": true
+}

@@ -14,7 +14,7 @@
     <link href="{{ asset('css/design-system.css') }}" rel="stylesheet">
     <link href="{{ asset('css/portal.css') }}" rel="stylesheet">
     <style>:root{--j-brand:{{ $palette['primary'] }};--j-brand-2:color-mix(in srgb,{{ $palette['primary'] }} 78%,#fff);--j-accent:{{ $palette['accent'] }};--j-tint:{{ $palette['soft'] }}}</style>
-</head>
+@stack('styles')</head>
 <body class="portal-body @yield('body-class')">
 <a class="visually-hidden-focusable position-absolute bg-white p-3" href="#site-main">انتقل إلى المحتوى</a>
 @yield('preview-bar')

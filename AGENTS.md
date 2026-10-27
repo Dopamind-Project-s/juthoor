@@ -16,7 +16,7 @@ Juthoor is an Arabic RTL genealogy and family-portal application: Laravel 13, PH
 - Preserve stable canonical identities, provenance and approved parent relationships. Never merge by name alone or guess missing fathers. Keep cycle, unique-primary-father, founder and hierarchy validation.
 - Preserve PersonPrivacy and tri-state living status. Unknown does not mean deceased. Imported/source-supported/pending claims do not mean historically verified. Unresolved raw seed sources require the existing family review permission.
 - Preserve the UX-P0.1 permission catalog, family memberships, family functional roles, entity scopes, review separation and policy checks. Honorary person attributes never grant user privileges.
-- The development seed entry point is DatabaseSeeder → RolePermissionSeeder, PersonAttributeSeeder, AlZoubiFamilyTreeSeeder, SiteUsersSeeder. Canonical input is resources/data/genealogy/al-zoubi/normalized.json. Preserve source evidence and pending reviews; protect environment restrictions and administrator changes on reruns.
+- The development seed entry point is DatabaseSeeder → RolePermissionSeeder, PersonAttributeSeeder, AlZoubiFamilyTreeSeeder, SiteUsersSeeder. The self-contained seed snapshot is in App\Services\Imports\UnifiedGenealogyDataset; runtime does not require resources/data files. Preserve source evidence and pending reviews; protect environment restrictions and administrator changes on reruns.
 - Use the existing tree-layout.js / genealogy-tree.js renderer and portal services. Classification colors come from PersonAttribute records. Counts must use visibility-appropriate database queries.
 
 ## Changes and safety

@@ -435,3 +435,12 @@ Completed the remaining physical cleanup. `database/seeders/` now has exactly th
 The previously outstanding legacy-seeder relocation is complete. Historical ambiguities remain deliberately unresolved rather than guessed. Development accounts and the improved PersonAttributeSeeder remain in the authoritative path. No database reset or reseed was needed for this file-organization change.
 
 At the user's explicit request, no checks or tests were run after this final cleanup. Earlier recorded test results apply to the implementation before this namespace/file relocation.
+
+
+## UX-P0.6 — Sanad Directory & Community Experience
+
+Implemented دليل السند using the existing Phase 4 MemberDirectory, member-profile consent, affiliation, reporting, notifications and family-scoped Directory Moderator permission. Added the directory hero/data-derived categories, grid/list search, normalized field-specific filters, professional profiles, guided privacy-preview onboarding, scoped fakhd links and moderation decision history. Two JSON search-field columns are backfilled without widening consent. Directory pages are private/no-store; current affiliation publication and revoked memberships are honored. No genealogy renderer, PersonPrivacy or role privileges were changed.
+
+Final directory tests: SQLite 14/14 and PostgreSQL 16.15 14/14 (142 assertions each); Node 11/11; Chrome 13/13 desktop/mobile journeys. Full SQLite and PostgreSQL runs: 424/459 passed with the same 35 baseline failures, no new failing test names. Baseline was 418/453. The final moderator case and final focused adjustments were verified in the complete directory subset after the full runs. Functional phase is implemented; repository-wide regression/release sign-off is still blocked by those existing failures. UX-P0.7 readiness is conditional, not an all-green claim.
+
+See [implementation, audit, privacy, performance, files and limitations](sanad-ux-p0.6.md), [test results](sanad-ux-p0.6-results.json) and [before/after screenshots](screenshots/ux-p0.6). No deployment, commit, vendor/dependency edits or production database changes were performed.

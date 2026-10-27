@@ -34,7 +34,7 @@ class FamilySiteChrome
             'entities' => $publicIds ? ['label' => 'الأفخاذ والفروع', 'url' => route('community.entities.index', $family->slug), 'icon' => 'diagram-2'] : null,
             'heritage' => $root ? ['label' => 'التاريخ والتراث', 'url' => route('community.entities.show', [$family->slug, $root->slug]).'#history', 'icon' => 'hourglass-split'] : null,
             'news' => $root ? ['label' => 'الأخبار', 'url' => route('community.entities.news', [$family->slug, $root->slug]), 'icon' => 'megaphone'] : null,
-            'directory' => ['label' => 'الدليل', 'url' => route('directory.index', $family->slug), 'icon' => 'person-vcard'],
+            'directory' => ['label' => 'دليل السند', 'url' => route('directory.index', $family->slug), 'icon' => 'person-vcard'],
         ]);
 
         return [

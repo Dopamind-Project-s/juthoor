@@ -11,3 +11,10 @@ Enable Apache/LiteSpeed rewrite support and allow .htaccess overrides, including
 Set production environment values outside Git: APP_ENV=production, APP_DEBUG=false and APP_URL=https://your-domain (without /public). Keep existing application keys and credentials. If cached configuration references the old URL/path, rebuild the normal deployment caches after updating environment settings. Host configuration and server logs were not accessible during this repository fix; no live deployment or tests were performed.
 
 References: [Hostinger shared-hosting Laravel layout](https://support.hostinger.com/en/articles/6152127-how-to-deploy-laravel-8-at-hostinger), [Apache per-directory rewrites](https://httpd.apache.org/docs/2.4/rewrite/flags.html).
+
+
+## Interactive tree requests
+
+Tree graph/search/quick-add endpoints now use relative URLs, and the graph loader anchors them to the page origin. This prevents a misdetected HTTP origin behind TLS termination from turning the graph fetch into a mixed-content or cross-origin request. Full-tree requests load 200 records per batch instead of 1,000 and bypass browser caches. The graph loader rejects HTML and incompatible payloads with distinct messages and logs a non-sensitive error reason/status. Both tree scripts have filemtime-based version parameters and same-origin root paths so code uploads invalidate stale browser scripts.
+
+A read-only direct invocation of the local graph service returned 79 publicly eligible nodes and 78 edges without an exception. This is not confirmation of the deployed Hostinger database or endpoint: live domain access was unavailable. No automated tests were run. After upload, php artisan optimize:clear refreshes views/routes/config; reload the tree page. If it still fails, use the new status message and the live graph request's Network status/server log to identify the server exception rather than reseeding blindly.
