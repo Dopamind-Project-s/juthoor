@@ -51,7 +51,9 @@ return new class extends Migration
                     ->whereIn('field_key', ['person', 'father'])->update(['verification_status' => 'verified']);
             }
             $slugs = array_column($data['branches'], 'slug');
-            $tree->branches()->whereIn('slug', $slugs)->update(['verification_status' => 'verified', 'is_active' => true]);
+            $tree->branches()->whereIn('slug', $slugs)->update(['verification_status' => 'verified']);
+            $tree->branches()->whereIn('slug', $slugs)->whereNotNull('root_person_id')->update(['is_active' => true]);
+            $tree->branches()->whereIn('slug', $slugs)->whereNull('root_person_id')->update(['is_active' => false]);
             $family->communityEntities()->whereIn('slug', array_merge(['al-zoubi'], $slugs))->update([
                 'publication_status' => 'published', 'reviewed_at' => now(),
             ]);

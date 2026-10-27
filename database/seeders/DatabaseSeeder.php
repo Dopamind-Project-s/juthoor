@@ -13,8 +13,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolePermissionSeeder::class);
         $this->call(PersonAttributeSeeder::class);
-        if (app()->environment(['local', 'testing'])) {
             $this->call(AlZoubiFamilyTreeSeeder::class);
+        
+        if (app()->environment(['local', 'testing'])) {
             $this->call(SiteUsersSeeder::class);
         }
     }

@@ -22,8 +22,8 @@ class AlZoubiFamilyTreeSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
-            throw new DomainException('The consolidated genealogy seed proposal is local/testing only.');
+        if (! app()->environment(['local', 'testing', 'staging'])) {
+            throw new DomainException('The consolidated genealogy seed proposal is local/testing/staging only.');
         }
         $payload = app(UnifiedGenealogyDataset::class)->snapshot();
         $data = $payload['data'];
@@ -130,12 +130,23 @@ class AlZoubiFamilyTreeSeeder extends Seeder
             ]));
             $branches = [];
             foreach ($data['branches'] as $row) {
-                $founder = $row['founder'] ? $people[$row['founder']] : null;
+                // Explicit non-production demo mapping; canonical genealogy and father relationships are unchanged.
+                $provisional = ! $row['founder'] && $row['slug'] === 'al-awtalat';
+                $founderKey = $provisional ? 'ROOT-079' : $row['founder'];
+                $founder = $founderKey ? $people[$founderKey] : null;
+                $description = $provisional ? 'تعيين تجريبي لبيئة staging: عبد القادر جذر عرض مؤقت للعوتلات، وليس حسمًا تاريخيًا للمؤسس. المسار الأصلي المختلف عليه محفوظ للمراجعة.' : null;
+                $existingBranch = $tree->branches()->where('slug', $row['slug'])->first();
+                if ($provisional && $existingBranch && $existingBranch->root_person_id === null) {
+                    $before = app(AuditLogger::class)->snapshot($existingBranch);
+                    $existingBranch->fill(['root_person_id' => $founder->id, 'description' => $description])->save();
+                    app(AuditLogger::class)->record(null, $family, $existingBranch, 'seed_demo_founder', $before, app(AuditLogger::class)->snapshot($existingBranch));
+                }
                 $branch = $audit($this->createMissing($tree->branches(), ['slug' => $row['slug']], [
                     'name_ar' => $row['name'], 'root_person_id' => $founder?->id,
                     'parent_branch_id' => $row['parent'] ? $branches[$row['parent']]->id : null,
                     'branch_type' => $row['type'], 'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
-                    'is_active' => true, 'verification_status' => 'verified',
+                    'is_active' => $founder !== null, 'verification_status' => 'verified',
+                    'description' => $description,
                 ]));
                 if ($branch->root_person_id !== $founder?->id) {
                     throw new DomainException('Existing founder requires reconciliation: '.$row['slug']);
