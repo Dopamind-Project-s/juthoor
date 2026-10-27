@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Notifications\QueuedPasswordReset;
 use App\Notifications\QueuedVerifyEmail;
+use App\Services\Access\FamilyPermissions;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
@@ -78,6 +79,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
             FamilyMembership::ROLE_EDITOR,
             FamilyMembership::ROLE_ADMIN,
         ], true);
+    }
+
+    /** A catalog permission within one family (membership role plus assigned functional roles); see PermissionCatalog. */
+    public function hasFamilyPermission(Family|int $family, string $permission): bool
+    {
+        return app(FamilyPermissions::class)->has($this, $family, $permission);
     }
 
     public function isSuperAdmin(): bool

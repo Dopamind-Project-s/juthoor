@@ -21,5 +21,8 @@ class BranchFounderSeeder extends Seeder
             $statistics['branches_activated'],
             $statistics['unresolved'],
         ));
+        foreach ($statistics['preserved'] as $preserved) {
+            $this->command?->warn('Preserved: '.$preserved);
+        }
     }
 }

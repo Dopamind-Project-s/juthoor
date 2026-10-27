@@ -7,6 +7,7 @@ use App\Models\CommunityEntityManager;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\User;
+use App\Services\Access\PermissionCatalog;
 use App\Services\Community\CommunityEntityAccess;
 
 /**
@@ -28,16 +29,25 @@ class CommunityEntityPolicy
         return $parent ? $this->update($user, $parent) : $user->canEditFamily($family);
     }
 
-    public function update(User $user, CommunityEntity $entity): bool
+    /** $module narrows a functional content grant: news permissions cover only PermissionCatalog::NEWS_MODULES. */
+    public function update(User $user, CommunityEntity $entity, ?string $module = null): bool
     {
         return (bool) $entity->family?->is_active
-            && ($user->canEditFamily($entity->family_id) || $this->access->roleOver($user, $entity) !== null);
+            && ($user->canEditFamily($entity->family_id) || $this->access->roleOver($user, $entity) !== null
+                || $this->granted($user, $entity, $module, 'content.edit', 'news.edit'));
     }
 
-    public function publish(User $user, CommunityEntity $entity): bool
+    public function publish(User $user, CommunityEntity $entity, ?string $module = null): bool
     {
         return (bool) $entity->family?->is_active && $user->is_active
-            && ($user->roleFor($entity->family_id) === FamilyMembership::ROLE_ADMIN || $this->access->roleOver($user, $entity) === CommunityEntityManager::ROLE_ADMIN);
+            && ($user->roleFor($entity->family_id) === FamilyMembership::ROLE_ADMIN || $this->access->roleOver($user, $entity) === CommunityEntityManager::ROLE_ADMIN
+                || $this->granted($user, $entity, $module, 'content.publish', 'news.publish'));
+    }
+
+    private function granted(User $user, CommunityEntity $entity, ?string $module, string $contentPermission, string $newsPermission): bool
+    {
+        return $user->hasFamilyPermission($entity->family_id, $contentPermission)
+            || (in_array($module, PermissionCatalog::NEWS_MODULES, true) && $user->hasFamilyPermission($entity->family_id, $newsPermission));
     }
 
     public function manageManagers(User $user, CommunityEntity $entity): bool

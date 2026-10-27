@@ -2,16 +2,16 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-26, after session 12)
+## Current state (2026-10-27, after session 13 — UX-P0.1)
 
-- Branch `main` at `57ffda7` (Phase 3.7 committed by the maintainer); session 12 (Phase 4) changes uncommitted (nothing committed by the assistant).
-- Suite: **367 passed / 0 failed** on SQLite and PostgreSQL 16.
-- Phase 1, Phases 2.1–2.5, Phase 3 (3.1–3.7) and Phase 4 complete. Deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook, multi-family entity ownership. The 39 ROOT name differences are reviewable and intentionally still open.
-- Priorities changed 2026-10-26: Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are deferred, not cancelled; Phase 3 continues, then Phase 4 without Facebook.
+- Branch `main` at `4ed00b1`; session 13 (UX-P0.1) changes are uncommitted (nothing committed, pushed or tagged by the assistant).
+- Suite: **404 passed / 0 failed** on SQLite and PostgreSQL 16 (367 before the session + 37 new).
+- UX-P0.1 complete: person management from the tree, guided creation, sectioned editing, review context; permission catalog with functional roles and a safe role seeder; create-only family/genealogy seeders, seed preflight audit, family bootstrap, opt-in demo fixtures. Details in `docs/project-audit.md` §16.
+- Still deferred: Phase 2.6, Phase 2.7 (GEDCOM), Facebook, multi-family entity ownership, subdomains, portal redesign. The 39 ROOT spellings and 34 pending Qawasmeh records remain for human review.
 
 ## Next task to execute
 
-Phase 5 — production readiness (see `docs/implementation-roadmap.md`, "Next recommended phase").
+UX-P0.2 / UX-00–01 — design system and portal screens built on the verified workflows (see `docs/implementation-roadmap.md`, "UX-P0.2 readiness"); Phase 5 production readiness follows.
 
 ## Work log
 
@@ -119,6 +119,25 @@ Phase 5 — production readiness (see `docs/implementation-roadmap.md`, "Next re
 | Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
 | Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
 
+### Session 13 — UX-P0.1 person management, RBAC & seeders
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Baseline | `main` `4ed00b1`, clean; 367/367 SQLite and PostgreSQL 16; references present in `docs/` | — | re-run before changes |
+| RBAC data model | permissions, roles, grants (catalog/manual), family role assignments on memberships | migration `2026_10_27_071232_create_roles_and_permissions_tables`, `Role.php`, `Permission.php`, `FamilyRoleAssignment.php`, `FamilyMembership.php`, `User::hasFamilyPermission` | rollback/re-apply on PostgreSQL |
+| Permission catalog & resolution | membership rights in code, 8 functional templates, family-scoped resolution | `Services/Access/PermissionCatalog.php`, `FamilyPermissions.php` | `RolePermissionTest` matrix (10 role combinations × abilities, cross-family) |
+| Policies & guards | abilities mapped to permissions; module-aware content grants; reviewer applies others' proposals; merge/recovery/directory/death-notice abilities | `FamilyPolicy`, `PersonPolicy`, `PersonRelationshipPolicy`, `BranchPolicy`, `CommunityEntityPolicy`, `PublicationGuard`, `GenealogyMutationService::applyReviewed`, `ChangeReviewService`, `PersonMergeService`, `CommunityContentService`, `CommunityPublishingService`, `CommunityEntityAccess`, `MediaAccess`, `MemberDirectory`, controllers for audit recovery, merges, directory, content, records | existing 367 unchanged and green |
+| Role seeder | idempotent sync, dry run, no silent upgrades, customization/assignment preservation, renames/deprecations, audit | `RoleCatalogSynchronizer.php`, `RolePermissionSeeder.php`, `Console/Commands/SyncRoleCatalog.php`, `DatabaseSeeder.php` | idempotency, customization, upgrade/revoke/deprecate tests |
+| Role administration | member role assignment (anti-escalation, no self-change, audited), family matrix page, super-admin template page | `Management/FamilyRoleController.php`, `SiteAdmin/RoleController.php`, `management/sections/members.blade.php`, `management/roles/index.blade.php`, `site-admin/roles/index.blade.php`, navs, `routes/web.php` | assignment tests; Chrome |
+| Person placement | father context, duplicate candidates with lineage, edit impact | `Genealogy/PersonPlacementService.php` | `PersonManagementUxTest` |
+| Tree quick add & actions | quick add endpoint, candidates endpoint, node actions by permission, panel UI | `PersonController::quickStore/candidates`, `ProgressiveGraphService::actions`, `genealogy/tree.blade.php`, `public/js/genealogy-tree.js`, `juthoor.css` | tests; Chrome desktop + 390 px |
+| Guided create / sectioned edit | person field partials split, guided form, read-only states, impact warning, alternate spelling on create, sequential add | `RecordController::personForm`, `management/people/form.blade.php`, `families/partials/person-*-fields.blade.php`, `public/js/person-form.js`, `ConnectedPersonService`, `ConnectedPersonRequest` | tests; Chrome |
+| Review UX | submitter/reviewer, impact, publication effect, earlier decisions, links, own-request notice | `ChangeRequestController::show`, `ChangeRequest` relations, `changes/show.blade.php`, audit filter by person in `FamilyController` | tests; Chrome |
+| Seeders (fork) | create-only seeders, conflict refusal, classifier in transaction, demo password from env | `FamilySeeder`, `FamilyTreeSeeder`, `SourceSeeder`, `GenealogyPeopleSeeder`, `GenealogyRelationshipSeeder`, `BranchSeeder`, `BranchFounderResolutionImporter`, `AlZoubiGenealogySeeder`, `DevelopmentAdminSeeder`, `config/seeding.php`, `.env.example`, `phpunit.xml` | `SeederSafetyTest` (7) |
+| Preflight audit | read-only report, command and super-admin page | `Imports/SeedAuditService.php`, `Console/Commands/GenealogySeedAudit.php`, `SiteAdmin/SeedAuditController.php`, `site-admin/seed-audit.blade.php` | `SeedAuditCommandTest` (4), `SeedAuditPageTest` (1) |
+| Family bootstrap | manifest-driven create-only family preparation | `Imports/FamilyBootstrapService.php`, `Console/Commands/BootstrapFamily.php` | `FamilyBootstrapTest` (4) |
+| Demo fixtures | opt-in synthetic family | `JuthoorUiDemoSeeder.php` | `DemoFixtureSeederTest` (3) |
+| Fixes during the session | `is_active` read strictly (fresh models lack the default) so services mirror the previous checks; module passed to the linked-entity check on content save; RBAC seeder moved after genealogy seeders so a refused seed leaves nothing; stale duplicate flag in the guided summary | as above | re-run |
+
 ### Session 12 — Phase 4 news, events, directory & notifications
 | Area | Change | Files | Tests / verification |
 |---|---|---|---|
@@ -206,6 +225,28 @@ Phase 5 — production readiness (see `docs/implementation-roadmap.md`, "Next re
 | Directory profile belongs to a User, opt-in, per-field levels capped by audience | v2.0 ch. 12: Person ≠ User ≠ profile; consent and field privacy |
 | Per-audience precomputed search text | Hidden fields can never be searched or inferred through filters |
 | Admins moderate but never edit member profiles | v2.0: no data entered or published on a member's behalf |
+| Functional roles added on top of membership roles, no Spatie | Existing three-role model is sufficient as a base; a parallel RBAC system was prohibited; membership rights stay byte-for-byte the same |
+| Permission catalog in code, templates/grants in the database | Versioned, reviewable defaults; administrators can customize without the seeder overwriting them |
+| Catalog sync reports new grants instead of applying them | A rerun must never widen an installed role silently (P0-B) |
+| Assignments hang off memberships | Leaving a family ends every role there; no cross-family leakage by construction |
+| Reviewer may apply others' proposals without the publish permission | The review decision is the publication approval; direct publishing stays separate (`genealogy.publish`) |
+| News permissions limited to news/events modules | A news editor must not manage history, archive or media pages |
+| Quick add always pending and private | Creation is never publication (v2.0, UC-07) |
+| Branch membership shown from the father chain only | Branches are derived from approved ancestry, never from labels |
+| Seeders are bootstrap only | Approved data changes go through reviewed operations, not reruns |
+| Bootstrap creates families inactive and never invents genealogy | Portals are published after review; no fabricated ancestors, founders or statistics |
+
+## Verification evidence (session 13 — UX-P0.1)
+
+| Check | Result |
+|---|---|
+| Baseline before changes | 367 / 367 SQLite and PostgreSQL 16 |
+| Full suite, SQLite / PostgreSQL 16 | 404 / 404 passed (4477 assertions) |
+| Migration up / rollback / up on PostgreSQL 16; `db:seed` + Qawasmeh, then `db:seed` twice | pass; 119 people / 118 edges unchanged; 8 roles / 21 permissions / 20 grants unchanged; `rbac:sync --dry-run` all in sync; `genealogy:seed-audit` status `warnings` (raw files under `public/docs` only) |
+| Pint, Blade compile, `node --check`, `git diff --check` | pass |
+| Mutation checks | 17 new rules each fail a test (self role change, escalation, news module scope, reviewer path, family isolation, silent upgrade, customization protection, deprecated grants, platform scope, quick add pending/father/duplicates, edit read-only, node add action, `person.create` policy, bootstrap founder and create-only); the seeder workstream checked 9 more |
+| Chrome (fresh seeded database, real Al-Zoubi + Qawasmeh data) | 8/8, no page errors: tree quick add with context; duplicate warning then confirmation; guided creation with duplicate step, summary and sequential add; editor read-only on published record and admin father-change impact; member proposal → own-request notice → reviewer rejects with reason; admin assigns role, matrix, news editor without genealogy actions; super-admin seed audit and roles; 390 px tree panel and guided form without overflow |
+| Not run | Repository Playwright scripts (Playwright not installed; journeys driven through CDP); Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 12)
 

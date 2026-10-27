@@ -16,7 +16,7 @@ class AuditLogController extends Controller
         $log = AuditLog::query()->with(['family', 'user'])->findOrFail($auditLog);
         abort_unless($log->canBeViewedBy(auth()->user()), 403);
         // Computed before redaction: the check compares the stored snapshot with the current record.
-        $recovery = $log->family && auth()->user()->can('review', $log->family) && $log->family->is_active
+        $recovery = $log->family && auth()->user()->can('recover', $log->family) && $log->family->is_active
             ? app(AuditReversionService::class)->eligibility($log) : null;
         if ($log->auditable_type === Assertion::class) {
             $privacy = app(PersonPrivacy::class);

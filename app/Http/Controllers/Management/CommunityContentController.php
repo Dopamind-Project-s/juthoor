@@ -51,7 +51,7 @@ class CommunityContentController extends Controller
             // Records owned elsewhere that are about or addressed to this entity: shown, never editable from here.
             'linked' => $model::query()->where('owner_entity_id', '!=', $entityModel->id)
                 ->whereHas('entityLinks', fn ($links) => $links->where('community_entity_id', $entityModel->id))->with('ownerEntity:id,name_ar')->get(),
-            'canPublish' => $request->user()->can('publish', $entityModel),
+            'canPublish' => $request->user()->can('publish', [$entityModel, $module]),
         ]);
     }
 
@@ -232,9 +232,9 @@ class CommunityContentController extends Controller
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         Gate::authorize('viewAny', [CommunityEntity::class, $familyModel]);
-        $entities = CommunityEntity::query()->where('family_id', $familyModel->id)->get()->filter(fn (CommunityEntity $entity) => $request->user()->can('publish', $entity));
+        $entities = CommunityEntity::query()->where('family_id', $familyModel->id)->get();
         $pending = collect(CommunityContentModules::MODULES)->flatMap(fn (array $module, string $key) => $module['model']::query()
-            ->whereIn('owner_entity_id', $entities->modelKeys())->where('publication_status', 'submitted')
+            ->whereIn('owner_entity_id', $entities->filter(fn (CommunityEntity $entity) => $request->user()->can('publish', [$entity, $key]))->modelKeys())->where('publication_status', 'submitted')
             ->with('ownerEntity:id,name_ar', 'creator:id,name')->get()->map(fn (Model $record) => ['module' => $key, 'record' => $record]))
             ->sortBy(fn (array $row) => $row['record']->submitted_at)->values();
 
@@ -294,7 +294,7 @@ class CommunityContentController extends Controller
                 ->when($manageable !== null, fn ($query) => $query->whereIn('id', $manageable))->get()),
             'subjects' => $record->exists ? $links->where('relation', EntityContentLink::RELATION_SUBJECT)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all() : [$entity->id],
             'audiences' => $links->where('relation', EntityContentLink::RELATION_AUDIENCE)->pluck('community_entity_id')->map(fn ($id) => (int) $id)->all(),
-            'canPublish' => $request->user()->can('publish', $entity),
+            'canPublish' => $request->user()->can('publish', [$entity, $module]),
             'citations' => collect(), 'sources' => collect(), 'history' => collect(), 'attachments' => null, 'library' => collect(), 'usage' => collect(), 'coverOf' => collect(), 'notices' => collect(), 'linkedPeople' => collect(),
         ];
     }
@@ -312,7 +312,7 @@ class CommunityContentController extends Controller
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         $entityModel = CommunityEntity::query()->where('family_id', $familyModel->id)->whereKey($entity)->firstOrFail();
-        Gate::authorize($ability, $entityModel);
+        Gate::authorize($ability, [$entityModel, request()->route('module')]);
 
         return [$familyModel, $entityModel];
     }

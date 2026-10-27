@@ -10,12 +10,12 @@ class BranchPolicy
 {
     public function create(User $user, Family $family): bool
     {
-        return $user->canEditFamily($family);
+        return $user->hasFamilyPermission($family, 'branch.manage');
     }
 
     public function update(User $user, Branch $branch): bool
     {
-        return $user->canEditFamily($branch->familyTree->family_id);
+        return $user->hasFamilyPermission($branch->familyTree->family_id, 'branch.manage');
     }
 
     public function delete(User $user, Branch $branch): bool

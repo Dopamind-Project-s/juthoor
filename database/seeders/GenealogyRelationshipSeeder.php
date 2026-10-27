@@ -9,6 +9,10 @@ use App\Models\Source;
 use App\Services\Imports\AlZoubiDataset;
 use Illuminate\Database\Seeder;
 
+/**
+ * Creates missing ready-root father edges only (SD-04). An existing edge keeps its source and verification; a record
+ * that already has another father is refused before anything is written, never given a second father.
+ */
 class GenealogyRelationshipSeeder extends Seeder
 {
     public function run(): void
@@ -16,25 +20,31 @@ class GenealogyRelationshipSeeder extends Seeder
         $family = Family::query()->where('slug', FamilySeeder::SLUG)->sole();
         $tree = $family->familyTrees()->where('slug', FamilyTreeSeeder::SLUG)->sole();
         $source = $family->sources()->where('reference', SourceSeeder::DATASET_REFERENCE)->sole();
-        $rows = app(AlZoubiDataset::class)->readyRootRows();
+        $rows = array_filter(app(AlZoubiDataset::class)->readyRootRows(), fn (array $row): bool => ($row['father_key'] ?? null) !== null);
         $people = Person::query()->where('family_tree_id', $tree->id)
             ->whereNotNull('canonical_key')->get()->keyBy('canonical_key');
 
+        $conflicts = [];
         foreach ($rows as $row) {
-            $fatherKey = $row['father_key'] ?? null;
-
-            if ($fatherKey === null) {
-                continue;
-            }
-
-            if (! $people->has($row['person_key']) || ! $people->has($fatherKey)) {
+            if (! $people->has($row['person_key']) || ! $people->has($row['father_key'])) {
                 throw new \RuntimeException("Missing confirmed genealogy record for [{$row['person_key']}].");
             }
+            $otherFathers = PersonRelationship::query()->where('person_id', $people[$row['person_key']]->id)
+                ->where('relationship_type', PersonRelationship::TYPE_FATHER)
+                ->where('related_person_id', '!=', $people[$row['father_key']]->id)->with('relatedPerson')->get();
+            foreach ($otherFathers as $edge) {
+                $conflicts[] = "{$row['person_key']}: existing father [".($edge->relatedPerson?->canonical_key ?? $edge->related_person_id)."], dataset [{$row['father_key']}]";
+            }
+        }
+        if ($conflicts !== []) {
+            throw new \RuntimeException("Existing fathers differ from the curated dataset; resolve them through review before seeding:\n".implode("\n", $conflicts));
+        }
 
-            PersonRelationship::query()->updateOrCreate(
+        foreach ($rows as $row) {
+            PersonRelationship::query()->firstOrCreate(
                 [
                     'person_id' => $people[$row['person_key']]->id,
-                    'related_person_id' => $people[$fatherKey]->id,
+                    'related_person_id' => $people[$row['father_key']]->id,
                     'relationship_type' => PersonRelationship::TYPE_FATHER,
                 ],
                 [
@@ -46,6 +56,10 @@ class GenealogyRelationshipSeeder extends Seeder
             );
         }
 
-        $tree->update(['root_person_id' => $people['ROOT-001']->id]);
+        if ($tree->root_person_id === null) {
+            $tree->update(['root_person_id' => $people['ROOT-001']->id]);
+        } elseif ($tree->root_person_id !== $people['ROOT-001']->id) {
+            $this->command?->warn('Tree root differs from ROOT-001; the existing root was preserved.');
+        }
     }
 }

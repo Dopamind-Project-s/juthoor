@@ -21,6 +21,7 @@ use App\Http\Controllers\Management\CsvImportController;
 use App\Http\Controllers\Management\DirectoryProfileController;
 use App\Http\Controllers\Management\FamilyController as ManagementFamilyController;
 use App\Http\Controllers\Management\FamilyDashboardController;
+use App\Http\Controllers\Management\FamilyRoleController;
 use App\Http\Controllers\Management\LookupController;
 use App\Http\Controllers\Management\MembershipController;
 use App\Http\Controllers\Management\NameReconciliationController;
@@ -38,6 +39,8 @@ use App\Http\Controllers\SiteAdmin\DashboardController as SiteAdminDashboardCont
 use App\Http\Controllers\SiteAdmin\FamilyController as SiteAdminFamilyController;
 use App\Http\Controllers\SiteAdmin\FamilyTreeController as SiteAdminFamilyTreeController;
 use App\Http\Controllers\SiteAdmin\ResourceController;
+use App\Http\Controllers\SiteAdmin\RoleController as SiteAdminRoleController;
+use App\Http\Controllers\SiteAdmin\SeedAuditController;
 use App\Http\Controllers\SiteAdmin\UserController as SiteAdminUserController;
 use App\Models\Family;
 use App\Services\Community\CommunityContentModules;
@@ -185,6 +188,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/manage/families/{family}/trees/{treeId}', [TreeController::class, 'details'])->whereNumber('treeId')->name('management.trees.details');
         Route::post('/manage/families/{family}/invitations/{invitation}/resend', [InvitationController::class, 'resend'])->middleware('throttle:20,1')->whereNumber('invitation')->name('invitations.resend');
         Route::post('/manage/families/{family}/people', [PersonController::class, 'store'])->name('management.people.store');
+        Route::post('/manage/families/{family}/people/quick', [PersonController::class, 'quickStore'])->middleware('throttle:60,1')->name('management.people.quick');
+        Route::get('/manage/families/{family}/people/candidates', [PersonController::class, 'candidates'])->middleware('throttle:120,1')->name('management.people.candidates');
         Route::get('/manage/families/{family}/people/{person}', [PersonController::class, 'show'])->whereNumber('person')->name('management.people.show');
         Route::put('/manage/families/{family}/people/{person}', [PersonController::class, 'update'])->whereNumber('person')->name('management.people.update');
         Route::delete('/manage/families/{family}/people/{person}', [PersonController::class, 'destroy'])->whereNumber('person')->name('management.people.destroy');
@@ -232,11 +237,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/memberships', [MembershipController::class, 'store'])->name('management.memberships.store');
         Route::put('/manage/families/{family}/memberships/{membership}', [MembershipController::class, 'update'])->whereNumber('membership')->name('management.memberships.update');
         Route::delete('/manage/families/{family}/memberships/{membership}', [MembershipController::class, 'destroy'])->whereNumber('membership')->name('management.memberships.destroy');
+        Route::get('/manage/families/{family}/roles', [FamilyRoleController::class, 'index'])->name('management.roles.index');
+        Route::put('/manage/families/{family}/memberships/{membership}/roles', [FamilyRoleController::class, 'update'])->whereNumber('membership')->name('management.memberships.roles.update');
         Route::put('/manage/families/{family}/invitations/{invitation}', [InvitationController::class, 'update'])->whereNumber('invitation')->name('invitations.update');
         Route::post('/manage/families/{family}/invitations', [InvitationController::class, 'store'])->middleware('throttle:20,1')->name('invitations.store');
         Route::delete('/manage/families/{family}/invitations/{invitation}', [InvitationController::class, 'cancel'])->whereNumber('invitation')->name('invitations.cancel');
 
         Route::post('/site-admin/users', [SiteAdminUserController::class, 'store'])->name('site-admin.users.store');
+        Route::get('/site-admin/seed-audit', SeedAuditController::class)->name('site-admin.seed-audit');
+        Route::get('/site-admin/roles', [SiteAdminRoleController::class, 'index'])->name('site-admin.roles.index');
+        Route::post('/site-admin/roles', [SiteAdminRoleController::class, 'store'])->name('site-admin.roles.store');
+        Route::put('/site-admin/roles/{role}', [SiteAdminRoleController::class, 'update'])->whereNumber('role')->name('site-admin.roles.update');
         Route::get('/site-admin/{resource}', [ResourceController::class, 'index'])->where('resource', 'families|trees|users|memberships|invitations|audit')->name('site-admin.resources.index');
         Route::get('/site-admin/{resource}/create', [ResourceController::class, 'create'])->where('resource', 'families|trees|users|memberships|invitations')->name('site-admin.resources.create');
         Route::get('/site-admin/{resource}/{record}', [ResourceController::class, 'show'])->where('resource', 'families|trees|users|memberships|invitations|audit')->whereNumber('record')->name('site-admin.resources.show');

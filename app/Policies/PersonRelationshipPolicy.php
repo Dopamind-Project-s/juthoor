@@ -10,16 +10,16 @@ class PersonRelationshipPolicy
 {
     public function create(User $user, Family $family): bool
     {
-        return $user->canEditFamily($family);
+        return $user->hasFamilyPermission($family, 'person.edit-unpublished');
     }
 
     public function update(User $user, PersonRelationship $relationship): bool
     {
-        return $user->canEditFamily($relationship->familyTree->family_id);
+        return $user->hasFamilyPermission($relationship->familyTree->family_id, 'person.edit-unpublished');
     }
 
     public function delete(User $user, PersonRelationship $relationship): bool
     {
-        return $user->canEditFamily($relationship->familyTree->family_id);
+        return $user->hasFamilyPermission($relationship->familyTree->family_id, 'person.edit-unpublished');
     }
 }

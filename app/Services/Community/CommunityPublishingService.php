@@ -105,8 +105,8 @@ class CommunityPublishingService
         }
         $owner = $record->ownerEntity;
         $published = in_array($record->publication_status, [$record::STATUS_PUBLISHED, $record::STATUS_ARCHIVED], true);
-        abort_unless(Gate::forUser($user)->allows($published ? 'publish' : 'update', $owner), 403);
-        if ($published && $record instanceof NewsPost && $record->isSensitive() && ! Gate::forUser($user)->allows('publish', $owner->family)) {
+        abort_unless(Gate::forUser($user)->allows($published ? 'publish' : 'update', [$owner, CommunityContentModules::keyFor($record)]), 403);
+        if ($published && $record instanceof NewsPost && $record->isSensitive() && ! Gate::forUser($user)->allows('reviewDeathNotices', $owner->family)) {
             throw ValidationException::withMessages(['kind' => 'تعديل النعي أو العزاء بعد النشر من صلاحية مدير العائلة فقط.']);
         }
 

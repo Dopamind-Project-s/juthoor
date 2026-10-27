@@ -2,7 +2,11 @@
 
 Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred requirements stay in scope; see `docs/project-audit.md` for statuses.
 
-## Updated priorities (approved 2026-10-26)
+## Updated priorities (approved 2026-10-27)
+
+- Experience v3.0 transformation starts with **UX-P0.1** (people from the tree, review, RBAC and role seeder, safe family seeders) before portal redesign; see the UX-P0.1 section below.
+
+## Earlier priorities (approved 2026-10-26)
 
 - **Deferred, not cancelled:** Phase 2.6 Mothers, spouses & life events (JTH-06); Phase 2.7 GEDCOM import/export (JTH-12); Facebook publishing (JTH-25, UC-17).
 - **Order now:** Phase 3 (starting with 3.1 entity architecture and portals), then Phase 4 without Facebook integration.
@@ -222,5 +226,26 @@ Legend: [x] completed and verified · [ ] open · [~] partial · [!] blocked.
 - [x] **Tests** — 21 new tests; 21 mutation checks; 367/367 SQLite and PostgreSQL 16; Chrome: Phase 4 (8) plus Phase 3 regression (29), no page errors.
 - Deferred (unchanged): Phase 2.6, Phase 2.7 (GEDCOM), Facebook (JTH-25), multi-family entity ownership.
 
+## UX-P0.1 — Genealogy management, RBAC & seeder foundation (done 2026-10-27)
+
+First phase of the approved Experience v3.0 transformation (P0-A, P0-B, P0-C of `Juthoor_P0_People_Roles_Family_Seeders_2026-10-27.md`). Details: `docs/project-audit.md` §16.
+
+- [x] **P0-00 Baseline** — HEAD `4ed00b1`, 367/367 on SQLite and PostgreSQL 16; all reference documents present in `docs/`.
+- [x] **A2 Quick add from the tree** — son added from a node with the father preselected and validated server-side, pending and private, duplicate warning and confirmation, sequential brothers.
+- [x] **A3 Guided creation** — identity and father (lineage, derived branch), duplicate step with existing-person links, optional details, review summary with publication/approval effect.
+- [x] **A4 Editing** — sectioned form, read-only states for published records and shared ancestors with a correction path, father-change impact.
+- [x] **A5 Review** — submitter, values, impact, publication effect, earlier decisions, person/tree links, own-request notice, reason required. ("Request more information" not added — no lifecycle state.)
+- [x] **A6 Tree actions** — add, edit, propose, focus descendants, sources/claims, person page with ancestors; desktop and 390 px. Tree layout unchanged.
+- [x] **B1–B4 RBAC** — permission catalog over the existing membership roles; eight functional role templates; family-scoped, module-scoped content grants; separation of duties preserved; assignment UI with anti-escalation; role matrix page.
+- [x] **B5 Role seeder** — `RolePermissionSeeder` / `rbac:sync` (dry run, no silent upgrades, customizations and assignments preserved, renames/deprecations, audit); super-admin role page.
+- [x] **C1–C3 Seeders** — create-only family/tree/source/people/edges/branches/founders; father and name conflicts refused before writing; classification inside the transaction; demo password from the environment.
+- [x] **C4 Preflight** — `genealogy:seed-audit` (read-only) and `/site-admin/seed-audit`.
+- [x] **C5 Family bootstrap** — `family:bootstrap` from a reviewed manifest; no fabricated genealogy; minimal setup without founder.
+- [x] **C6 Demo fixtures** — `JuthoorUiDemoSeeder`, local/testing + explicit opt-in, synthetic and unpublished.
+- [x] **Tests** — 37 new tests; 17 mutation checks on the new rules (plus 9 by the seeder workstream); Chrome 8/8 journeys.
+
+### UX-P0.2 readiness
+Ready. Person, role and seeder foundations are in place and tested, so the design system and Figma work (UX-00/01) and the screens of UX-02…09 can use real workflows and the demo fixture family. Open inputs: decision on a "needs information" review state; whether media should become module-aware for news-only editors; reviewer decisions on the 39 ROOT spellings and the 34 pending Qawasmeh records; moving raw datasets out of `public/docs` (SD-08).
+
 ### Next recommended phase
-Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.
+UX-P0.2 / UX-00–01 (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.

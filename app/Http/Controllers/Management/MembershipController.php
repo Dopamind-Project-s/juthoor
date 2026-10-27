@@ -80,7 +80,8 @@ class MembershipController extends Controller
             Family::query()->whereKey($familyModel->id)->lockForUpdate()->firstOrFail();
             $membershipModel->refresh();
             $this->protectLastAdmin($familyModel, $membershipModel, null);
-            $before = $this->audit->snapshot($membershipModel);
+            // Functional roles end with the membership (cascade); keep them in the audit record.
+            $before = $this->audit->snapshot($membershipModel) + ['functional_roles' => $membershipModel->functionalRoles()->orderBy('key')->pluck('key')->all()];
             $membershipModel->delete();
             $this->audit->record(auth()->user(), $familyModel, $membershipModel, 'deleted', $before, null);
         });

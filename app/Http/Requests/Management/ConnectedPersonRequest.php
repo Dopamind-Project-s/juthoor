@@ -26,6 +26,13 @@ class ConnectedPersonRequest extends StorePersonRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('alternate_names')) {
+            $this->merge(['alternate_names' => array_values(array_filter((array) $this->input('alternate_names'), 'filled'))]);
+        }
+    }
+
     public function messages(): array
     {
         return parent::messages() + [

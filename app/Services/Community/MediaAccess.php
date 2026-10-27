@@ -62,7 +62,7 @@ class MediaAccess
         if (! array_key_exists($key, $this->scopes)) {
             $family = $entity->family;
             $this->scopes[$key] = ! $family->is_active && ! $user->isSuperAdmin() ? []
-                : ($ability === 'publish' ? $this->access->publishableIds($user, $family) : $this->access->manageableIds($user, $family));
+                : ($ability === 'publish' ? $this->access->publishableIds($user, $family) : $this->access->manageableIds($user, $family, false));
         }
 
         return $this->scopes[$key] === null || in_array($entity->id, $this->scopes[$key], true);

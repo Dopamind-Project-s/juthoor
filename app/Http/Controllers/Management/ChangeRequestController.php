@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Assertion;
 use App\Models\ChangeRequest;
 use App\Models\Family;
+use App\Models\Person;
+use App\Models\PersonRelationship;
 use App\Services\ChangeReviewService;
 use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Genealogy\GenealogyMutationService;
+use App\Services\Genealogy\PersonPlacementService;
 use App\Services\Genealogy\PersonPrivacy;
+use App\Services\Genealogy\PublicationGuard;
 use App\Services\Genealogy\SelectedFamilyTree;
 use App\Services\Genealogy\SharedAncestryScope;
 use Illuminate\Http\JsonResponse;
@@ -100,7 +104,31 @@ class ChangeRequestController extends Controller
         $target = $change->target_id ? $this->mutations->modelClass($change->target_type)::query()->where('family_tree_id', $tree->id)->find($change->target_id) : null;
         $sharedFamilies = $target ? app(SharedAncestryScope::class)->impactedFamilies($target) : collect();
 
-        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels', 'possibleDuplicates', 'claim', 'competing', 'sharedFamilies'));
+        // Review context: who and when, the people affected, the publication effect and earlier decisions on the same record.
+        $change->load(['submitter:id,name', 'reviewer:id,name']);
+        $subject = match (true) {
+            $target instanceof Person => $target,
+            $target instanceof PersonRelationship => $target->person,
+            $change->target_type === 'relationship' && isset($change->payload['person_id']) => $tree->people()->find($change->payload['person_id']),
+            default => null,
+        };
+        $guard = app(PublicationGuard::class);
+        $candidate = null;
+        if ($change->status === 'pending') {
+            $candidate = $target ? clone $target : new ($this->mutations->modelClass($change->target_type));
+            $candidate->forceFill(array_intersect_key($change->getRawOriginal('payload') ? json_decode($change->getRawOriginal('payload'), true) : [], array_flip($candidate->getFillable())));
+        }
+        $context = [
+            'subject' => $subject,
+            'impact' => $subject ? app(PersonPlacementService::class)->impact($tree, $subject) : null,
+            'was_public' => $target ? $guard->isPublic($target, $target->getAttributes()) : false,
+            'will_be_public' => $candidate ? $guard->isPublic($candidate, $candidate->getAttributes()) : null,
+            'history' => $change->target_id ? ChangeRequest::query()->where('family_tree_id', $tree->id)->where('target_type', $change->target_type)->where('target_id', $change->target_id)
+                ->whereKeyNot($change->id)->with(['submitter:id,name', 'reviewer:id,name'])->latest('id')->limit(10)->get() : collect(),
+            'own' => $change->submitted_by === auth()->id(),
+        ];
+
+        return view('management.changes.show', compact('family', 'tree', 'change', 'referenceLabels', 'possibleDuplicates', 'claim', 'competing', 'sharedFamilies', 'context'));
     }
 
     public function decide(Request $request, string $family, int $change): RedirectResponse

@@ -4,7 +4,6 @@ namespace App\Services\Genealogy;
 
 use App\Models\Branch;
 use App\Models\Family;
-use App\Models\FamilyMembership;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Source;
@@ -24,13 +23,17 @@ class PublicationGuard
     /**
      * Call after filling the record and before saving (or before deleting it).
      */
-    public function assertAllowed(User $user, Family $family, Model $record, bool $deleting = false): void
+    public function assertAllowed(User $user, Family $family, Model $record, bool $deleting = false, bool $reviewed = false): void
     {
         // A fact shared with other families through an approved link is changed only by a platform reviewer.
         if (! $user->isSuperAdmin() && ($impacted = app(SharedAncestryScope::class)->impactedFamilies($record))->isNotEmpty()) {
             throw ValidationException::withMessages(['change' => 'هذا الجد مشترك مع عائلات أخرى ('.$impacted->pluck('name_ar')->implode('، ').')؛ تغيير وقائعه يعتمده مشرف المنصة بعد مراجعة العائلات المتأثرة.']);
         }
         if ($this->canPublish($user, $family)) {
+            return;
+        }
+        // Applying someone else's proposal after review is the publication decision a genealogy reviewer is trusted with.
+        if ($reviewed && $user->hasFamilyPermission($family, 'genealogy.review')) {
             return;
         }
 
@@ -50,7 +53,13 @@ class PublicationGuard
      */
     public function canPublish(User $user, Family $family): bool
     {
-        return $user->isSuperAdmin() || $user->roleFor($family) === FamilyMembership::ROLE_ADMIN;
+        return $user->isSuperAdmin() || $user->hasFamilyPermission($family, 'genealogy.publish');
+    }
+
+    /** Mirrors FamilyPolicy::managePrivacy for services. */
+    public function canManagePrivacy(User $user, Family $family): bool
+    {
+        return $user->isSuperAdmin() || $user->hasFamilyPermission($family, 'privacy.manage');
     }
 
     /** @param array<string, mixed> $attributes */

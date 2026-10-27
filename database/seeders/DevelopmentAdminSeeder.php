@@ -8,8 +8,13 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Local/testing demo accounts (SD-09). New accounts get DEV_SEED_PASSWORD, or a random password printed once; existing
+ * accounts keep their password and roles.
+ */
 class DevelopmentAdminSeeder extends Seeder
 {
     public function run(): void
@@ -17,8 +22,11 @@ class DevelopmentAdminSeeder extends Seeder
         if (! app()->environment(['local', 'testing'])) {
             throw new RuntimeException('Development accounts are restricted to local/testing environments.');
         }
+        $configured = config('seeding.development_password');
+        $password = filled($configured) ? (string) $configured : Str::password(20);
+        $created = [];
 
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($password, &$created): void {
             $family = Family::query()->where('slug', 'al-zoubi')->first()
                 ?? Family::query()->first()
                 ?? Family::query()->create(['name_ar' => 'عائلة تجريبية', 'slug' => 'demo-family', 'is_active' => true]);
@@ -41,14 +49,19 @@ class DevelopmentAdminSeeder extends Seeder
                     $user = new User;
                     $user->forceFill([
                         'name' => $name, 'username' => $username, 'email' => $email,
-                        'password' => Hash::make('password'), 'email_verified_at' => now(),
+                        'password' => Hash::make($password), 'email_verified_at' => now(),
                         'is_active' => true, 'is_super_admin' => $role === null,
                     ])->save();
+                    $created[] = $username;
                 }
                 if ($role !== null) {
                     $family->memberships()->firstOrCreate(['user_id' => $user->id], ['role' => $role]);
                 }
             }
         });
+
+        if ($created !== [] && blank($configured)) {
+            $this->command?->warn('Generated password for new demo accounts ('.implode(', ', $created).'): '.$password.' — shown once; set DEV_SEED_PASSWORD to choose it.');
+        }
     }
 }

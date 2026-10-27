@@ -36,11 +36,11 @@ class CommunityContentService
      */
     public function save(User $user, CommunityEntity $owner, Model $record, array $fields, array $governance): Model
     {
-        $this->authorize($user, 'update', $owner);
+        $this->authorize($user, 'update', $owner, $record);
         $subjects = $governance['subjects'] === [] ? [$owner->id] : $governance['subjects'];
         $linked = CommunityEntity::query()->whereIn('id', [...$subjects, ...$governance['audiences']])->get();
         foreach ($linked as $entity) {
-            if ((int) $entity->family_id !== (int) $owner->family_id || ! Gate::forUser($user)->allows('update', $entity)) {
+            if ((int) $entity->family_id !== (int) $owner->family_id || ! Gate::forUser($user)->allows('update', [$entity, CommunityContentModules::keyFor($record)])) {
                 throw ValidationException::withMessages(['subjects' => 'يمكن ربط المحتوى بالكيانات التي تديرها في العائلة نفسها فقط.']);
             }
         }
@@ -94,7 +94,7 @@ class CommunityContentService
     public function submit(User $user, Model $record): void
     {
         $owner = $record->ownerEntity;
-        $this->authorize($user, 'update', $owner);
+        $this->authorize($user, 'update', $owner, $record);
         $this->transition($user, $record, [$record::STATUS_DRAFT], 'submitted', fn () => $record->fill(['publication_status' => $record::STATUS_SUBMITTED, 'submitted_at' => now()]));
         $this->notifications->reviewRequested($user, $record);
     }
@@ -102,7 +102,7 @@ class CommunityContentService
     /** Publishers publish, decline (back to draft with a reason), archive, or restore an archived record as a draft. */
     public function review(User $user, Model $record, string $decision, ?string $note, bool $sensitiveConfirmed = false): void
     {
-        $this->authorize($user, 'publish', $record->ownerEntity);
+        $this->authorize($user, 'publish', $record->ownerEntity, $record);
         [$from, $apply] = match ($decision) {
             'publish' => [[$record::STATUS_DRAFT, $record::STATUS_SUBMITTED], function () use ($record, $user, $note, $sensitiveConfirmed): void {
                 $this->assertPublishable($record);
@@ -129,7 +129,7 @@ class CommunityContentService
     public function cite(User $user, Model $record, array $data): ContentCitation
     {
         $owner = $record->ownerEntity;
-        $this->authorize($user, 'update', $owner);
+        $this->authorize($user, 'update', $owner, $record);
         // Sources evidencing cross-family links are reviewer-only (cf. SourceController), so they never back public content.
         if (! Source::query()->whereKey($data['source_id'])->where('family_id', $owner->family_id)
             ->whereDoesntHave('citations', fn ($citations) => $citations->whereNotNull('cross_family_link_id'))->exists()) {
@@ -150,7 +150,7 @@ class CommunityContentService
     public function reviewCitation(User $user, ContentCitation $citation, string $status): void
     {
         $owner = $citation->citable->ownerEntity;
-        $this->authorize($user, 'publish', $owner);
+        $this->authorize($user, 'publish', $owner, $citation->citable);
         DB::transaction(function () use ($user, $citation, $owner, $status): void {
             $before = $this->audit->snapshot($citation);
             $citation->update(['verification_status' => $status]);
@@ -162,7 +162,7 @@ class CommunityContentService
     public function removeCitation(User $user, ContentCitation $citation): void
     {
         $owner = $citation->citable->ownerEntity;
-        $this->authorize($user, in_array($citation->verification_status, ContentCitation::PUBLIC_STATUSES, true) ? 'publish' : 'update', $owner);
+        $this->authorize($user, in_array($citation->verification_status, ContentCitation::PUBLIC_STATUSES, true) ? 'publish' : 'update', $owner, $citation->citable);
         DB::transaction(function () use ($user, $citation, $owner): void {
             $before = $this->audit->snapshot($citation);
             $citation->delete();
@@ -258,9 +258,10 @@ class CommunityContentService
         });
     }
 
-    private function authorize(User $user, string $ability, ?CommunityEntity $entity): void
+    /** Module-aware: news and events can be granted separately from other content (PermissionCatalog::NEWS_MODULES). */
+    private function authorize(User $user, string $ability, ?CommunityEntity $entity, Model $record): void
     {
-        if (! $entity || ! Gate::forUser($user)->allows($ability, $entity)) {
+        if (! $entity || ! Gate::forUser($user)->allows($ability, [$entity, CommunityContentModules::keyFor($record)])) {
             abort(403);
         }
     }

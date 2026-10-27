@@ -61,7 +61,7 @@ class ChangeReviewService
                 if ($change->target_type === 'person' && $change->operation === 'create' && ! $confirmDistinct) {
                     $this->duplicates->assertDistinct($tree, $data['full_name_ar'], null);
                 }
-                $log = $this->mutations->apply($tree, $user, $change->target_type, $change->operation, $data, $record);
+                $log = $this->mutations->applyReviewed($tree, $user, $change->target_type, $change->operation, $data, $record);
                 if ($change->assertion_id) {
                     app(GenealogyAssertionService::class)->accepted($change, $user, $reason);
                 }

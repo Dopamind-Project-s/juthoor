@@ -77,7 +77,7 @@ class DirectoryProfileController extends Controller
     public function review(Request $request, string $family): View
     {
         $familyModel = $this->family($family);
-        Gate::authorize('manageMembers', $familyModel);
+        Gate::authorize('moderateDirectory', $familyModel);
         $profiles = MemberProfile::query()->where('family_id', $familyModel->id);
 
         return view('management.directory.review', [

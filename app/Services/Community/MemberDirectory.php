@@ -266,6 +266,6 @@ class MemberDirectory
 
     private function authorizeAdmin(User $admin, Family $family): void
     {
-        abort_unless($admin->can('manageMembers', $family), 403);
+        abort_unless($admin->can('moderateDirectory', $family), 403);
     }
 }

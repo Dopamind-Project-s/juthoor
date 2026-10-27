@@ -392,7 +392,7 @@ class PersonMergeService
 
     private function authorize(User $user, FamilyTree $tree, bool $requiresSuperAdmin): void
     {
-        if (! $this->publication->canPublish($user, $tree->family)) {
+        if (! $user->isSuperAdmin() && ! $user->hasFamilyPermission($tree->family, 'person.merge')) {
             abort(403, 'الدمج من صلاحية مدير العائلة.');
         }
         if ($requiresSuperAdmin && ! $user->isSuperAdmin()) {

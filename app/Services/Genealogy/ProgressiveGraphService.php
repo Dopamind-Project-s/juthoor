@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
+use App\Services\Access\FamilyPermissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -25,7 +26,7 @@ class ProgressiveGraphService
         $states = [];
         $rootId = $tree->people()->when($publicOnly, fn ($q) => $q->publiclyVisible())->whereKey($tree->root_person_id)->value('id');
 
-        $canEdit = auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($tree->family);
+        $actions = $this->actions($tree);
 
         return [
             'tree' => ['id' => $tree->id, 'name' => $tree->name_ar], 'root_id' => $rootId,
@@ -40,10 +41,7 @@ class ProgressiveGraphService
                 'status' => $states[$person->id] ?? 'visible',
                 'verification' => $person->verification_status,
                 'has_more_children' => false,
-                'add_child_url' => $canEdit
-                    ? route('management.records.create', [$tree->family->slug, 'people', 'tree' => $tree->slug, 'father_id' => $person->id]) : null,
-                'edit_url' => $canEdit
-                    ? route('management.records.edit', [$tree->family->slug, 'people', $person->id, 'tree' => $tree->slug]) : null,
+                ...$actions($person),
                 'url' => route('genealogy.person', [$tree->family->slug, $person->id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
             ])->all(),
             'edges' => $edges->map(fn ($edge) => ['id' => $edge->id, 'child_id' => $edge->person_id, 'parent_id' => $edge->related_person_id])->all(),
@@ -127,7 +125,7 @@ class ProgressiveGraphService
             ->groupBy('related_person_id')->pluck('aggregate', 'related_person_id');
         $loadedCounts = $edges->countBy('related_person_id');
 
-        $canEdit = auth()->user()?->hasVerifiedEmail() && auth()->user()?->canEditFamily($tree->family);
+        $actions = $this->actions($tree);
 
         return [
             'tree' => ['id' => $tree->id, 'name' => $tree->name_ar],
@@ -143,10 +141,7 @@ class ProgressiveGraphService
                 'status' => $states[$person->id] ?? 'visible',
                 'verification' => $person->verification_status,
                 'has_more_children' => ! ($mode === 'isolated' && ($states[$person->id] ?? '') === 'ancestor_path') && (int) ($childCounts[$person->id] ?? 0) > (int) ($loadedCounts[$person->id] ?? 0),
-                'add_child_url' => $canEdit
-                    ? route('management.records.create', [$tree->family->slug, 'people', 'tree' => $tree->slug, 'father_id' => $person->id]) : null,
-                'edit_url' => $canEdit
-                    ? route('management.records.edit', [$tree->family->slug, 'people', $person->id, 'tree' => $tree->slug]) : null,
+                ...$actions($person),
                 'url' => route('genealogy.person', [$tree->family->slug, $person->id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
             ])->all(),
             'edges' => $edges->map(fn (PersonRelationship $edge): array => [
@@ -192,5 +187,26 @@ class ProgressiveGraphService
             && $allowedIds->contains($edge->related_person_id))->values();
 
         return [$nodes, $edges];
+    }
+
+    /**
+     * Node actions for the signed-in user; each one is authorized again by its own route.
+     *
+     * @return callable(Person): array{add_child_url: ?string, edit_url: ?string, propose_url: ?string, manage_url: ?string}
+     */
+    private function actions(FamilyTree $tree): callable
+    {
+        $user = auth()->user();
+        $verified = (bool) $user?->hasVerifiedEmail();
+        $permissions = $verified ? app(FamilyPermissions::class)->for($user, $tree->family) : [];
+        [$canCreate, $canEdit, $canPropose] = [in_array('person.create', $permissions, true), in_array('person.edit-unpublished', $permissions, true), in_array('person.propose', $permissions, true)];
+        $slug = $tree->family->slug;
+
+        return fn (Person $person): array => [
+            'add_child_url' => $canCreate ? route('management.records.create', [$slug, 'people', 'tree' => $tree->slug, 'father_id' => $person->id]) : null,
+            'edit_url' => $canEdit ? route('management.records.edit', [$slug, 'people', $person->id, 'tree' => $tree->slug]) : null,
+            'propose_url' => $canPropose ? route('management.changes.create', [$slug, 'tree' => $tree->slug, 'kind' => 'person', 'target' => $person->id]) : null,
+            'manage_url' => $canPropose ? route('management.people.show', [$slug, $person->id, 'tree' => $tree->slug]) : null,
+        ];
     }
 }

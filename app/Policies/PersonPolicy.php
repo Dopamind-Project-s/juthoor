@@ -15,12 +15,12 @@ class PersonPolicy
 
     public function create(User $user, Family $family): bool
     {
-        return $user->canEditFamily($family);
+        return $user->hasFamilyPermission($family, 'person.create');
     }
 
     public function update(User $user, Person $person): bool
     {
-        return $user->canEditFamily($person->familyTree->family_id);
+        return $user->hasFamilyPermission($person->familyTree->family_id, 'person.edit-unpublished');
     }
 
     public function delete(User $user, Person $person): bool

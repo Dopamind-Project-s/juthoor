@@ -27,14 +27,14 @@ class PersonMergeController extends Controller
             'family' => $familyModel, 'tree' => $tree,
             'candidates' => $finder->candidates($tree, $request->user()),
             'history' => PersonMerge::query()->where('family_tree_id', $tree->id)->with(['survivor', 'merged', 'performer'])->latest('id')->limit(30)->get(),
-            'canMerge' => $request->user()->can('publish', $familyModel),
+            'canMerge' => $request->user()->can('merge', $familyModel),
         ]);
     }
 
     public function preview(Request $request, string $family): View
     {
         [$familyModel, $tree] = $this->context($family);
-        Gate::authorize('publish', $familyModel);
+        Gate::authorize('merge', $familyModel);
         $data = $request->validate(['survivor' => ['required', 'integer'], 'merged' => ['required', 'integer'], 'decisions' => ['sometimes', 'array'], 'decisions.*' => ['in:survivor,merged']]);
 
         return view('management.merges.preview', [
@@ -46,7 +46,7 @@ class PersonMergeController extends Controller
     public function store(Request $request, string $family): RedirectResponse
     {
         [$familyModel, $tree] = $this->context($family);
-        Gate::authorize('publish', $familyModel);
+        Gate::authorize('merge', $familyModel);
         $data = $request->validate([
             'survivor' => ['required', 'integer'], 'merged' => ['required', 'integer'], 'decisions' => ['sometimes', 'array'], 'decisions.*' => ['in:survivor,merged'],
             'fingerprint' => ['required', 'string', 'size:64'], 'reason' => ['required', 'string', 'max:2000'], 'confirm' => ['accepted'],
@@ -59,7 +59,7 @@ class PersonMergeController extends Controller
     public function show(Request $request, string $family, int $merge): View
     {
         [$familyModel, $tree] = $this->context($family);
-        Gate::authorize('publish', $familyModel);
+        Gate::authorize('merge', $familyModel);
         $operation = PersonMerge::query()->where('family_tree_id', $tree->id)->with(['survivor', 'merged', 'performer', 'undoer'])->findOrFail($merge);
 
         return view('management.merges.show', ['family' => $familyModel, 'tree' => $tree, 'operation' => $operation, 'blockers' => $this->merges->undoBlockers($operation)]);
@@ -68,7 +68,7 @@ class PersonMergeController extends Controller
     public function undo(Request $request, string $family, int $merge): RedirectResponse
     {
         [$familyModel, $tree] = $this->context($family);
-        Gate::authorize('publish', $familyModel);
+        Gate::authorize('merge', $familyModel);
         $reason = $request->validate(['reason' => ['required', 'string', 'max:2000']])['reason'];
         $this->merges->undo(PersonMerge::query()->where('family_tree_id', $tree->id)->findOrFail($merge), $request->user(), $reason);
 

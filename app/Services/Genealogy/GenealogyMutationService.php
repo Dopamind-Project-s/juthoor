@@ -20,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class GenealogyMutationService
 {
+    private bool $applyingReview = false;
+
     public function __construct(private AuditLogger $audit, private GenealogyDeletionService $deletion, private RelationshipIntegrityService $relationships, private BranchIntegrityService $branches, private PublicationGuard $publication) {}
 
     public function modelClass(string $kind): string
@@ -127,18 +129,29 @@ class GenealogyMutationService
         }
     }
 
+    /** Applies a reviewed proposal: the reviewer's decision authorizes publication (PublicationGuard). */
+    public function applyReviewed(FamilyTree $tree, User $user, string $kind, string $operation, array $data, ?Model $record = null): AuditLog
+    {
+        $this->applyingReview = true;
+        try {
+            return $this->apply($tree, $user, $kind, $operation, $data, $record);
+        } finally {
+            $this->applyingReview = false;
+        }
+    }
+
     public function apply(FamilyTree $tree, User $user, string $kind, string $operation, array $data, ?Model $record = null, bool $validateHierarchy = true): AuditLog
     {
         $before = $record ? $this->audit->snapshot($record) : null;
         $attributeIds = $kind === 'person' && array_key_exists('attribute_ids', $data) ? $data['attribute_ids'] : null;
         unset($data['attribute_ids']);
         // Field privacy is an administrator decision; other roles keep the current levels.
-        if (! $this->publication->canPublish($user, $tree->family)) {
+        if (! $this->publication->canManagePrivacy($user, $tree->family)) {
             unset($data['field_visibility']);
         }
         if ($operation === 'delete') {
             $this->assertDeletable($record);
-            $this->publication->assertAllowed($user, $tree->family, $record, true);
+            $this->publication->assertAllowed($user, $tree->family, $record, true, $this->applyingReview);
             $record->delete();
         } else {
             if ($record instanceof PersonRelationship && ((int) $record->related_person_id !== (int) ($data['related_person_id'] ?? $record->related_person_id) || (int) $record->person_id !== (int) ($data['person_id'] ?? $record->person_id))) {
@@ -149,7 +162,7 @@ class GenealogyMutationService
             $record ??= new ($this->modelClass($kind));
             $record->fill($data);
             $record->family_tree_id = $tree->id;
-            $this->publication->assertAllowed($user, $tree->family, $record);
+            $this->publication->assertAllowed($user, $tree->family, $record, false, $this->applyingReview);
             $this->validateModel($record);
             $record->save();
             if ($record instanceof Person && $attributeIds !== null) {

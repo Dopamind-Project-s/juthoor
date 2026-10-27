@@ -21,7 +21,7 @@ class AuditReversionController extends Controller
     {
         $log = AuditLog::query()->with('family')->findOrFail($id);
         abort_unless($log->family?->is_active, 404);
-        Gate::authorize('review', $log->family);
+        Gate::authorize('recover', $log->family);
 
         return $log;
     }
@@ -44,7 +44,7 @@ class AuditReversionController extends Controller
     public function history(Request $request, string $family): View
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
-        Gate::authorize('review', $familyModel);
+        Gate::authorize('recover', $familyModel);
         $recoveries = AuditLog::query()->where('family_id', $familyModel->id)->whereNotNull('reverted_from_id')->with('user')->latest('id')->paginate(30);
         $originals = AuditLog::query()->whereKey($recoveries->pluck('reverted_from_id'))->with('user')->get()->keyBy('id');
 

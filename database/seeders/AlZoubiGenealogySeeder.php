@@ -17,7 +17,7 @@ class AlZoubiGenealogySeeder extends Seeder
         $statistics = $this->import();
 
         $this->command?->info(sprintf(
-            'Al-Zoubi import: created=%d updated=%d skipped=%d unresolved=%d conflicted=%d',
+            'Al-Zoubi import: created=%d preserved=%d skipped=%d unresolved=%d conflicted=%d',
             $statistics['created'],
             $statistics['updated'],
             $statistics['skipped'],
@@ -26,7 +26,11 @@ class AlZoubiGenealogySeeder extends Seeder
         ));
     }
 
-    /** @return array{created: int, updated: int, skipped: int, unresolved: int, conflicted: int} */
+    /**
+     * `updated` counts managed records that already existed; they are preserved, not rewritten.
+     *
+     * @return array{created: int, updated: int, skipped: int, unresolved: int, conflicted: int}
+     */
     public function import(): array
     {
         $dataset = app(AlZoubiDataset::class);
@@ -39,7 +43,7 @@ class AlZoubiGenealogySeeder extends Seeder
             ? PersonRelationship::query()->where('family_tree_id', $treeId)->count()
             : 0;
 
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($peopleBefore): void {
             $this->call([
                 FamilySeeder::class,
                 FamilyTreeSeeder::class,
@@ -49,12 +53,17 @@ class AlZoubiGenealogySeeder extends Seeder
                 BranchSeeder::class,
                 BranchFounderSeeder::class,
             ]);
+            $tree = Family::query()->where('slug', FamilySeeder::SLUG)->sole()
+                ->familyTrees()->where('slug', FamilyTreeSeeder::SLUG)->sole();
+            // The curated dataset marks new records historical and sourced; classify them with that explicit basis inside
+            // the same transaction (SD-07). A rerun that creates nothing leaves living status, including unknown, untouched.
+            if ($tree->people()->count() > $peopleBefore) {
+                app(LivingStatusClassifier::class)->classifyUnknown($tree->id);
+            }
         });
 
         $tree = Family::query()->where('slug', FamilySeeder::SLUG)->sole()
             ->familyTrees()->where('slug', FamilyTreeSeeder::SLUG)->sole();
-        // The curated dataset marks these records historical and sourced; classify them with that explicit basis.
-        app(LivingStatusClassifier::class)->classifyUnknown($tree->id);
         $peopleCreated = $tree->people()->count() - $peopleBefore;
         $relationshipsCreated = $tree->personRelationships()->count() - $relationshipsBefore;
         $sourceStatistics = $dataset->statistics();

@@ -41,7 +41,7 @@ class CommunityEntityAccess
         if (! $user->is_active) {
             return [];
         }
-        if ($user->isSuperAdmin() || ($family->is_active && $user->roleFor($family) === FamilyMembership::ROLE_ADMIN)) {
+        if ($user->isSuperAdmin() || ($family->is_active && ($user->roleFor($family) === FamilyMembership::ROLE_ADMIN || $user->hasFamilyPermission($family, 'content.publish')))) {
             return null;
         }
         if (! $family->is_active || $user->roleFor($family) === null) {
@@ -59,9 +59,12 @@ class CommunityEntityAccess
      *
      * @return array<int, int>|null
      */
-    public function manageableIds(User $user, Family $family): ?array
+    public function manageableIds(User $user, Family $family, bool $includeNewsRoles = true): ?array
     {
-        if ($user->canEditFamily($family)) {
+        // Functional content roles work family-wide; news-only roles are limited to news modules at each record
+        // (CommunityEntityPolicy), so callers outside those modules (media access) exclude them.
+        if ($user->canEditFamily($family) || $user->hasFamilyPermission($family, 'content.edit')
+            || ($includeNewsRoles && $user->hasFamilyPermission($family, 'news.edit'))) {
             return null;
         }
         if (! $user->is_active || $user->roleFor($family) === null) {

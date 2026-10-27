@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-26 (updated after Phase 4 — news, death notices, events and calendar, member directory, notifications). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-27 (updated after UX-P0.1 — person management, RBAC, seeders; see §16). Previous: Phase 4 (2026-10-26). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `57ffda7` (Phase 3.7 committed by the maintainer); Phase 4 changes (session 12) are uncommitted. |
-| Test baseline (start of session 12) | 346 passed, 0 failed, 3790 assertions (re-run on SQLite before any change). |
-| Test result (end of session 12) | **367 passed, 0 failed** on SQLite and on PostgreSQL 16. |
+| Branch / HEAD | `main` at `4ed00b1` (Phase 4 and docs committed by the maintainer); UX-P0.1 changes (session 13) are uncommitted. |
+| Test baseline (start of session 13) | 367 passed, 0 failed, 4048 assertions on SQLite and on PostgreSQL 16 (re-run before any change). |
+| Test result (end of session 13) | **404 passed, 0 failed** (4477 assertions) on SQLite and on PostgreSQL 16. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -485,3 +485,91 @@ The news list first ran 19 queries (notices per card); eager loading made it con
 - Per-person consent for people named in events and news is an editorial rule (form guidance), not a recorded consent workflow.
 - Directory retention periods and export of one's own profile are not implemented; there is no public API.
 - JTH-31: there is still no content API or export; any future endpoint must reuse `EntityContentScope`, `visibleTo`, `MediaAccess` and the directory's per-audience fields.
+
+## 16. Person management, RBAC and seeders (UX-P0.1, 2026-10-27)
+
+**References** — all seven documents named in the UX-P0.1 brief are in `docs/` (`Juthoor_Master_Project_Requirements_v2.0.md` is now in the repository; `Juthoor_Experience_v3_Requirements_and_Roadmap.md`, `Juthoor_P0_People_Roles_Family_Seeders_2026-10-27.md`, `Juthoor_Seeder_Audit_and_Design_Data_2026-10-27.md` and the three living docs). Priority order applied: v2.0 integrity/privacy, then v3.0 decisions, then the P0 annex and seeder audit, then verified repository behaviour.
+
+**Baseline** — `main` at `4ed00b1`, clean tree; 367/367 (4048 assertions) on SQLite and on PostgreSQL 16 before any change.
+
+### 16.1 Findings (before)
+
+| Area | Finding |
+|---|---|
+| RBAC model | No Spatie or permission tables. Three membership roles per family (`reader`/`editor`/`admin`), entity managers (`editor`/`admin`, subtree-scoped), `users.is_super_admin`. Policies called `canEditFamily()` / `roleFor() === 'admin'` directly; `PublicationGuard`, merge and recovery used the admin role check. |
+| Missing capabilities | No way to give a member one narrow duty (e.g. review genealogy only, or edit news only) without making them an editor or administrator of everything; no role seeder; no permission matrix. |
+| Person UX | Tree already linked "add son" / "edit" to the flat person form (with `father_id` prefill); no in-tree add, no duplicate check before submit (only a refusal after), no lineage/branch context for the chosen father, no read-only state for published records, no father-change impact, review page without submitter, impact, publication effect or earlier decisions. |
+| Seeders | SD-01…SD-07 and SD-09 confirmed in code: `updateOrCreate`/`fill()->save()` reset family, tree, people, edges, branches and founders on every `db:seed`; classification ran outside the import transaction; demo password fixed to `password`. |
+
+### 16.2 Role and permission model
+
+Functional roles are **added on top of** a membership in one family (`family_role_assignments` → `family_memberships`, cascade on leave). Membership roles keep exactly their previous rights (now written down in `PermissionCatalog::MEMBERSHIP_PERMISSIONS`). Effective permissions = membership rights ∪ rights of roles assigned through that membership (`FamilyPermissions`); nothing crosses families; inactive accounts have none; super admins pass through `Gate::before` as before. Platform governance (`platform.govern`: shared ancestors, cross-family links) is never grantable through a family role. Entity roles are unchanged (`community_entity_managers`) — no second entity role model.
+
+| Permission (`key`) | Reader | Editor | Admin | Genealogy manager | Genealogy editor | Genealogy reviewer | Content manager | News editor | News publisher | Death-notice reviewer | Directory moderator |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `person.view-drafts` | ✓ | ✓ | ✓ | | | | | | | | |
+| `person.propose` | ✓ | ✓ | ✓ | | | | | | | | |
+| `person.create` | | ✓ | ✓ | ✓ | ✓ | | | | | | |
+| `person.edit-unpublished` | | ✓ | ✓ | ✓ | ✓ | | | | | | |
+| `genealogy.review` | | | ✓ | ✓ | | ✓ | | | | | |
+| `genealogy.publish` | | | ✓ | ✓ | | | | | | | |
+| `privacy.manage` | | | ✓ | ✓ | | | | | | | |
+| `source.manage` | | ✓ | ✓ | ✓ | ✓ | | | | | | |
+| `branch.manage` | | ✓ | ✓ | ✓ | | | | | | | |
+| `person.merge` | | | ✓ | | | | | | | | |
+| `audit.recover` | | | ✓ | | | | | | | | |
+| `family.settings` | | | ✓ | | | | | | | | |
+| `family.members.manage` | | | ✓ | | | | | | | | |
+| `role.assign` | | | ✓ | | | | | | | | |
+| `content.edit` / `content.publish` | | ✓ / — | ✓ / ✓ | | | | ✓ / ✓ | | | | |
+| `news.edit` / `news.publish` | | ✓ / — | ✓ / ✓ | | | | covered by content¹ | ✓ / — | ✓ / ✓ | ✓ / ✓ | |
+| `news.death-notices` | | | ✓ | | | | | | | ✓ | |
+| `directory.moderate` | | | ✓ | | | | | | | | ✓ |
+
+¹ Content permissions cover every module including news and events; news permissions cover only news and events. Editors keep their previous draft rights (`content.edit`, `news.edit`). Functional role columns list only what the role adds (a reader holding it still has the reader rights). The table mirrors `app/Services/Access/PermissionCatalog.php`, which is authoritative and is rendered live at `/manage/families/{family}/roles`.
+
+Abilities: `FamilyPolicy` (`review`, `publish`, `managePrivacy`, `merge`, `recover`, `update`, `manageMembers`, `assignRoles`, `moderateDirectory`, `reviewDeathNotices`, `manageSources`, `propose`), `PersonPolicy`, `PersonRelationshipPolicy`, `BranchPolicy`, `CommunityEntityPolicy::update/publish($entity, $module)` (news permissions cover only the `news` and `events` modules), `PublicationGuard::canPublish/canManagePrivacy`, `PersonMergeService::authorize`.
+
+**Separation of duties** — self-approval remains blocked in `ChangeReviewService::decide`; a genealogy reviewer may apply someone else's accepted proposal (the review is the publication decision, `GenealogyMutationService::applyReviewed`) but cannot create, edit or publish directly; a news editor gets no genealogy or other content rights; a content manager gets no genealogy rights; death notices need `news.death-notices` even for news publishers; shared ancestors still need a super admin; merge and recovery stay with family administrators. Assignment: only `role.assign` holders, never their own roles (super admins excepted), never a role with permissions the assigner lacks; every change is audited on the membership (admin-only audit type).
+
+**RBAC seeder** — `RolePermissionSeeder` / `php artisan rbac:sync [--dry-run] [--apply-upgrades] [--json]` (`RoleCatalogSynchronizer`): deterministic keys; creates missing permissions and templates; never duplicates; never touches assignments, custom roles, manual grants or roles an administrator customized (reported as differences); removes withdrawn catalog grants (least privilege, reported); **reports but does not grant** new template permissions for an existing role unless `--apply-upgrades`; renamed keys move grants (`RENAMED`), removed keys are deprecated and grant nothing; scope changes are refused as conflicts; every applied change is audited (`rbac.*`, platform audit). It creates no accounts. `DatabaseSeeder` runs it after the genealogy seeders. Super admins see the dry-run report, customize templates (marks them customized, manual grants flagged) and create custom roles at `/site-admin/roles`.
+
+### 16.3 Person workflows
+
+- **Tree** (`genealogy-tree.js`, `ProgressiveGraphService::actions`) — node panel: quick add of a son (name required, living status optional, father = the node, validated in the same tree server-side, always `pending_review` and private; duplicate candidates shown live and on refusal with an explicit confirmation; "add another son" keeps the father), full form, edit, focus on descendants, propose correction, sources/claims page, person page with ancestors. Actions are computed from permissions and re-authorized by each route.
+- **Guided creation** (`management/people/form.blade.php`, `person-form.js`) — four steps (identity and father with lineage, derived branch and existing sons; duplicate check by normalized name, variants, same father, similar brothers and same name elsewhere — each candidate with lineage and an "open this person" link; optional details; review summary with tree effect, verification, publication and approval). Works as one form without JavaScript. Branch membership is shown as derived from the father chain, never chosen. Optional alternate spelling on creation; sequential entry of brothers.
+- **Editing** — sections (identity, genealogy, historical data, sources, privacy and publication, claims, history), dependants count, derived and founded branches, shared families; a warning when the approved father changes; read-only with a "propose correction" path for published records (non-publishers) and shared ancestors (non super admins); the server enforces the same rules.
+- **Review** — submitter and dates, current → proposed values, people and branches affected, publication effect before/after, earlier proposals and decisions on the same record, links to the person and the tree, own-request notice (no decision form), reason required for both decisions. A "request more information" state was **not** added: the `change_requests` lifecycle has no such state and adding one is a separate decision.
+- Endpoints: `management.people.quick` (POST, throttled), `management.people.candidates` (GET, read-only).
+
+### 16.4 Seeders (Workstream C)
+
+| ID | Status |
+|---|---|
+| SD-01/02 | Fixed — family and tree create-if-missing; a new tree is primary only if none is. |
+| SD-03 | Fixed — existing people keep name, status, verification, notes, privacy and living status; the dataset citation is still attached. Unreconciled name differences are still refused. |
+| SD-04 | Fixed — missing father edges only; a different existing father stops the seed before writing and lists every conflict; existing edges keep source/verification; tree root only set when empty. |
+| SD-05/06 | Fixed — branches create-only; founder paths refuse different names/fathers; an administrator-set founder is kept and reported, not reactivated. If an administrator clears a founder, the next seed relinks it (cannot be told apart from "never linked"). |
+| SD-07 | Fixed — classification inside the import transaction, only when the run created people. |
+| SD-08 | Reported by the audit only (raw files under `public/docs`); not moved. |
+| SD-09 | Fixed — `DEV_SEED_PASSWORD` or a random password printed once; existing accounts keep theirs. Browser scripts need `DEV_SEED_PASSWORD=password`. |
+| SD-11 | Fixed as opt-in demo fixtures (below). |
+
+**Preflight** — `php artisan genealogy:seed-audit [--family=] [--json] [--dry-run]` (`SeedAuditService`), always read-only (rolled-back transaction, no seeder call): families, trees, counts, expected dataset records, branches/founders, sources, dataset files with sha256 and versions, missing dependencies, identity conflicts, preserved administrator edits, duplicate candidates, self-parent / multiple fathers / cycles, privacy and publication counts. Exit 1 on conflicts. Web view for super admins: `/site-admin/seed-audit`.
+
+**Family bootstrap** — `php artisan family:bootstrap {manifest.json} [--dry-run] [--json]` (`FamilyBootstrapService`): family (created inactive), main tree, role templates, documented sources (pending), draft entities, pending branches; a founder only by an existing canonical key; an existing account may be enrolled as administrator (no account creation); create-only with a report of kept and skipped items; never creates people, fathers, founders, diwans, news, population figures or living statuses. Minimal setup (family only) is supported.
+
+**Demo fixtures** — `JuthoorUiDemoSeeder`: local/testing **and** `JUTHOOR_DEMO_FIXTURES=true`; never in `DatabaseSeeder`; separate family `demo-juthoor` labelled synthetic; unresolved/pending people with unknown living status, draft entities and content, no contact details; idempotent; never touches `al-zoubi`.
+
+### 16.5 Database changes
+
+Migration `2026_10_27_071232_create_roles_and_permissions_tables`: `permissions`, `roles`, `permission_role` (with `origin` catalog/manual), `family_role_assignments` (FK to membership, cascade). Rollback/re-apply verified on PostgreSQL 16. No change to genealogy tables.
+
+### 16.6 Limitations
+
+- Content separation is by module family (news/events vs. the rest); a news-only editor cannot attach media (media checks are not module-aware).
+- `privacy.manage` is separate in the catalog, but the restricted-field audience (`PersonPrivacy`) still means family administrators and super admins; a genealogy manager sets privacy levels without seeing restricted values unless an administrator.
+- Person proposals still carry no father (P1-04); quick add is for `person.create` holders; members without it use "propose correction".
+- Sources are attached from the person page after creation, not inside the guided form.
+- No "needs more information" review state; no platform auditor role (not needed: super admins audit).
+- The tree layout is unchanged (UX-P0.2/Tree Experience).

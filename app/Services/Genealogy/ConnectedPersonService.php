@@ -30,10 +30,14 @@ class ConnectedPersonService
             if (! $person && empty($input['confirm_distinct'])) {
                 app(DuplicatePersonDetector::class)->assertDistinct($tree, (string) ($input['full_name_ar'] ?? ''), empty($input['father_id']) ? null : (int) $input['father_id']);
             }
-            $attributes = $this->mutations->attributes($tree, 'person', Arr::only($input, [
-                'first_name_ar', 'full_name_ar', 'canonical_key', 'gender', 'birth_year', 'title', 'honorific', 'attribute_ids', 'attributes_present',
-                'death_year', 'is_living', 'status', 'verification_status', 'field_visibility',
-            ]), $person);
+            $fields = ['first_name_ar', 'full_name_ar', 'canonical_key', 'gender', 'birth_year', 'title', 'honorific', 'attribute_ids', 'attributes_present',
+                'death_year', 'is_living', 'status', 'verification_status', 'field_visibility'];
+            // A new record may carry a known alternate spelling; changing an existing person's spellings goes through claims.
+            if (! $person && ! empty(array_filter((array) ($input['alternate_names'] ?? []), 'filled'))) {
+                $input['alternate_names'] = array_values(array_unique(array_filter(array_map('trim', (array) $input['alternate_names']), 'filled')));
+                $fields[] = 'alternate_names';
+            }
+            $attributes = $this->mutations->attributes($tree, 'person', Arr::only($input, $fields), $person);
             $log = $this->mutations->apply($tree, $user, 'person', $person ? 'update' : 'create', $attributes, $person);
             $person = $tree->people()->findOrFail($log->auditable_id);
 

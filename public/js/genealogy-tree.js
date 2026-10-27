@@ -230,7 +230,7 @@
             });
         }
 
-        for (const [selector, url] of [['[data-person-add-child]', node.add_child_url], ['[data-person-edit]', node.edit_url]]) {
+        for (const [selector, url] of [['[data-person-add-child]', node.add_child_url], ['[data-person-edit]', node.edit_url], ['[data-person-propose]', node.propose_url], ['[data-person-manage]', node.manage_url]]) {
             const link = $(selector);
             if (link) { link.hidden = !url; if (url) link.href = url; else link.removeAttribute('href'); }
         }
@@ -239,9 +239,90 @@
             const ids = graph.edges.filter(edge => edge.parent_id === node.id).map(edge => edge.child_id);
             load({root: node.id, after: Math.max(0, ...ids), append: true});
         };
+        $('[data-person-descendants]').onclick = () => { collapsed.delete(node.id); reveal(node.id); render(); center(node.id); updatePanel(); };
+        quickAdd.open(node, false);
         const toggle = $('[data-person-toggle]'); toggle.textContent = collapsed.has(node.id) ? 'توسيع الذرية' : 'طي الذرية';
         toggle.onclick = () => { collapsed.has(node.id) ? collapsed.delete(node.id) : collapsed.add(node.id); render(); updatePanel(); };
     }
+    // Quick add of a son from the selected node; the server validates the father and keeps the record pending review.
+    const quickAdd = (() => {
+        const form = $('[data-quick-add]'), toggle = $('[data-quick-add-toggle]'), status = $('[data-quick-status]'), list = $('[data-quick-candidates]');
+        const csrf = app.dataset.csrf;
+        let father = null, confirmDistinct = false;
+        if (!form || !app.dataset.quickAddUrl) return {open() {}};
+        const showCandidates = (candidates, blocking) => {
+            list.replaceChildren(); list.hidden = !candidates.length; if (!candidates.length) return;
+            const heading = document.createElement('p'); heading.className = 'small fw-bold mb-1';
+            heading.textContent = blocking ? 'يوجد سجل مطابق؛ افتحه بدل إنشاء نسخة، أو أكّد أنه شخص مختلف:' : 'سجلات مشابهة قد تكون الشخص نفسه:';
+            list.append(heading);
+            candidates.forEach(candidate => {
+                const row = document.createElement('a'); row.href = candidate.url; row.className = 'd-block small'; row.target = '_blank'; row.rel = 'noopener';
+                row.textContent = `${candidate.name} ${candidate.lineage} — ${candidate.reason}`; list.append(row);
+            });
+            if (blocking) {
+                const label = document.createElement('label'); label.className = 'small d-block mt-1';
+                const box = document.createElement('input'); box.type = 'checkbox'; box.onchange = () => { confirmDistinct = box.checked; };
+                label.append(box, ' أؤكد أنه شخص مختلف رغم التطابق'); list.append(label);
+            }
+        };
+        const open = (node, show) => {
+            toggle.hidden = !node.add_child_url;
+            if (father?.id !== node.id) { form.hidden = true; form.reset(); status.textContent = ''; list.hidden = true; confirmDistinct = false; }
+            father = node;
+            if (!show || !node.add_child_url) return;
+            form.hidden = false; toggle.hidden = true;
+            $('[data-quick-father]').textContent = `سيُضاف ابنًا لـ: ${node.name}`;
+            $('[data-quick-context]').textContent = '';
+            fetch(endpoint(app.dataset.candidatesUrl, {father_id: node.id}, false), {headers: {Accept: 'application/json'}})
+                .then(response => response.ok ? response.json() : null).then(payload => {
+                    if (!payload?.father || father?.id !== node.id) return;
+                    const context = [payload.father.lineage, payload.father.branches.length ? `الفرع: ${payload.father.branches.join(' ← ')}` : '', payload.father.children.length ? `أبناؤه المسجلون: ${payload.father.children.join('، ')}` : 'لا أبناء مسجلين بعد'].filter(Boolean);
+                    $('[data-quick-context]').textContent = context.join(' · ');
+                }).catch(() => {});
+            form.elements.full_name_ar.focus();
+        };
+        toggle.addEventListener('click', () => father && open(father, true));
+        $('[data-quick-cancel]').addEventListener('click', () => { form.hidden = true; toggle.hidden = !father?.add_child_url; });
+        let checkTimer;
+        form.elements.full_name_ar.addEventListener('input', () => {
+            clearTimeout(checkTimer); confirmDistinct = false;
+            const name = form.elements.full_name_ar.value.trim(); if (name.length < 2) { list.hidden = true; return; }
+            checkTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(endpoint(app.dataset.candidatesUrl, {full_name_ar: name, father_id: father.id}, false), {headers: {Accept: 'application/json'}});
+                    if (response.ok) { const payload = await response.json(); showCandidates(payload.data, payload.data.some(candidate => candidate.blocking)); }
+                } catch (cause) { /* the server check on save still applies */ }
+            }, 350);
+        });
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const name = form.elements.full_name_ar.value.trim();
+            if (!name) { status.textContent = 'أدخل اسم الابن.'; form.elements.full_name_ar.focus(); return; }
+            const submit = $('[data-quick-submit]'); submit.disabled = true; status.textContent = 'جارٍ الحفظ…';
+            try {
+                const response = await fetch(app.dataset.quickAddUrl, {method: 'POST', headers: {Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
+                    body: JSON.stringify({father_id: father.id, full_name_ar: name, living_status: form.elements.living_status.value, confirm_distinct: confirmDistinct})});
+                const payload = await response.json().catch(() => ({}));
+                if (response.status === 422) {
+                    status.textContent = payload.message || 'تحقق من البيانات.';
+                    if (payload.candidates) showCandidates(payload.candidates, true);
+                    return;
+                }
+                if (!response.ok) throw new Error('save');
+                status.textContent = payload.message; list.hidden = true; confirmDistinct = false;
+                const keepOpen = $('[data-quick-again]').checked, parentId = father.id;
+                const view = {scale, x, y};
+                contexts.clear();
+                await load({fresh: true});
+                ({scale, x, y} = view); transform();
+                if (graph.nodes.some(node => node.id === parentId)) { collapsed.delete(parentId); reveal(parentId); select(parentId); }
+                if (keepOpen) { open(graph.nodes.find(node => node.id === parentId) || father, true); form.elements.full_name_ar.value = ''; status.textContent = payload.message; }
+            } catch (cause) { status.textContent = 'تعذر الحفظ. حاول مجددًا.'; }
+            finally { submit.disabled = false; }
+        });
+
+        return {open};
+    })();
     function fit() {
         if (!graph.nodes.length) return;
         const box = viewport.getBBox(); if (!box.width) return;
