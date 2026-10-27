@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'heritage')
 @section('title', $event->title)
 @php($start = $event->localStart())
 @php($end = $event->localEnd())

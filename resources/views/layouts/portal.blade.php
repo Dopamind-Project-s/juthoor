@@ -9,6 +9,7 @@
     <link href="{{ asset('vendor/bootstrap/bootstrap.rtl.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/juthoor.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/design-system.css') }}" rel="stylesheet">
     <link href="{{ asset('css/portal.css') }}" rel="stylesheet">
     {{-- Approved palette values from config only; no administrator-supplied CSS. --}}
     <style>:root{--portal-primary:{{ $palette['primary'] }};--portal-accent:{{ $palette['accent'] }};--portal-soft:{{ $palette['soft'] }}}</style>

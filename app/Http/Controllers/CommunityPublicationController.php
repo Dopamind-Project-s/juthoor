@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\CommunityEntity;
 use App\Models\CommunityEvent;
+use App\Models\Diwan;
 use App\Models\Family;
+use App\Models\MediaItem;
 use App\Models\NewsPost;
 use App\Models\Person;
 use App\Services\Community\CommunityHierarchy;
@@ -77,6 +79,26 @@ class CommunityPublicationController extends Controller
         $announcements = NewsPost::query()->where('event_id', $record->id)->visibleTo($request->user())->get(['id', 'title', 'category']);
 
         return view('community.events.show', ['family' => $familyModel, 'event' => $record, 'announcements' => $announcements, ...$this->related($request, $familyModel, $record)]);
+    }
+
+    /** One diwan or madafa, with its public images, places and the public entity pages it belongs to. */
+    public function showDiwan(Request $request, string $family, int $diwan): View
+    {
+        $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
+        $record = Diwan::query()->whereKey($diwan)->whereHas('ownerEntity', fn (Builder $owner) => $owner->where('family_id', $familyModel->id))
+            ->with(['ownerEntity', 'mediaAttachments.media.ownerEntity', 'citations' => fn ($citations) => $citations->approved()->with('source:id,title,url,source_type'), 'entityLinks.entity:id,name_ar,slug,family_id,entity_type'])->firstOrFail();
+        $publicIds = $this->hierarchy->publicIds($familyModel->id);
+        $manager = $request->boolean('preview') && $request->user()?->hasVerifiedEmail() && $request->user()->can('update', $record->ownerEntity);
+        $public = in_array($record->owner_entity_id, $publicIds, true) && Diwan::query()->whereKey($diwan)->visibleTo($request->user())->exists();
+        abort_unless($manager || $public, 404);
+        $access = app(MediaAccess::class);
+        $images = $record->mediaAttachments->pluck('media')->filter(fn (?MediaItem $media) => $media && $media->isImage() && $access->canView($request->user(), $media))->values();
+        // Entity pages shown beside the diwan: public ones only, each once (a shared diwan is one record).
+        $entities = $record->entityLinks->pluck('entity')->filter(fn ($entity) => $entity && in_array($entity->id, $publicIds, true))->unique('id')->values();
+        $others = Diwan::query()->whereIn('owner_entity_id', $entities->pluck('id')->push($record->owner_entity_id)->unique())->whereKeyNot($record->id)
+            ->visibleTo($request->user())->orderBy('name')->limit(6)->get(['id', 'name', 'kind', 'city', 'governorate', 'owner_entity_id']);
+
+        return view('community.diwans.show', ['family' => $familyModel, 'diwan' => $record, 'images' => $images, 'entities' => $entities, 'others' => $others, 'preview' => $manager && ! $public]);
     }
 
     /**

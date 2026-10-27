@@ -9,6 +9,7 @@
     <link href="{{ asset('vendor/bootstrap/bootstrap.rtl.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/juthoor.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/design-system.css') }}" rel="stylesheet">
 </head>
 <body class="@yield('body-class')">
 <a class="visually-hidden-focusable position-absolute bg-white p-3" href="#main-content">انتقل إلى المحتوى</a>

@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'directory')
 @section('title', 'دليل أبناء العشيرة — '.$family->name_ar)
 @section('content')
 <x-page-header title="دليل أبناء العشيرة — تواصل، خبرات، أعمال وتعاون" :eyebrow="$family->name_ar" description="دليل طوعي يظهر فيه من اختار ذلك، وبالبيانات التي اختار إظهارها فقط. لا يُنشأ ملف من سجلات الشجرة، ولا تُعرض وسائل التواصل إلا بإذن صاحبها.">

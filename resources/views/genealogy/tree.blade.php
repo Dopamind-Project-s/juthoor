@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', $tree->name_ar)
-@section('body-class','genealogy-page')
+@section('body-class', request()->boolean('embed') ? 'genealogy-page is-embed' : 'genealogy-page')
 @section('hide-footer',true)
 @section('content')
 @php($private = request()->boolean('private') ? 1 : null)

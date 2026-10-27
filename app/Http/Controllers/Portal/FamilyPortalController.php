@@ -53,6 +53,6 @@ class FamilyPortalController extends Controller
         // Public data rules apply to everyone on the landing page, including signed-in members and the preview.
         $data = $this->page->build($family, $branding, null);
 
-        return response()->view('portal.home', $data + ['preview' => $preview, 'onFamilyHost' => $request->attributes->has(ResolveFamilyHost::ATTRIBUTE)]);
+        return response()->view('portal.home', $data + ['preview' => $preview, 'previewBranding' => $preview ? $branding : null]);
     }
 }

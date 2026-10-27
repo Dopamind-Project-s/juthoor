@@ -12,6 +12,7 @@ use App\Models\Source;
 use App\Models\User;
 use App\Services\Dashboards\FamilyDashboardService;
 use App\Services\Genealogy\CrossFamilyLinkInvalidator;
+use App\Services\Portal\FamilySiteChrome;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -52,6 +53,14 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['families.al-zoubi.branches.index', 'families.al-zoubi.branches.show'], function ($view): void {
             $tree = Family::query()->active()->where('slug', 'al-zoubi')->first()?->primaryTree()->active()->first();
             $view->with('publishedBranchSlugs', $tree ? $tree->branches()->published()->pluck('slug')->all() : []);
+        });
+        // Family website frame: every page extending layouts.family-site gets the family's published (or previewed) branding.
+        // Child views render their sections before the layout, so they receive the frame data too.
+        View::composer(['layouts.family-site', 'community.index', 'community.show', 'community.diwans.show', 'community.news.*', 'community.events.*', 'directory.*'], function ($view): void {
+            $data = $view->getData();
+            if (! isset($data['siteNav']) && isset($data['family'])) {
+                $view->with(app(FamilySiteChrome::class)->for($data['family'], $data['previewBranding'] ?? null));
+            }
         });
         View::composer('layouts.management', function ($view): void {
             $view->with('accessibleFamilies', FamilyDashboardService::accessibleFamilies(auth()->user()));

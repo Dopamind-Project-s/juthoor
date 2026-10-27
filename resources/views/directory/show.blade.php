@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'directory')
 @section('title', $profile->display_name)
 @php($has = fn (string $field) => in_array($field, $fields, true))
 @section('content')

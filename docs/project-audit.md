@@ -709,3 +709,104 @@ Feature tests (`TreeExperienceTest`): the public payload contains exactly the `p
 - The fold threshold (9) and wrap width (3,200 px) are constants, not settings.
 - Print/export views do not exist yet (nothing to leak; any future export must reuse `batch` rules).
 - Shared-ancestry (cross-family) links are not drawn inside a family's tree; governance is unchanged (super-admin edits).
+
+## 19. Family, clan & fakhd portals and the heritage experience (UX-P0.4 + UX-P0.5, 2026-10-27)
+
+### 19.1 Baseline and UI audit (before)
+
+Baseline at `5ef3cb3`, clean tree: SQLite 428/428, PostgreSQL 16 428/428, Node 11/11. Browser audit (Chrome, 1440 and 390 px, screenshots `before-*` in `docs/screenshots/ux-p0.4-p0.5/`):
+
+- **Three visual languages.** The family portal (`portal.css`, `--portal-*`), the platform/entity pages (`juthoor.css`, `--juthoor-*`) and the tree (`--tree-*`) each defined their own colours, cards and badges. Leaving the family portal for an entity page dropped the family header, navigation and branding.
+- **Entity pages were one long column.** All 14 sections were stacked (hundreds of empty-state lines on sparse entities), with no way to jump to history, diwans or sources except a link bar. The tree appeared only as a static founder preview.
+- **The directory was a flat list.** It had no search, level filter, founder, counts or cover image.
+- **Diwans had no page of their own.** A diwan shared by two fakhds could only be reached inside an entity page.
+- **Verification vocabulary differed by module.** Badges were coloured differently, and "alternative account" sometimes replaced the record's status text.
+- **Mobile.** Section links overflowed horizontally; there was no family navigation outside the portal home.
+
+### 19.2 Design system (Workstream A)
+
+`public/css/design-system.css` is now loaded by every layout (`app`, `family`, `management`, `portal`, `family-site`).
+
+- **Tokens.**
+  - Palette: `--j-green #133D32`, `--j-green-2 #285D4E`, `--j-ivory #F6F4EE`, `--j-sand #EEE5D6`, `--j-gold #B28C54`.
+  - Brand tokens `--j-brand`, `--j-brand-2`, `--j-accent`, `--j-tint`, which the family's published branding overrides.
+  - Surface, ink and line tokens, verification colours, radius, shadow, spacing and the focus ring.
+- **Legacy aliases.** `--juthoor-*`, `--portal-*` and `--tree-*` point at the tokens, so earlier pages follow without rewrites.
+- **Components (`.j-*`).**
+  - Shell, section, section head, buttons, links, breadcrumb, hero (with a cover), pills.
+  - Verification label, with glyph plus text, never colour alone.
+  - Cards (entity, founder, content), stats, tabs, filters/chips, search, timeline (alternative accounts styled), article/prose, evidence/sources, gallery, file, empty/skeleton/error states, embed, footer.
+- **Blade components.** `x-ui.verification`, `x-ui.empty`, `x-ui.section-head`, `x-ui.founder-card`, `x-family-site.header` and `x-family-site.footer`.
+- **Shared family frame.** `layouts/family-site` (header, mobile `<details>` menu, footer, branding tokens) serves the portal home, directory, entity pages, diwan pages, news, events and the member directory.
+- **Navigation.** `FamilySiteChrome` builds the navigation from published data only. A view composer supplies it to child views. `aria-current` marks the current page.
+
+### 19.3 Portals (Workstream B)
+
+| Area | Implementation |
+|---|---|
+| Family landing | Unchanged `FamilyPortalPage` with new **geography** and **gallery** sections (`PortalSettings::withNewSections` inserts missing keys after their default predecessor, visible, keeping any saved order; 19 configurable sections). |
+| Directory (`EntityDirectory`) | Public entities in hierarchy order. Per card: path, founder (published branch → publicly visible person only, never inferred from a name), published-record count via the public graph, sub-entities, public cover, branch tree link. GET search over names, recorded alternate names and founder names (Arabic-normalized), level filter, "within" filter. |
+| Entity portal (one view for tribe → branch) | Hero with cover, breadcrumb, level, founder, counts and actions; the existing **scope switch** (`هذا المستوى فقط / مع الفروع التابعة`) drives every tab. Nine accessible tabs: نظرة عامة, الشجرة, التاريخ, الأصول والمناطق, الدواوين, الشخصيات, الأرشيف والمعرض, الأخبار والمناسبات, المصادر. Each tab has a count and is server-rendered (works without JS). Old anchors (`#history`, `#section-history`, `#children`…) resolve to their tab. RTL arrow keys. |
+| Tree integration | No new renderer. The tree tab holds a placeholder; `entity-portal.js` creates an iframe to the existing `genealogy.branch` (or `genealogy.tree?person=` for the root) with `embed=1` **only when the tab opens**. Embed mode hides site chrome. Measured: one graph request. The `private` parameter is only used in manager preview. |
+| Founder cards | `x-ui.founder-card` from the approved branch association (`CommunityGenealogy` anchor), with founder and branch verification. Fix: the founder query did not select `verification_status`, so every founder showed «قيد المراجعة»; it now shows the recorded status. |
+
+### 19.4 Heritage (Workstream C)
+
+- **History.** A `j-timeline` ordered by section, primary account first. A date or period appears only when the record has `period_label`, `start_year` or `end_year`. Alternative accounts stay visible with their recorded status («محل خلاف») plus «رواية تاريخية دون تحقق نهائي». Chip filters cover each section and the alternative accounts.
+- **Archive and gallery.** Client-side search and category chips (no extra requests). Files are served only through `media.show` and filtered by `MediaAccess` (published, rights and audience).
+- **Diwans.** Cards link to a new **detail page** (`community.diwans.show`):
+  - The owner entity must be public and the record `visibleTo` the viewer, or a manager preview.
+  - Images go through `MediaAccess`.
+  - Related public entities are listed once each, so a shared diwan is one record with one page.
+  - Address, map and keyless Google directions appear only when the place is not a private residence or consent is recorded.
+  - Contact details appear only with contact consent.
+- **Geography.** Grouped by kind (origin, settlement, migration, gathering). No coordinates are stored or invented.
+- **Notable people.** The non-exhaustiveness disclaimer and alphabetical order are kept, with neutral category filters. The existing model rule is unchanged: achievements of people who are not publicly visible (for example, living people) are hidden from visitors. Only publicly visible people are linked.
+- **Evidence.** One `x-community.evidence` (verification label, scope, review date, numbered approved citations) on every record type. The sources tab lists each approved source once.
+
+### 19.5 Fixture
+
+`HeritageShowcaseFixtureSeeder` (`demo-heritage`) has the same guards as the other fixtures: local/testing only, `JUTHOOR_DEMO_FIXTURES=true`, never called by `DatabaseSeeder`, idempotent.
+
+- **Why it publishes content.** Public portal pages can only be reviewed with published records.
+- **Labelling.** Every name, title and source starts with «[تجريبي]», and the family name carries «بيانات تجريبية اصطناعية».
+- **Images.** The images are abstract GD stripe patterns, titled and described as synthetic. They are generated only when GD is available.
+- **No real data.** There are no coordinates or real addresses, the phone number is `0000000000`, and al-zoubi is never touched.
+- **Contents.**
+  - Hierarchy: clan → two fakhds (+ a sub-fakhd), plus one fakhd with no tree.
+  - Branches with founders.
+  - A living person and a pending person.
+  - Narratives, including an alternative account.
+  - Shared locations.
+  - A diwan shared between two fakhds.
+  - A private residence with consent (contact without consent).
+  - Achievements and archive records.
+
+### 19.6 Performance (in-process requests on the scratch database, median of 3 warm runs)
+
+| Page | Before (HEAD) | After |
+|---|---|---|
+| Al-Zoubi family host landing | 20.5 ms / 67 queries | 26.1 ms / 71 queries |
+| Al-Zoubi directory | 10.0 ms / 11 | 16.4 ms / 24 |
+| Al-Zoubi fakhd Bakr | 24.4 ms / 50 | 27.6 ms / 55 |
+| Showcase landing / clan / diwan / embed | 28.8 / 30.6 ms; diwan and embed new | 32.1 ms (98 q) / 35.5 ms (84 q) / 13.2 ms (26 q) / 13.1 ms (22 q) |
+| 10,000-person fakhd page | 272 ms / 50 | 265 ms / 55 |
+| 10,000-person directory | 12.8 ms / 11 | **238 ms / 24** |
+
+The extra queries come from the shared chrome and the directory's founder, cover and count lookups. Query counts do not grow with the number of entities.
+
+The directory on a 10,000-person tree now loads the public graph once to count published records, which is the same cost an entity page already had. Caching the public graph per tree version is recommended for UX-P0.6 if production timings require it.
+
+### 19.7 Screenshots
+
+`docs/screenshots/ux-p0.4-p0.5/` contains 14 before-shots and 14 after-shots at desktop and 390 px.
+- **Before:** the platform home, the Al-Zoubi portal and legacy page, the directory, the clan and fakhd pages, and the person page.
+- **After:** the Al-Zoubi portal, the showcase landing, the directory, the history, tree, archive and sub-fakhd tabs, a diwan page and the mobile pages.
+
+### 19.8 Limitations
+
+- Tabs are client-side; with JavaScript off, all sections render in sequence (by design).
+- The embedded tree is an iframe of the existing page; it is not a second renderer, and its toolbar still offers full-page navigation.
+- Achievement category filters reload the page (`?category=`), whereas archive and gallery filters are client-side; both are kept as they were.
+- No real Al-Zoubi heritage content, cover or diwans exist yet, so the Al-Zoubi pages show empty states (data, not code).
+- Safari and Firefox, real devices and screen readers other than Chrome's accessibility tree were not tested.

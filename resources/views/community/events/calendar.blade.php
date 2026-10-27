@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'heritage')
 @section('title', 'تقويم '.$entity->name_ar)
 @php
     $first = $month->startOfMonth();

@@ -136,7 +136,7 @@ test('branding: administrators edit a draft, preview it privately and publish it
     expect($preview->headers->get('X-Robots-Tag'))->toContain('noindex');
     $this->actingAs($this->admin)->post(route('management.portal.publish', 'meem'))->assertSessionHasNoErrors();
     $html = $this->get('/families/meem')->assertOk()->getContent();
-    expect($html)->toContain('جذور آل الميم')->toContain('--portal-primary:#5e2430')->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')->not->toContain('<script>alert(1)')
+    expect($html)->toContain('جذور آل الميم')->toContain('--j-brand:#5e2430')->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')->not->toContain('<script>alert(1)')
         ->toContain('https://example.org')->toContain('family@example.org')
         ->not->toContain('id="portal-directory"')
         ->and(strpos($html, 'id="portal-news"'))->toBeLessThan(strpos($html, 'id="portal-statistics"'));
@@ -177,7 +177,7 @@ test('two families have independent portals from one platform', function () {
     app(PortalSettings::class)->publish($otherAdmin, $other);
     // One family's administrator cannot change another family's site.
     $this->actingAs($otherAdmin)->put(route('management.portal.update', 'meem'), ['display_name' => 'x'])->assertForbidden();
-    $this->get('/families/noon')->assertOk()->assertSee('بوابة النون')->assertSee('--portal-primary:#1d2f45', false)->assertDontSee('كيان salem')->assertDontSee('عشيرة الميم');
+    $this->get('/families/noon')->assertOk()->assertSee('بوابة النون')->assertSee('--j-brand:#1d2f45', false)->assertDontSee('كيان salem')->assertDontSee('عشيرة الميم');
     $this->get('/families/meem')->assertOk()->assertSee('كيان salem')->assertDontSee('بوابة النون');
     $other->update(['is_active' => false]);
     $this->get('/families/noon')->assertNotFound();

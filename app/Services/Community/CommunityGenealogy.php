@@ -149,7 +149,7 @@ class CommunityGenealogy
             $grandchildren[$child] = count($graph['children'][$edges][$child] ?? []);
         }
         $shown = array_slice($childIds, 0, 24);
-        $persons = Person::query()->whereIn('id', [$rootId, ...$chain, ...$shown])->get(['id', 'full_name_ar', 'first_name_ar', 'family_tree_id'])->keyBy('id');
+        $persons = Person::query()->whereIn('id', [$rootId, ...$chain, ...$shown])->get(['id', 'full_name_ar', 'first_name_ar', 'family_tree_id', 'verification_status'])->keyBy('id');
         $members = $this->members($tree->id, $rootId, $edges);
 
         return [

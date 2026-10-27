@@ -1,8 +1,16 @@
-<section class="entity-section" id="section-archive" aria-labelledby="entity-archive-title" data-module="archive">
-    <h2 class="h5 fw-bold" id="entity-archive-title">الأرشيف والوثائق</h2>
+<section class="entity-section" id="section-archive" aria-labelledby="entity-archive-title" data-module="archive" data-filter-scope>
+    <x-ui.section-head kicker="الوثائق" title="الأرشيف والوثائق" id="entity-archive-title" />
+    @if($content['archive']->count() > 1)
+    <div class="j-filters" role="search" aria-label="البحث في الأرشيف">
+        <label class="j-search"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">ابحث في العناوين والأوصاف</span><input type="search" data-filter-text placeholder="ابحث في الأرشيف"></label>
+        <button type="button" class="j-chip" data-filter="" aria-pressed="true">الكل</button>
+        @foreach(\App\Models\ArchiveRecord::CATEGORIES as $key => $label)@if($content['archive']->contains('category', $key))<button type="button" class="j-chip" data-filter="{{ $key }}" aria-pressed="false">{{ $label }}</button>@endif @endforeach
+        <span class="small text-muted" data-filter-status role="status"></span>
+    </div>
+    @endif
     <p class="small text-muted">قد تتضمن المعلومات التاريخية روايات متعددة أو سجلات قيد المراجعة؛ تُعرض حالة التحقق والمصادر المتاحة مع كل معلومة بحسب سياسة النشر. رفع المادة لا يعني توثيقها.</p>
     @forelse($content['archive'] as $item)
-        <article class="content-card" data-record="archive-{{ $item->id }}">
+        <article class="content-card j-card" data-record="archive-{{ $item->id }}" data-filter-item data-filter-tags="{{ $item->category }}">
             <div class="d-flex flex-wrap gap-2 align-items-baseline">
                 <h3 class="h6 fw-bold mb-1">{{ $item->title }}</h3>
                 <span class="badge text-bg-light">{{ \App\Models\ArchiveRecord::CATEGORIES[$item->category] ?? $item->category }}</span>
@@ -19,6 +27,6 @@
             <x-community.evidence :record="$item" :entity="$entity" />
         </article>
     @empty
-        <p class="text-muted mb-0" role="status">لم تُنشر مواد أرشيفية في هذا النطاق بعد.</p>
+        <x-ui.empty icon="archive" title="لم تُنشر مواد أرشيفية في هذا النطاق بعد.">تُنشر الوثائق والمشجرات والصور التاريخية بعد مراجعة حقوقها ومصادرها.</x-ui.empty>
     @endforelse
 </section>

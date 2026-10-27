@@ -8,6 +8,7 @@ use App\Models\Family;
 use App\Services\Community\CommunityEntityPage;
 use App\Services\Community\CommunityHierarchy;
 use App\Services\Community\EntityContentScope;
+use App\Services\Community\EntityDirectory;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -19,12 +20,12 @@ class CommunityEntityController extends Controller
 {
     public function __construct(private readonly CommunityHierarchy $hierarchy) {}
 
-    public function index(string $family): View
+    public function index(Request $request, string $family, EntityDirectory $directory): View
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
-        $entities = CommunityEntity::query()->whereIn('id', $this->hierarchy->publicIds($familyModel->id))->get();
+        $filters = $request->validate(['q' => ['nullable', 'string', 'max:80'], 'type' => ['nullable', 'string', 'max:30'], 'within' => ['nullable', 'integer']]);
 
-        return view('community.index', ['family' => $familyModel, 'rows' => $this->hierarchy->ordered($entities)]);
+        return view('community.index', ['family' => $familyModel, 'filters' => $filters, ...$directory->build($familyModel, $filters)]);
     }
 
     public function show(Request $request, string $family, string $entity, CommunityEntityPage $page): View

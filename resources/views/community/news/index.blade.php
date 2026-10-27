@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'news')
 @section('title', 'أخبار '.$entity->name_ar)
 @section('content')
 <x-page-header :title="'أخبار وإعلانات '.$entity->name_ar" eyebrow="الأخبار والإعلانات" description="الأخبار المنشورة لهذا المستوى وفروعه، والإعلانات الموجهة إليه من المستويات الأعلى.">

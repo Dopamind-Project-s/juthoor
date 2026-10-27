@@ -279,5 +279,62 @@ Details: `docs/project-audit.md` §18.
 ### UX-P0.4 readiness
 Ready. The tree, portal and management workflows share stable entry points (`genealogy.tree` with `person`, `view`, `q`; `genealogy.branch`; templates in the graph payload). Open inputs for the next phase: an icon column for person attributes if the design system needs icons; birth-order data for sibling ordering; a decision on printable/exportable tree views (must reuse the batch privacy rules); approved Al-Zoubi media and entity data for the portal; infrastructure enablement of family hosts.
 
+## UX-P0.4 + UX-P0.5 — Family, clan & fakhd portals and heritage experience (done 2026-10-27)
+
+Details: `docs/project-audit.md` §19.
+
+- [x] **Baseline and audit**:
+  - SQLite, PostgreSQL 16 and Node green at `5ef3cb3`.
+  - Browser audit with before-screenshots.
+- [x] **Design system (A)**:
+  - Central tokens (#133D32 / #285D4E / #F6F4EE / #EEE5D6 / #B28C54), with family branding overriding the accent tokens.
+  - Legacy token aliases.
+  - `.j-*` components plus Blade UI components.
+  - One family-site frame (header, mobile menu, footer) for the portal, directory, entity, diwan, news, events and member-directory pages.
+- [x] **Family landing (B)**:
+  - Geography and gallery sections added.
+  - Saved visibility and order preserved, with new sections inserted automatically.
+- [x] **Directory (B)**:
+  - Hierarchy order, founder from published branches, counts, cover, tree link.
+  - Search by name or founder; level and "within" filters.
+- [x] **Entity portal (B)**:
+  - One view for every level, with breadcrumb and hero.
+  - Nine accessible tabs with counts.
+  - Deep links preserved.
+  - The scope switch applies to every tab.
+  - Founder card shown, with the founder status bug fixed.
+- [x] **Tree integration (B)**:
+  - The existing branch/tree page is embedded on demand (`embed=1`); there is no new renderer.
+  - One graph request.
+- [x] **Heritage (C)**:
+  - Editorial timeline with real dates only, alternative accounts visible, filters.
+  - Archive and gallery with search and filters, served only through the secure media route.
+  - Diwan detail pages: a shared diwan has one page; residence and contact consent are respected; keyless directions.
+  - Geography grouped by kind.
+  - Notable people: neutral filters, disclaimer, privacy.
+  - Unified evidence and sources.
+- [x] **Admin & accessibility (D)**:
+  - Portal settings list the new sections.
+  - Entity cover and preview work.
+  - Current-page marking, keyboard tabs, glyph + text verification.
+  - No overflow at 390 px.
+- [x] **Verification (E)**:
+  - 13 new tests.
+  - SQLite 441/441, PostgreSQL 16 441/441, Node 11/11.
+  - Chrome 16/16 journeys.
+  - Performance measured.
+  - Screenshots in `docs/screenshots/ux-p0.4-p0.5/`.
+- [x] **Fixture**: `HeritageShowcaseFixtureSeeder`, synthetic, labelled, opt-in, local/testing only.
+
+### UX-P0.6 readiness
+Ready. All family-facing pages share one frame, one token set and one set of components, so later screens can be built on them directly.
+
+Open inputs:
+- Real Al-Zoubi heritage content and an approved cover. These are data, not code.
+- A decision on caching the public genealogy graph per tree version. The directory on a 10,000-person tree takes about 240 ms, the same as an entity page.
+- Moving achievement filters client-side, if wanted.
+- Testing on Safari, Firefox and real devices.
+- Infrastructure enablement of family hosts.
+
 ### Next recommended phase
 UX-P0.4 / UX-00–01 (design system across portal, tree and management), then Phase 5 — production readiness (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.

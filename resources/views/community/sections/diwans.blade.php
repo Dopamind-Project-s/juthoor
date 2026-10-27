@@ -1,10 +1,12 @@
 <section class="entity-section" id="section-diwans" aria-labelledby="entity-diwans-title" data-module="diwans">
-    <h2 class="h5 fw-bold" id="entity-diwans-title">الدواوين والمضافات</h2>
-    <div class="row g-3">
+    <x-ui.section-head kicker="المجالس" title="الدواوين والمضافات" id="entity-diwans-title" />
+    <div class="j-grid is-wide">
         @forelse($content['diwans'] as $diwan)
-            <div class="col-md-6">
-                <article class="content-card h-100" data-record="diwans-{{ $diwan->id }}">
-                    <div class="d-flex flex-wrap gap-2 align-items-baseline"><h3 class="h6 fw-bold mb-1">{{ $diwan->name }}</h3><span class="badge text-bg-light">{{ \App\Models\Diwan::KINDS[$diwan->kind] ?? $diwan->kind }}</span></div>
+            @php($diwanCover = $diwan->mediaAttachments->pluck('media')->first(fn ($media) => $media && isset($visibleMedia[$media->id]) && $media->isImage()))
+            <div>
+                <article class="content-card j-card h-100" data-record="diwans-{{ $diwan->id }}">
+                    <div class="j-card-media {{ $diwanCover ? '' : 'is-fallback' }}">@if($diwanCover)<img src="{{ route('media.show', [$diwanCover->uuid, 'display']) }}" alt="{{ $diwanCover->alt_text ?: $diwan->name }}" loading="lazy" width="480" height="270">@else<i class="bi bi-house-door" aria-hidden="true"></i>@endif</div>
+                    <div class="d-flex flex-wrap gap-2 align-items-baseline"><h3 class="h6 fw-bold mb-1"><a href="{{ route('community.diwans.show', [$family->slug, $diwan->id, 'preview' => $preview ? 1 : null]) }}" data-diwan-link>{{ $diwan->name }}</a></h3><span class="badge text-bg-light">{{ \App\Models\Diwan::KINDS[$diwan->kind] ?? $diwan->kind }}</span></div>
                     @if($diwan->place_label)<p class="small mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ $diwan->place_label }}@if($diwan->public_address) — {{ $diwan->public_address }}@endif</p>@endif
                     @if($diwan->description)<p class="mb-2">{{ $diwan->description }}</p>@endif
                     @if($diwan->visit_instructions)<p class="small mb-2"><strong>تعليمات الزيارة:</strong> {{ $diwan->visit_instructions }}</p>@endif
@@ -16,7 +18,7 @@
                 </article>
             </div>
         @empty
-            <div class="col-12"><p class="text-muted mb-0" role="status">لم تُنشر دواوين أو مضافات لهذا الكيان بعد.</p></div>
+            <x-ui.empty icon="house-door" title="لم تُنشر دواوين أو مضافات لهذا الكيان بعد.">يُنشر الموقع العام والتواصل بإذن مسجل فقط، ولا يُعرض منزل خاص دون موافقة.</x-ui.empty>
         @endforelse
     </div>
 </section>

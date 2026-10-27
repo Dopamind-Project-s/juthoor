@@ -1,4 +1,5 @@
-@extends('layouts.app')
+@extends('layouts.family-site')
+@section('nav-current', 'news')
 @section('title', $post->title)
 @php($zone = config('community.timezone'))
 @section('content')

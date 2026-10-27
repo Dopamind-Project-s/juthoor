@@ -2,15 +2,21 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-27, after session 15 — UX-P0.3)
+## Current state (2026-10-27, after session 16 — UX-P0.4 + UX-P0.5)
 
-- Branch `main` at `6e2e4e2` (UX-P0.2 committed by the maintainer); session 15 (UX-P0.3) changes are uncommitted (nothing committed, pushed, tagged or deployed by the assistant).
-- Suite: **428 passed / 0 failed** on SQLite and PostgreSQL 16 (4788 assertions); Node layout tests 11/11.
-- UX-P0.3 complete: redesigned unified tree (compact chains, founder nodes, dynamic attributes, views, mobile), UX-P0.2 PostgreSQL gate closed, root `.htaccess` hardened. Family hosts remain disabled (infrastructure not verified).
+- Branch `main` at `5ef3cb3` (UX-P0.3 committed by the maintainer). Session 16 changes are uncommitted: nothing was committed, pushed, tagged or deployed by the assistant.
+- Suite: **441 passed / 0 failed** on SQLite and on PostgreSQL 16 (4913 assertions). Node layout tests: 11/11.
+- UX-P0.4 and UX-P0.5 are complete:
+  - unified design system and family-site frame;
+  - hierarchical directory;
+  - one entity portal with tabs, scope and an embedded tree;
+  - diwan detail pages;
+  - heritage sections (history, archive/gallery, geography, notable people, evidence).
+- Family hosts remain disabled in production.
 
 ## Next task to execute
 
-UX-P0.4 / UX-00–01 — shared design system across portal, tree and management (see `docs/implementation-roadmap.md`, "UX-P0.4 readiness").
+UX-P0.6 (see `docs/implementation-roadmap.md`, "UX-P0.6 readiness").
 
 ## Work log
 
@@ -117,6 +123,18 @@ UX-P0.4 / UX-00–01 — shared design system across portal, tree and management
 | Administration | media/archive forms, attachments, usage, delete, cover choice | `CommunityContentController.php`, `management/entities/content/{form,fields/*}.blade.php`, `Management/CommunityEntityController.php`, `management/entities/form.blade.php` | admin tests; Chrome |
 | Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
 | Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
+
+### Session 16 — UX-P0.4 + UX-P0.5 portals and heritage experience
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Design system | Tokens, legacy aliases and `.j-*` components; loaded by all layouts | `public/css/design-system.css`, `layouts/*.blade.php`, `components/ui/*` | Chrome 16/16 |
+| Family frame | Shared header, mobile menu, footer, branding and navigation (`FamilySiteChrome`, view composer) | `layouts/family-site.blade.php`, `components/family-site/*`, `app/Services/Portal/FamilySiteChrome.php`, `AppServiceProvider.php`, portal, news, events and directory views | `FamilyPortalTest` (palette assertions now `--j-brand`), `EntityPortalExperienceTest` |
+| Landing | Geography and gallery sections; new sections merged into saved settings | `PortalSettings.php`, `portal/sections/geography.blade.php`, `gallery.blade.php` | `EntityPortalExperienceTest` |
+| Directory | `EntityDirectory` (founders, counts, covers, search, filters) | `app/Services/Community/EntityDirectory.php`, `CommunityEntityController.php`, `community/index.blade.php` | `EntityPortalExperienceTest`, `CommunityEntityTest` |
+| Entity portal | Tabs, hero, founder card, on-demand tree embed, filters | `community/show.blade.php`, `public/js/entity-portal.js`, `genealogy/tree.blade.php` (`is-embed`), section partials, `components/community/evidence.blade.php` | `EntityPortalExperienceTest`, `CommunityPortalTest` |
+| Diwan page | `community.diwans.show` with visibility, consent and media rules | `CommunityPublicationController.php`, `routes/web.php`, `community/diwans/show.blade.php` | `EntityPortalExperienceTest` |
+| Fix | Founder query did not select `verification_status`; founders showed «قيد المراجعة» | `CommunityGenealogy.php` | test + Chrome journey 10 |
+| Fixture | Labelled synthetic heritage showcase, opt-in, local/testing | `database/seeders/HeritageShowcaseFixtureSeeder.php` | `EntityPortalExperienceTest` |
 
 ### Session 15 — UX-P0.3 unified tree redesign
 | Area | Change | Files | Tests / verification |
@@ -271,6 +289,19 @@ UX-P0.4 / UX-00–01 — shared design system across portal, tree and management
 | Founders only from approved branch roots and the tree root | No founder inferred from a name, title or position |
 | URL templates instead of per-node URLs | Halves the payload; templates exist only for permitted actions, routes still authorize |
 | Edge verification drawn on every connector and chain dot | Stored genealogy is visibly distinct from verified genealogy |
+
+## Verification evidence (session 16 — UX-P0.4 + UX-P0.5)
+
+| Check | Result |
+|---|---|
+| Baseline | SQLite 428/428, PostgreSQL 16 428/428, Node 11/11 at `5ef3cb3` |
+| Full suite, SQLite | 441 / 441 (4913 assertions) |
+| Full suite, PostgreSQL 16 | 441 / 441 (4913 assertions) |
+| Node | 11 / 11 |
+| Pint | pass |
+| Chrome 16/16, no console errors | 1. Al-Zoubi host landing<br>2. Geography and gallery sections<br>3. Directory order and founders<br>4. Search by founder<br>5. Level filter<br>6. Tabs by click and RTL keys<br>7. Deep link and alternative-account filter<br>8. Tree embed on demand, chrome hidden, one graph request<br>9. Scope narrowing<br>10. Founder card and breadcrumb<br>11. Shared diwan page<br>12. Contact hidden without consent<br>13. Notable-people privacy<br>14. Archive filter and secure gallery<br>15. Sources and labels<br>16. 390 px with no overflow and a working menu |
+| Performance | `docs/project-audit.md` §19.6 |
+| Not run | Safari/Firefox; real devices; MySQL |
 
 ## Verification evidence (session 15 — UX-P0.3)
 

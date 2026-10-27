@@ -116,6 +116,7 @@ Route::prefix('families/{family}/directory')->name('directory.')->middleware('th
 });
 
 Route::get('/families/{family}/news/{post}', [CommunityPublicationController::class, 'showNews'])->whereNumber('post')->middleware('throttle:240,1')->name('community.news.show');
+Route::get('/families/{family}/diwans/{diwan}', [CommunityPublicationController::class, 'showDiwan'])->whereNumber('diwan')->middleware('throttle:240,1')->name('community.diwans.show');
 Route::get('/families/{family}/events/{event}', [CommunityPublicationController::class, 'showEvent'])->whereNumber('event')->middleware('throttle:240,1')->name('community.events.show');
 
 // Every community media file is delivered here; the controller applies publication, audience and role rules.

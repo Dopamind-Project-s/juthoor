@@ -30,9 +30,11 @@ class PortalSettings
         'hierarchy' => 'الأفخاذ والفروع',
         'genealogy' => 'معاينة النسب',
         'history' => 'التاريخ والأصول',
+        'geography' => 'المناطق والانتشار',
         'diwans' => 'الدواوين والمضافات',
         'achievements' => 'شخصيات وإنجازات',
         'archive' => 'الأرشيف',
+        'gallery' => 'معرض الصور',
         'news' => 'آخر الأخبار',
         'events' => 'المناسبات القادمة',
         'directory' => 'دليل الأعضاء',
@@ -181,11 +183,35 @@ class PortalSettings
     private function complete(Family $family, ?array $values): array
     {
         $values = array_replace($this->defaults($family), $values ?? []);
+        $values['sections'] = $this->withNewSections($values['sections']);
         if (! isset(config('portals.accents')[$values['accent']])) {
             $values['accent'] = 'heritage';
         }
 
         return $values;
+    }
+
+    /**
+     * Sections added after a family saved its settings appear visible at their default position; saved order and
+     * visibility of every existing section are kept.
+     *
+     * @param  array<int, array{key: string, visible: bool}>  $sections
+     * @return array<int, array{key: string, visible: bool}>
+     */
+    public function withNewSections(array $sections): array
+    {
+        $keys = array_column($sections, 'key');
+        $defaults = array_keys(self::SECTIONS);
+        foreach ($defaults as $position => $key) {
+            if (in_array($key, $keys, true)) {
+                continue;
+            }
+            $previous = $defaults[$position - 1] ?? null;
+            $at = $previous !== null && ($found = array_search($previous, array_column($sections, 'key'), true)) !== false ? $found + 1 : 0;
+            array_splice($sections, $at, 0, [['key' => $key, 'visible' => true]]);
+        }
+
+        return array_values(array_filter($sections, fn (array $section) => isset(self::SECTIONS[$section['key']])));
     }
 
     /** Root entity candidates for the portal content. */
