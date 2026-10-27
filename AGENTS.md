@@ -1,47 +1,44 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# Juthoor — shared engineering instructions
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+## Start here
 
-## Prerequisites
+Juthoor is an Arabic RTL genealogy and family-portal application: Laravel 13, PHP 8.3+, Eloquent, Pest, Blade, local Bootstrap/Cairo assets, and native JavaScript/SVG genealogy rendering. No Node build is needed to serve the current UI.
 
-Verify that PHP and Composer are available:
+1. Read [the compact project map](docs/ai/project-map.md).
+2. Inspect relevant source and sibling conventions; search for existing behavior before adding anything.
+3. Load only the relevant skill/reference. Do not reread all requirements, unchanged documents, or source inventories by default.
+4. Repository files are the shared source of truth; Claude and Codex do not share conversation memory automatically.
 
-```sh
-php -v
-composer -V
-```
+## Architecture and invariants
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
+- Use Laravel routing, validation, Eloquent, DI, storage, transactions, queues and policies. Preserve meaningful domain services; avoid query wrappers, duplicate permission systems and aesthetic architecture layers.
+- A Person belongs to a FamilyTree; scope every lookup and mutation to its family/tree. Branches are views of the same graph, not independent ancestry copies. CommunityEntity provides content/administration hierarchy and is distinct from Branch.
+- Preserve stable canonical identities, provenance and approved parent relationships. Never merge by name alone or guess missing fathers. Keep cycle, unique-primary-father, founder and hierarchy validation.
+- Preserve PersonPrivacy and tri-state living status. Unknown does not mean deceased. Imported/source-supported/pending claims do not mean historically verified. Unresolved raw seed sources require the existing family review permission.
+- Preserve the UX-P0.1 permission catalog, family memberships, family functional roles, entity scopes, review separation and policy checks. Honorary person attributes never grant user privileges.
+- The development seed entry point is DatabaseSeeder → RolePermissionSeeder, PersonAttributeSeeder, AlZoubiFamilyTreeSeeder, SiteUsersSeeder. Canonical input is resources/data/genealogy/al-zoubi/normalized.json. Preserve source evidence and pending reviews; protect environment restrictions and administrator changes on reruns.
+- Use the existing tree-layout.js / genealogy-tree.js renderer and portal services. Classification colors come from PersonAttribute records. Counts must use visibility-appropriate database queries.
 
-macOS:
+## Changes and safety
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
-```
+- Keep changes necessary and idiomatic. No unrelated formatting, cosmetic renames, speculative deletion or weakened tests. Trace container/route/CLI/config/test/provenance references before removing code or files.
+- Do not edit vendor/, node_modules/, third-party public assets, generated dependency/autoload files or framework internals. Do not change manifests/lockfiles without a justified dependency task. Use supported extension points.
+- Preserve migrations, original genealogy evidence, .env/local secrets, .claude/ and existing Codex configuration. Do not expose private data under public/.
+- Never reset production, staging, shared or valuable databases. Verify actual environment, resolved connection and existing contents first. Use a newly created disposable SQLite file or dedicated PostgreSQL test database for destructive tests.
+- No commits, pushes, merges, tags, deployments or production host activation without explicit task authorization. Preserve unrelated user changes.
 
-Windows PowerShell:
+## Implementation and validation
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
+- Follow existing PHP types, return types, model attributes/casts and named routes. Format only changed PHP files with vendor/bin/pint and explicit paths.
+- Run focused tests while editing; run full SQLite/PostgreSQL suites for completed architecture changes. Read [the testing guide](docs/ai/testing-guide.md) for isolation and environment prerequisites.
+- Main commands: php artisan test --compact; node tests/js/tree-layout.test.cjs; php artisan genealogy:seed-audit --json --dry-run.
+- Browser scripts live in tests/Browser; use disposable fixtures and an isolated local server. Do not mutate the normal development database just to exercise a browser test.
+- Update the project map or focused documentation only when architecture/workflows materially change. State exactly what was tested and any limits.
 
-Linux:
+## Documentation authority
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
-
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
-
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+- Architecture/privacy baseline: docs/Juthoor_Master_Project_Requirements_v2.0.md.
+- Supplementary UX direction: docs/Juthoor_Experience_v3_Requirements_and_Roadmap.md.
+- Current implementation plan: docs/implementation-roadmap.md; implementation history: docs/development-progress.md.
+- Source lineage: docs/genealogy-source-inventory.md and docs/genealogy-import-coverage.md. Read these only for source/import work.
+- Claude-specific setup belongs in CLAUDE.md / .claude; Codex-specific setup stays in its native configuration. Shared skills and compatibility are indexed in docs/ai/project-map.md.
