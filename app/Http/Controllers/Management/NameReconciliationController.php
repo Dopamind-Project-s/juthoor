@@ -16,6 +16,7 @@ class NameReconciliationController extends Controller
 {
     public function index(Request $request, string $family, NameReconciliationService $reconciliation): View
     {
+        abort_unless(\App\Support\MaintenanceTools::enabled('reconciliation'), 403, 'هذه الأداة معطلة من إدارة الموقع.');
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         Gate::authorize('manageSources', $familyModel);
         $tree = app(SelectedFamilyTree::class)->resolve($familyModel);

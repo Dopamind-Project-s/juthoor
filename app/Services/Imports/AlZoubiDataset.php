@@ -2,12 +2,9 @@
 
 namespace App\Services\Imports;
 
-use JsonException;
-use RuntimeException;
-
 class AlZoubiDataset
 {
-    /** Provenance path recorded on the dataset source; the file itself is read from SourceDocuments. */
+    /** Historical provenance path; records are read from the embedded snapshot, not this filename. */
     public const PATH = 'docs/juthoor_alzoubi_genealogy_dataset_v4.json';
 
     /** @var array<string, mixed>|null */
@@ -34,7 +31,7 @@ class AlZoubiDataset
             'ready' => count($this->readyRootRows()),
             'skipped' => count(array_filter($rows, fn (array $row): bool => ($row['seeder_status'] ?? null) === 'NEEDS_PARENT_MATCH')),
             'unresolved' => count(array_filter($rows, fn (array $row): bool => ($row['seeder_status'] ?? null) === 'BLOCKED_BLANK_NAME')),
-            'conflicted' => count(require resource_path('data/al-zoubi/branch-founder-review.php')),
+            'conflicted' => count(app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['founder_reviews']),
         ];
     }
 
@@ -57,16 +54,6 @@ class AlZoubiDataset
             return $this->data;
         }
 
-        $path = SourceDocuments::path(self::PATH);
-
-        if (! is_file($path)) {
-            throw new RuntimeException("Genealogy dataset not found at [{$path}].");
-        }
-
-        try {
-            return $this->data = json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new RuntimeException("Genealogy dataset is invalid JSON: {$exception->getMessage()}", previous: $exception);
-        }
+        return $this->data = app(UnifiedGenealogyDataset::class)->snapshot()['legacy']['dataset'];
     }
 }

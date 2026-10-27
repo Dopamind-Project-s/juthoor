@@ -33,7 +33,7 @@ class AlZoubiSharedAncestrySeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function (): void {
-            $names = require resource_path('data/al-zoubi/shared-ancestry.php');
+            $names = app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['shared_ancestry'];
             $family = Family::query()->firstOrCreate(['slug' => FamilySeeder::SLUG], [
                 'name_ar' => 'عشيرة الزعبي', 'is_active' => true,
             ]);

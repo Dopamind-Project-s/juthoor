@@ -60,7 +60,7 @@ test('the complete default import is connected private traceable scoped and repe
         expect(str_ends_with($user->email, '.test'))->toBeTrue()->and(Hash::check('password', $user->password))->toBeTrue();
     }
     expect(Source::where('verification_status', 'verified')->count())->toBe(0)
-        ->and(Citation::where('field_key', 'source_observation')->count())->toBe(count(json_decode(file_get_contents(resource_path('data/genealogy/al-zoubi/review-queue.json')), true)));
+        ->and(Citation::where('field_key', 'source_observation')->count())->toBe(count(app(UnifiedGenealogyDataset::class)->snapshot()['reviews']));
     $tables = ['families', 'family_trees', 'people', 'person_relationships', 'branches', 'community_entities', 'sources', 'citations', 'assertions', 'audit_logs', 'users', 'family_role_assignments'];
     $counts = collect($tables)->mapWithKeys(fn ($table) => [$table => DB::table($table)->count()])->all();
     $people['QW-0031']->update(['title' => 'وصف مراجع', 'is_living' => true]);

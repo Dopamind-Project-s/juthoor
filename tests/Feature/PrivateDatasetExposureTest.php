@@ -2,7 +2,7 @@
 
 use App\Services\Imports\AlQawasmehBranchImporter;
 use App\Services\Imports\AlZoubiDataset;
-use App\Services\Imports\SourceDocuments;
+use App\Services\Imports\UnifiedGenealogyDataset;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -10,9 +10,8 @@ use Illuminate\Support\Facades\File;
  * Qawasmeh records). They must never be inside the web root, whatever the server's directory-listing settings.
  */
 test('no raw genealogy dataset or source image is inside the web root', function () {
-    $private = collect(File::files(resource_path(SourceDocuments::DIRECTORY)));
-    $privateHashes = $private->map(fn ($file) => hash_file('sha256', $file->getPathname()))->all();
-    expect($private->count())->toBeGreaterThanOrEqual(30);
+    $privateHashes = array_values(app(UnifiedGenealogyDataset::class)->snapshot()['checksums']);
+    expect($privateHashes)->not->toBeEmpty();
 
     $public = collect(File::allFiles(public_path()));
     $exposed = $public->filter(fn ($file) => in_array(hash_file('sha256', $file->getPathname()), $privateHashes, true)
@@ -22,13 +21,12 @@ test('no raw genealogy dataset or source image is inside the web root', function
     expect($exposed)->toBe([]);
 });
 
-test('importers read the relocated files with unchanged checksums and provenance paths', function () {
-    expect(is_file(SourceDocuments::path(AlZoubiDataset::PATH)))->toBeTrue()
-        ->and(AlZoubiDataset::PATH)->toBe('docs/juthoor_alzoubi_genealogy_dataset_v4.json')
+test('importers read embedded records with retained checksums and provenance paths', function () {
+    expect(AlZoubiDataset::PATH)->toBe('docs/juthoor_alzoubi_genealogy_dataset_v4.json')
         ->and(app(AlZoubiDataset::class)->readyRootRows())->toHaveCount(77);
     foreach (app(AlQawasmehBranchImporter::class)->manifest()['sources'] as $row) {
         if (isset($row['file'], $row['sha256'])) {
-            expect(hash_file('sha256', SourceDocuments::path($row['file'])))->toBe($row['sha256']);
+            expect(array_values(app(UnifiedGenealogyDataset::class)->snapshot()['checksums']))->toContain($row['sha256']);
         }
     }
 });

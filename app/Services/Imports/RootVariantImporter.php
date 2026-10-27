@@ -84,7 +84,7 @@ class RootVariantImporter
     {
         $dataset = collect(app(AlZoubiDataset::class)->readyRootRows())->pluck('name_ar', 'person_key')->all();
         $shared = [];
-        foreach (require resource_path('data/al-zoubi/shared-ancestry.php') as $index => $name) {
+        foreach (app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['shared_ancestry'] as $index => $name) {
             $shared[AlZoubiSharedAncestrySeeder::key($index + 1)] = $name;
         }
 

@@ -127,7 +127,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('verification.send');
     Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->name('invitations.accept');
 
-    Route::middleware('verified')->group(function () {
+    Route::middleware(['verified', \App\Http\Middleware\EnsureAdministrationToolEnabled::class])->group(function () {
         Route::get('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'edit'])->name('management.directory.edit');
         Route::put('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'update'])->name('management.directory.update');
         Route::delete('/manage/families/{family}/directory/profile', [DirectoryProfileController::class, 'destroy'])->name('management.directory.destroy');
@@ -269,6 +269,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/manage/families/{family}/person-attributes', [PersonAttributeController::class, 'store'])->name('management.attributes.store');
         Route::get('/manage/families/{family}/person-attributes/{attribute}/edit', [PersonAttributeController::class, 'edit'])->whereNumber('attribute')->name('management.attributes.edit');
         Route::put('/manage/families/{family}/person-attributes/{attribute}', [PersonAttributeController::class, 'update'])->whereNumber('attribute')->name('management.attributes.update');
+        Route::put('/site-admin/maintenance-tools', [SiteAdminDashboardController::class, 'updateTools'])->name('site-admin.maintenance-tools.update');
         Route::get('/site-admin', SiteAdminDashboardController::class)->name('site-admin.dashboard');
         Route::post('/site-admin/families', [SiteAdminFamilyController::class, 'store'])->name('site-admin.families.store');
         Route::put('/site-admin/families/{family}', [SiteAdminFamilyController::class, 'update'])->name('site-admin.families.update');

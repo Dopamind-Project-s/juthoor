@@ -14,6 +14,7 @@ class SeedAuditController extends Controller
 {
     public function __invoke(Request $request, SeedAuditService $audit): View
     {
+        abort_unless(\App\Support\MaintenanceTools::enabled('seed_audit'), 403, 'هذه الأداة معطلة من إدارة الموقع.');
         abort_unless($request->user()->isSuperAdmin(), 403);
         $slug = $request->validate(['family' => ['nullable', 'alpha_dash', 'max:100']])['family'] ?? null;
         // Same guarantee as the command: whatever the report touches is rolled back.

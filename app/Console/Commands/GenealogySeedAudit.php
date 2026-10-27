@@ -22,6 +22,12 @@ class GenealogySeedAudit extends Command
 
     public function handle(SeedAuditService $audit): int
     {
+        if (! \App\Support\MaintenanceTools::enabled('seed_audit')) {
+            $this->error('Seed audit is disabled by the site administrator.');
+
+            return self::FAILURE;
+        }
+
         DB::beginTransaction();
         try {
             $report = $audit->report($this->option('family') ?: null);

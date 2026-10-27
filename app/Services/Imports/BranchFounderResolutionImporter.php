@@ -151,13 +151,13 @@ class BranchFounderResolutionImporter
     /** @return array<int, array<string, mixed>> */
     public function resolutions(): array
     {
-        return require resource_path('data/al-zoubi/branch-founder-resolution.php');
+        return app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['founder_resolutions'];
     }
 
     /** @return array<int, array<string, mixed>> */
     public function unresolvedReviews(): array
     {
-        return require resource_path('data/al-zoubi/branch-founder-review.php');
+        return app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['founder_reviews'];
     }
 
     /** @param array<string, mixed> $row */

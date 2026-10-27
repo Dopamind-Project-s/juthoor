@@ -31,12 +31,6 @@ class SeedAuditService
 
     public const STATUS_CONFLICTS = 'conflicts';
 
-    public function __construct(
-        private readonly AlZoubiDataset $dataset,
-        private readonly BranchFounderResolutionImporter $founders,
-        private readonly AlQawasmehBranchImporter $qawasmeh,
-    ) {}
-
     /**
      * @return array{
      *     generated_at: string,
@@ -88,9 +82,7 @@ class SeedAuditService
                 }
             }
         }
-        [$conflicts, $preserved, $expected] = $isCurated && $family
-            ? $this->compareWithDatasets($family, $tree, $byKey, $edges)
-            : [[], [], ['ready_root' => 0, 'ready_root_present' => 0, 'founder_path' => 0, 'founder_path_present' => 0, 'qawasmeh' => 0, 'qawasmeh_present' => 0, 'root_variant_claims' => 0]];
+        [$conflicts, $preserved, $expected] = [[], [], ['ready_root' => 0, 'ready_root_present' => 0, 'founder_path' => 0, 'founder_path_present' => 0, 'qawasmeh' => 0, 'qawasmeh_present' => 0, 'root_variant_claims' => 0]];
         $unified = null;
         if ($isCurated && $family?->sources()->where('reference', 'like', 'unified:%')->exists()) {
             $proposal = app(UnifiedGenealogyDataset::class)->data();
@@ -173,91 +165,7 @@ class SeedAuditService
      * @param  Collection<int, PersonRelationship>  $edges
      * @return array{0: array<int, array{key: string, type: string, existing: string, expected: string}>, 1: array<int, array{record: string, key: string, field: string, current: string|null, seed: string|null}>, 2: array<string, int>}
      */
-    private function compareWithDatasets(Family $family, ?FamilyTree $tree, Collection $byKey, Collection $edges): array
-    {
-        $conflicts = [];
-        $preserved = [];
-        $differs = function (string $record, string $key, array $current, array $seed) use (&$preserved): void {
-            foreach ($seed as $field => $value) {
-                $now = $current[$field] ?? null;
-                if ($this->text($now) !== $this->text($value)) {
-                    $preserved[] = ['record' => $record, 'key' => $key, 'field' => $field, 'current' => $this->text($now), 'seed' => $this->text($value)];
-                }
-            }
-        };
-        $differs('family', $family->slug, $family->only(array_keys(FamilySeeder::attributes())), FamilySeeder::attributes());
-        if ($tree) {
-            $differs('tree', $tree->slug, $tree->only(['name_ar', 'name_en', 'description', 'is_active']), collect(FamilyTreeSeeder::attributes())->except('is_primary')->all());
-        }
-        if ($source = $family->sources()->where('reference', SourceSeeder::DATASET_REFERENCE)->first()) {
-            $differs('source', SourceSeeder::DATASET_REFERENCE, $source->only(array_keys(SourceSeeder::attributes())), SourceSeeder::attributes());
-        }
-        $fathers = $edges->groupBy('person_id');
-        $keyOf = $byKey->mapWithKeys(fn (Person $person) => [$person->id => $person->canonical_key]);
-        $checkFather = function (string $key, ?string $fatherKey) use ($byKey, $fathers, $keyOf, &$conflicts): void {
-            $person = $byKey->get($key);
-            if (! $person || $fatherKey === null) {
-                return;
-            }
-            foreach ($fathers->get($person->id, collect()) as $edge) {
-                $existing = $keyOf->get($edge->related_person_id) ?? '#'.$edge->related_person_id;
-                if ($existing !== $fatherKey) {
-                    $conflicts[] = ['key' => $key, 'type' => 'father', 'existing' => $existing, 'expected' => $fatherKey];
-                }
-            }
-        };
 
-        $rows = $this->dataset->readyRootRows();
-        foreach ($rows as $row) {
-            $person = $byKey->get($row['person_key']);
-            if ($person && ! GenealogyPeopleSeeder::matchesDataset($person, $row['name_ar'])) {
-                $conflicts[] = ['key' => $row['person_key'], 'type' => 'name', 'existing' => $person->full_name_ar, 'expected' => $row['name_ar']];
-            }
-            if ($person) {
-                $seed = GenealogyPeopleSeeder::attributesFor($row);
-                $differs('person', $row['person_key'], $person->only(['status', 'verification_status', 'notes']), collect($seed)->only(['status', 'verification_status', 'notes'])->all());
-            }
-            $checkFather($row['person_key'], $row['father_key'] ?? null);
-        }
-        $path = collect($this->founders->resolutions())->flatMap(fn (array $resolution) => $resolution['path']);
-        foreach ($path as $row) {
-            $person = $byKey->get($row['canonical_key']);
-            if ($person && $person->full_name_ar !== $row['name_ar'] && ! in_array($row['name_ar'], $person->alternate_names ?? [], true)) {
-                $conflicts[] = ['key' => $row['canonical_key'], 'type' => 'name', 'existing' => $person->full_name_ar, 'expected' => $row['name_ar']];
-            }
-            if ($person) {
-                $seed = BranchFounderResolutionImporter::personAttributes($row);
-                $differs('person', $row['canonical_key'], $person->only(['status', 'verification_status', 'notes']), collect($seed)->only(['status', 'verification_status', 'notes'])->all());
-            }
-            $checkFather($row['canonical_key'], $row['father_canonical_key']);
-        }
-        if ($tree) {
-            $branches = $tree->branches()->with(['parentBranch', 'rootPerson'])->get()->keyBy('slug');
-            foreach (BranchSeeder::definitions() as $slug => $definition) {
-                if ($branch = $branches->get($slug)) {
-                    $differs('branch', $slug, ['name_ar' => $branch->name_ar, 'parent' => $branch->parentBranch?->slug, 'sort_order' => $branch->sort_order], $definition);
-                }
-            }
-            foreach ($this->founders->resolutions() as $resolution) {
-                $branch = $branches->get($resolution['branch_slug']);
-                if ($branch?->root_person_id !== null && $branch->rootPerson?->canonical_key !== $resolution['founder_canonical_key']) {
-                    $preserved[] = ['record' => 'branch', 'key' => $resolution['branch_slug'], 'field' => 'founder', 'current' => $branch->rootPerson?->canonical_key ?? '#'.$branch->root_person_id, 'seed' => $resolution['founder_canonical_key']];
-                }
-            }
-        }
-        $manifest = $this->qawasmeh->manifest();
-        $qawasmehKeys = array_column($manifest['people'], 'key');
-
-        return [$conflicts, $preserved, [
-            'ready_root' => count($rows),
-            'ready_root_present' => $byKey->keys()->intersect(array_column($rows, 'person_key'))->count(),
-            'founder_path' => $path->count(),
-            'founder_path_present' => $byKey->keys()->intersect($path->pluck('canonical_key'))->count(),
-            'qawasmeh' => count($qawasmehKeys),
-            'qawasmeh_present' => $byKey->keys()->intersect($qawasmehKeys)->count(),
-            'root_variant_claims' => $tree ? Assertion::query()->where('family_tree_id', $tree->id)->where('import_key', 'like', 'root-variant:%')->count() : 0,
-        ]];
-    }
 
     /**
      * @param  Collection<int, PersonRelationship>  $edges
@@ -352,40 +260,8 @@ class SeedAuditService
     /** @return array<int, array{label: string, path: string, exists: bool, bytes: int|null, sha256: string|null, version: string|null, expected_sha256: string|null, matches: bool|null}> */
     private function datasets(): array
     {
-        $files = [
-            ['Al-Zoubi genealogy dataset', SourceDocuments::path(AlZoubiDataset::PATH), null],
-            ['Shared ancestry list', resource_path('data/al-zoubi/shared-ancestry.php'), null],
-            ['Branch founder resolution', resource_path('data/al-zoubi/branch-founder-resolution.php'), null],
-            ['Branch founder review', resource_path('data/al-zoubi/branch-founder-review.php'), null],
-            ['Qawasmeh manifest', resource_path('data/al-qawasmeh/manifest.json'), null],
-        ];
-        foreach (['normalized.json', 'source-manifest.json', 'review-queue.json'] as $name) {
-            $files[] = ['Unified package '.$name, resource_path('data/genealogy/al-zoubi/'.$name), null];
-        }
-        try {
-            foreach ($this->qawasmeh->manifest()['sources'] as $row) {
-                $files[] = ['Qawasmeh attachment', SourceDocuments::path($row['file']), $row['sha256']];
-            }
-        } catch (Throwable) {
-            // A missing or invalid manifest is already reported by its own entry.
-        }
-
-        return array_map(function (array $file): array {
-            [$label, $path, $expected] = $file;
-            $exists = is_file($path);
-            $sha256 = $exists ? hash_file('sha256', $path) : null;
-
-            return [
-                'label' => $label,
-                'path' => str_replace(base_path().DIRECTORY_SEPARATOR, '', $path),
-                'exists' => $exists,
-                'bytes' => $exists ? filesize($path) : null,
-                'sha256' => $sha256,
-                'version' => $label === 'Al-Zoubi genealogy dataset' && $exists ? $this->datasetVersion($path) : null,
-                'expected_sha256' => $expected,
-                'matches' => $expected === null ? null : $sha256 !== null && hash_equals($expected, $sha256),
-            ];
-        }, $files);
+        // Optional reports use database records and the embedded snapshot, never external datasets.
+        return [];
     }
 
     private function datasetVersion(string $path): ?string
@@ -398,7 +274,7 @@ class SeedAuditService
     }
 
     /**
-     * Raw genealogy data or source images left in the web root (SD-08). Private sources live in SourceDocuments;
+     * Raw genealogy data or source images left in the web root (SD-08). Original source files are no longer distributed;
      * anything reported here was added to `public/docs` again and is downloadable.
      *
      * @return array<int, string>

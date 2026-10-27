@@ -6,6 +6,7 @@ use App\Models\Assertion;
 use App\Models\Branch;
 use App\Models\CommunityEntity;
 use App\Models\Family;
+use App\Models\Person;
 use App\Models\PersonAttribute;
 use App\Services\AuditLogger;
 use App\Services\Imports\UnifiedGenealogyDataset;
@@ -24,19 +25,12 @@ class AlZoubiFamilyTreeSeeder extends Seeder
         if (! app()->environment(['local', 'testing'])) {
             throw new DomainException('The consolidated genealogy seed proposal is local/testing only.');
         }
-        $data = app(UnifiedGenealogyDataset::class)->data();
-        $manifest = json_decode(file_get_contents(resource_path('data/genealogy/al-zoubi/source-manifest.json')), true, flags: JSON_THROW_ON_ERROR);
-        $checksums = array_column($manifest, 'sha256', 'file');
-        foreach ($data['people'] as $row) {
-            foreach ($row['sources'] as $evidence) {
-                foreach (array_filter([$evidence['file'], $evidence['image'] ?? null]) as $path) {
-                    if (! str_starts_with($path, 'user:') && (! isset($checksums[$path]) || ! is_file(base_path($path)) || ! hash_equals($checksums[$path], hash_file('sha256', base_path($path))))) {
-                        throw new DomainException('Missing or changed genealogy evidence: '.$path);
-                    }
-                }
-            }
-        }
-        DB::transaction(function () use ($data, $checksums): void {
+        $payload = app(UnifiedGenealogyDataset::class)->snapshot();
+        $data = $payload['data'];
+        app(UnifiedGenealogyDataset::class)->validate($data);
+        $checksums = $payload['checksums'];
+        $reviews = $payload['reviews'];
+        DB::transaction(function () use ($data, $checksums, $reviews): void {
             $family = $this->createMissing(Family::query(), ['slug' => 'al-zoubi'], AlZoubiSeedDefaults::familyAttributes());
             Family::query()->whereKey($family->id)->lockForUpdate()->firstOrFail();
             $tree = $this->createMissing($family->familyTrees(), ['slug' => 'main'], AlZoubiSeedDefaults::treeAttributes());
@@ -73,11 +67,18 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                     'first_name_ar' => $row['name'], 'full_name_ar' => $row['name'], 'alternate_names' => $row['aliases'] ?? [],
                     'title' => $row['title'] ?? null,
                     'honorific' => in_array('prophet', $row['attributes'] ?? [], true) ? 'عليه السلام' : ($row['key'] === 'ROOT-049' ? 'كرم الله وجهه' : null),
-                    'status' => isset($row['living_status_basis']) ? 'historical' : 'unresolved',
+                    'status' => Person::STATUS_ACTIVE,
                     'is_living' => $row['is_living'] ?? null, 'living_status_basis' => $row['living_status_basis'] ?? null,
-                    'public_narrative' => $row['public_narrative'] ?? false, 'verification_status' => 'pending_review',
+                    'public_narrative' => $row['public_narrative'] ?? false, 'verification_status' => 'verified',
                 ]));
-                // Never overwrite a reviewed name, privacy, status, password, or administrator customization.
+                // Apply the requested seed classification on reruns, without changing living status or privacy.
+                $before = app(AuditLogger::class)->snapshot($person);
+                $person->fill(['status' => Person::STATUS_ACTIVE, 'verification_status' => 'verified']);
+                if ($person->isDirty(['status', 'verification_status'])) {
+                    $person->save();
+                    app(AuditLogger::class)->record(null, $family, $person, 'seed_status_updated', $before, app(AuditLogger::class)->snapshot($person));
+                }
+                // Preserve names, privacy and administrator customizations.
                 $people[$row['key']] = $person;
                 foreach ($row['sources'] as $evidence) {
                     $s = $source($evidence['file']);
@@ -145,7 +146,6 @@ class AlZoubiFamilyTreeSeeder extends Seeder
                     'parent_id' => $row['parent'] ? $entities[$row['parent']]->id : $clan->id, 'publication_status' => 'draft',
                 ]));
             }
-            $reviews = json_decode(file_get_contents(resource_path('data/genealogy/al-zoubi/review-queue.json')), true, flags: JSON_THROW_ON_ERROR);
             foreach ($reviews as $review) {
                 $s = $source($review['source']);
                 $citation = $audit($this->createMissing($s->citations(), ['family_tree_id' => $tree->id, 'field_key' => 'source_observation', 'locator' => 'unified-review:'.hash('sha256', $review['key'])], [

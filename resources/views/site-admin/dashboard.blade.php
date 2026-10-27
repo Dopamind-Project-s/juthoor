@@ -2,6 +2,18 @@
 @section('page-heading','لوحة إدارة الموقع')
 @section('title','إدارة الموقع')
 @section('content')
+<section class="management-panel">
+<h2 class="h4">أدوات الصيانة</h2>
+<form method="POST" action="{{ route('site-admin.maintenance-tools.update') }}">
+@csrf @method('PUT')
+@foreach($maintenanceTools as $name => $tool)
+<input type="hidden" name="{{ $name }}" value="0">
+<label class="d-block mb-2"><input type="checkbox" name="{{ $name }}" value="1" @checked($tool['enabled'])> {{ $tool['label'] }}</label>
+@endforeach
+<button class="btn btn-primary">حفظ الإعدادات</button>
+</form>
+<p class="small text-muted mt-2">الأدوات معطلة افتراضيًا. سجل التدقيق الأمني وحماية البيانات يبقيان فعالين. لا تُشغّل اختبارات PHP أو Node من الويب.</p>
+</section>
 @php
     $levelLabels = ['ok' => 'سليم', 'warning' => 'تنبيه', 'danger' => 'خطر'];
     $levelClasses = ['ok' => 'text-bg-success', 'warning' => 'text-bg-warning', 'danger' => 'text-bg-danger'];

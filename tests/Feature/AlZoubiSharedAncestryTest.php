@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
 
 test('shared ancestry preserves all supplied names order titles honors and pending provenance', function () {
     app(AlZoubiSharedAncestrySeeder::class)->run();
-    $names = require resource_path('data/al-zoubi/shared-ancestry.php');
+    $names = app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['shared_ancestry'];
     $tree = Family::query()->where('slug', 'al-zoubi')->sole()->primaryTree;
     $people = $tree->people()->orderBy('canonical_key')->get();
     expect($people->pluck('full_name_ar')->all())->toBe($names)

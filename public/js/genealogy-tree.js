@@ -47,7 +47,11 @@
             const endpoint = new URL(app.dataset.graphUrl, location.href);
             endpoint.searchParams.set('all', 1); endpoint.searchParams.set('batch', 1000); endpoint.searchParams.set('cursor', cursor);
             const response = await fetch(endpoint, {headers: {Accept: 'application/json'}});
-            if (!response.ok) throw new Error('graph');
+            if (!response.ok) {
+                const failure = new Error('graph');
+                failure.status = response.status;
+                throw failure;
+            }
             payload = await response.json();
             nodes.push(...payload.nodes); edges.push(...payload.edges);
             (payload.meta.attributes || []).forEach(attribute => attributes.set(attribute.id, attribute));
@@ -601,7 +605,16 @@
     async function start() {
         try {
             await loadAll();
-        } catch (cause) { state(error); progress.textContent = 'التحميل غير مكتمل؛ أعد المحاولة لعرض جميع السجلات.'; return; }
+        } catch (cause) {
+            state(error);
+            const reason = cause.status === 401 || cause.status === 403 ? 'تحقق من تسجيل الدخول وصلاحية عرض الشجرة.'
+                : cause.status === 404 ? 'العائلة أو الشجرة المطلوبة غير متاحة.'
+                : cause.status === 429 ? 'طلبات كثيرة؛ انتظر قليلًا ثم أعد المحاولة.'
+                : cause.status >= 500 ? 'تعذر تحميل البيانات من الخادم؛ راجع سجل Laravel.'
+                : 'تعذر الاتصال أو قراءة استجابة الشجرة.';
+            progress.textContent = `التحميل غير مكتمل${cause.status ? ` (HTTP ${cause.status})` : ''}؛ ${reason}`;
+            return;
+        }
         if (initialBranch) modeSelect.value = 'isolated';
         relayout(); initialView(); updateViewButtons(); updateHistoryButtons();
         const params = new URLSearchParams(location.search);

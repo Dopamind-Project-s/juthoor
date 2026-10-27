@@ -40,7 +40,7 @@ class AlQawasmehBranchImporter
 
     public function manifest(): array
     {
-        return json_decode(file_get_contents(resource_path('data/al-qawasmeh/manifest.json')), true, flags: JSON_THROW_ON_ERROR);
+        return app(\App\Services\Imports\UnifiedGenealogyDataset::class)->snapshot()['legacy']['qawasmeh'];
     }
 
     /** Explicit reviewed identity mappings may supply IDs for missing anchor keys only. */
@@ -114,13 +114,9 @@ class AlQawasmehBranchImporter
                     "مرسى {$key} في التسلسل المقدم هو السجل القائم {$person->canonical_key} (الابن الوحيد المسمى سليمان لـ ROOT-077)؛ لم يُنشأ شخص جديد. قيد المراجعة.");
             }
             foreach ($manifest['sources'] as $row) {
-                $path = SourceDocuments::path($row['file']);
-                if (! is_file($path) || ! hash_equals($row['sha256'], hash_file('sha256', $path))) {
-                    throw new DomainException('Qawasmeh: missing or changed attachment '.$row['file']);
-                }
                 $sources[$row['file']] = $this->created(Source::query()->firstOrCreate(['family_id' => $family->id, 'reference' => $row['reference']], [
                     'source_type' => 'document', 'title' => $row['file'], 'verification_status' => 'pending_review',
-                    'notes' => 'Page/image 1; SHA256: '.$row['sha256'].'; visually inspected. No OCR text layer in PDF.',
+                    'notes' => 'Page/image 1; SHA256: '.$row['sha256'].'; archived source reference; original attachment is not distributed with this application.',
                 ]), $family);
                 if (! str_contains($sources[$row['file']]->notes ?? '', $row['sha256'])) {
                     throw new DomainException('Qawasmeh: source identity conflict '.$row['file']);
