@@ -367,3 +367,14 @@ Implemented دليل السند using the existing Phase 4 MemberDirectory, memb
 Final directory tests: SQLite 14/14 and PostgreSQL 16.15 14/14 (142 assertions each); Node 11/11; Chrome 13/13 desktop/mobile journeys. Full SQLite and PostgreSQL runs: 424/459 passed with the same 35 baseline failures, no new failing test names. Baseline was 418/453. The final moderator case and final focused adjustments were verified in the complete directory subset after the full runs. Functional phase is implemented; repository-wide regression/release sign-off is still blocked by those existing failures. UX-P0.7 readiness is conditional, not an all-green claim.
 
 See [implementation, audit, privacy, performance, files and limitations](sanad-ux-p0.6.md), [test results](sanad-ux-p0.6-results.json) and [before/after screenshots](screenshots/ux-p0.6). No deployment, commit, vendor/dependency edits or production database changes were performed.
+
+
+## UX-P0.7 — Hybrid unified genealogy visualization (2026-10-28)
+
+Implemented the existing SVG renderer's hybrid chart: every default ancestry card is visible in alternating horizontal rows; descendants use iterative subtree-width allocation and a generation grid. Siblings no longer wrap or become grids. Optional compaction applies only to ancestry and retains founder/focus cards. The true ancestry-to-hierarchy transition uses eligible children in the selected scope before display-mode folding.
+
+Added independent Full / Main Fakhds / Subordinate Fakhds expansion modes. Hierarchy-derived boundary metadata preserves founders and required paths at arbitrary depths (including 5, 7 and 9); terminal main branches remain expandable. Manual overrides are separate, mode changes reset them predictably, and search reveals the required path without opening unrelated branches. Existing scope filters, styling/attributes, profile links, keyboard, pan/zoom, fullscreen, history and embedded/mobile views remain. No genealogy identities, father/founder associations, seeders, privacy or RBAC rules were changed.
+
+Validation: Node 40/40; Chrome 16/16 actual journeys with before/after screenshots and no page errors. Relevant SQLite and PostgreSQL 16.15 suites each passed 52/59 with seven previously recorded expectation failures, zero runtime errors and no new failing test names. The new boundary API test passed separately (8 assertions). Functional UX-P0.7 is complete; all-green regression/release approval and UX-P0.8 readiness remain conditional on reconciling the pre-existing failures.
+
+See [layout architecture, behavior, performance, limitations and changed files](tree-ux-p0.7.md), [machine-readable results](tree-ux-p0.7-results.json) and [screenshots](screenshots/ux-p0.7). No production database/reset, dependency/vendor changes, commit, push or deployment occurred.

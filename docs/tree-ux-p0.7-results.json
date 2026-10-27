@@ -143,5 +143,10 @@
         "serpentine": "76"
       }
     ]
+  },
+  "quality": {
+    "javascript_syntax": "passed",
+    "pint": "passed",
+    "diff_check": "passed"
   }
 }
