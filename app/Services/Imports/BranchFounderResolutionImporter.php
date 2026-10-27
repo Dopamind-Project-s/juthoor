@@ -7,7 +7,7 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Source;
-use Database\Seeders\SourceSeeder;
+use App\Services\Imports\LegacySeeders\SourceSeeder;
 use DomainException;
 
 class BranchFounderResolutionImporter

@@ -9,8 +9,8 @@ use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\Source;
 use App\Services\Genealogy\GenealogyTraversalService;
-use Database\Seeders\AlZoubiGenealogySeeder;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiGenealogySeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 

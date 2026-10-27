@@ -1120,14 +1120,15 @@
     "new_people_contribution": 0
   },
   {
-    "file": "database/seeders/AlQawasmehBranchSeeder.php",
-    "sha256": "20e39311fc32a2c615ef235b276926b803eca139381528fa8eed2124526e5d3b",
-    "bytes": 626,
+    "file": "app/Services/Imports/LegacySeeders/AlQawasmehBranchSeeder.php",
+    "sha256": "78a89bf4318b74359d4077de0caba47154661dc8d8628bd037ec66522608411f",
+    "bytes": 644,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/AlQawasmehBranchSeeder.php"
   },
   {
     "file": "database/seeders/AlZoubiFamilyTreeSeeder.php",
@@ -1140,104 +1141,114 @@
     "new_people_contribution": 0
   },
   {
-    "file": "database/seeders/AlZoubiGenealogySeeder.php",
-    "sha256": "dd0d75ec02b14598c085dbd028f06edb30c10786c67cd7f24b5cfe51d66ede09",
-    "bytes": 3273,
+    "file": "app/Services/Imports/LegacySeeders/AlZoubiGenealogySeeder.php",
+    "sha256": "075b29eff5a68af488bd1b18c4aacc429c58e2e07314d65134e58723b89f90ad",
+    "bytes": 3291,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/AlZoubiGenealogySeeder.php"
   },
   {
-    "file": "database/seeders/AlZoubiResearchContextSeeder.php",
-    "sha256": "a8f999185f5d10eeaeacac8e77754a04aeeca73cf2f38eb7ef4ee4ea8f74a3e6",
-    "bytes": 3398,
+    "file": "app/Services/Imports/LegacySeeders/AlZoubiResearchContextSeeder.php",
+    "sha256": "9ae73896d869524f1ab457edb4693395fcf39f6a5a148c184f12588088dcd59f",
+    "bytes": 3416,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/AlZoubiResearchContextSeeder.php"
   },
   {
-    "file": "database/seeders/AlZoubiSharedAncestrySeeder.php",
-    "sha256": "b239c041ab530a2d1a0daa9ec7dbd03c9c1b5b96cc511db1db633de81287a71a",
-    "bytes": 8339,
+    "file": "app/Services/Imports/LegacySeeders/AlZoubiSharedAncestrySeeder.php",
+    "sha256": "9441094b7d51c80a62fe7ea5b0e420b8f474bad2b0c2554f337a50a1debc7958",
+    "bytes": 8402,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/AlZoubiSharedAncestrySeeder.php"
   },
   {
-    "file": "database/seeders/BranchFounderSeeder.php",
-    "sha256": "d12be148974da902f6a2a302371d99ff11a98cd6cfd10b4b29bf401a167b277c",
-    "bytes": 944,
+    "file": "app/Services/Imports/LegacySeeders/BranchFounderSeeder.php",
+    "sha256": "2efe63b9c0a3f3d0124c677213cf8c049b0269fd116243fe0d6fcc95a5b1482c",
+    "bytes": 962,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/BranchFounderSeeder.php"
   },
   {
-    "file": "database/seeders/BranchSeeder.php",
-    "sha256": "dfdd08228cea990cc4d75e2d4adf4aa9a69a8dc326e06fa0b16245cfefc4b3ff",
-    "bytes": 2127,
+    "file": "app/Services/Imports/LegacySeeders/BranchSeeder.php",
+    "sha256": "1466959a82b8205463bbbd9a9dd3e31a66aeceb59ab9fed5011590c4c0328f5f",
+    "bytes": 2145,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/BranchSeeder.php"
   },
   {
-    "file": "database/seeders/FamilySeeder.php",
-    "sha256": "6a6ccac5317a4d8774b493ba5087011c48d38b0a32ca3a24aaa23c076094dbba",
-    "bytes": 992,
+    "file": "app/Services/Imports/LegacySeeders/FamilySeeder.php",
+    "sha256": "fe34ac009b44566022be4a1887bc1a49d25d929acc80d24c8129a1e135117f69",
+    "bytes": 1010,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/FamilySeeder.php"
   },
   {
-    "file": "database/seeders/FamilyTreeSeeder.php",
-    "sha256": "4675e7bf0acc6495fd741d605f4c5a57096312d4ff0797663ef6b09e6e6f3fd3",
-    "bytes": 1241,
+    "file": "app/Services/Imports/LegacySeeders/FamilyTreeSeeder.php",
+    "sha256": "6f1700417af31af32ad24b49e45900278665ceb1e7d2253ae06e23df2dee621d",
+    "bytes": 1259,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/FamilyTreeSeeder.php"
   },
   {
-    "file": "database/seeders/GenealogyPeopleSeeder.php",
-    "sha256": "5fb07a7b77c0bc0a6035aacb6b7f8f043e8a711c23e616480019570c7aaf914a",
-    "bytes": 2963,
+    "file": "app/Services/Imports/LegacySeeders/GenealogyPeopleSeeder.php",
+    "sha256": "015c4c6643bfe6afe6f29403c5671ed71d5ca1e407edba828b4a9ea58d7ccfe8",
+    "bytes": 2981,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/GenealogyPeopleSeeder.php"
   },
   {
-    "file": "database/seeders/GenealogyRelationshipSeeder.php",
-    "sha256": "bb55f358b8b7cc7f076860387539b3f1de4744ce8de92f2b64c3fcc52832c82d",
-    "bytes": 3057,
+    "file": "app/Services/Imports/LegacySeeders/GenealogyRelationshipSeeder.php",
+    "sha256": "d72c89a3dd3ea282259eb138dacd990ef492af47b2e6d1781b2e3be6d4220cd1",
+    "bytes": 3075,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/GenealogyRelationshipSeeder.php"
   },
   {
-    "file": "database/seeders/HeritageShowcaseFixtureSeeder.php",
-    "sha256": "ed6b0a9b66e4ec07077f3825df0896b2459a8d55343c5755c2b78188d17153d2",
-    "bytes": 13247,
+    "file": "database/seeders/Fixtures/HeritageShowcaseFixtureSeeder.php",
+    "sha256": "ff366fc1fa48b1149de961b89fb9a09490061a4fac93d82eb1a479c8f139be8f",
+    "bytes": 13256,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "optional fixture / excluded from default seeding",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/HeritageShowcaseFixtureSeeder.php"
   },
   {
     "file": "database/seeders/PersonAttributeSeeder.php",
@@ -1250,24 +1261,26 @@
     "new_people_contribution": 0
   },
   {
-    "file": "database/seeders/SourceSeeder.php",
-    "sha256": "eb8d39029fa20e1625b406de473c27b1b8135db4bcad7c32f1ca499d0d57b362",
-    "bytes": 1292,
+    "file": "app/Services/Imports/LegacySeeders/SourceSeeder.php",
+    "sha256": "823f868cdcc68b7201ebe1cb2e2f25aa1ebed1cd005122cb0bf9ab41a486bfc3",
+    "bytes": 1310,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "archived compatibility implementation / not a default seeder",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/SourceSeeder.php"
   },
   {
-    "file": "database/seeders/TreeStressFixtureSeeder.php",
-    "sha256": "a47a85ca22ba90ffd4368dbfb41d8887c0cf3da4f3e6e97cd48bc19d3e478529",
-    "bytes": 6622,
+    "file": "database/seeders/Fixtures/TreeStressFixtureSeeder.php",
+    "sha256": "a462d641fd05d6581b9730fcc284998f22e7b32384bb607d18fed097d71012b8",
+    "bytes": 6631,
     "type": "php",
     "duplicate_of": null,
-    "status": "architecture/UI reference; no asserted genealogy contribution",
+    "status": "optional fixture / excluded from default seeding",
     "referenced_people": 0,
-    "new_people_contribution": 0
+    "new_people_contribution": 0,
+    "original_path": "database/seeders/TreeStressFixtureSeeder.php"
   },
   {
     "file": "docs/Juthoor_Experience_v3_Editable_UI_Blueprint.pdf",

@@ -9,7 +9,7 @@ use App\Models\Source;
 use App\Services\Genealogy\BranchFocusService;
 use App\Services\Genealogy\BranchMembershipService;
 use App\Services\Genealogy\GenealogyTraversalService;
-use Database\Seeders\AlZoubiGenealogySeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiGenealogySeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

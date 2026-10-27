@@ -6,7 +6,7 @@ use App\Models\Family;
 use App\Models\NewsPost;
 use App\Models\Person;
 use App\Models\PersonRelationship;
-use Database\Seeders\JuthoorUiDemoSeeder;
+use Database\Seeders\Fixtures\JuthoorUiDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fixtures\LegacyGenealogySeeder;
 

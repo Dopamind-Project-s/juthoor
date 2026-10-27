@@ -10,11 +10,11 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Source;
-use Database\Seeders\BranchSeeder;
-use Database\Seeders\FamilySeeder;
-use Database\Seeders\FamilyTreeSeeder;
-use Database\Seeders\GenealogyPeopleSeeder;
-use Database\Seeders\SourceSeeder;
+use App\Services\Imports\LegacySeeders\BranchSeeder;
+use App\Services\Imports\LegacySeeders\FamilySeeder;
+use App\Services\Imports\LegacySeeders\FamilyTreeSeeder;
+use App\Services\Imports\LegacySeeders\GenealogyPeopleSeeder;
+use App\Services\Imports\LegacySeeders\SourceSeeder;
 use Illuminate\Support\Collection;
 use Throwable;
 

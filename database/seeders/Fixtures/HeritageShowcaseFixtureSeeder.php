@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Fixtures;
 
 use App\Models\ArchiveRecord;
 use App\Models\Branch;

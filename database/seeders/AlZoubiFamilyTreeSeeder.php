@@ -13,6 +13,7 @@ use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use App\Services\Imports\AlZoubiSeedDefaults;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -36,9 +37,9 @@ class AlZoubiFamilyTreeSeeder extends Seeder
             }
         }
         DB::transaction(function () use ($data, $checksums): void {
-            $family = $this->createMissing(Family::query(), ['slug' => 'al-zoubi'], FamilySeeder::attributes());
+            $family = $this->createMissing(Family::query(), ['slug' => 'al-zoubi'], AlZoubiSeedDefaults::familyAttributes());
             Family::query()->whereKey($family->id)->lockForUpdate()->firstOrFail();
-            $tree = $this->createMissing($family->familyTrees(), ['slug' => 'main'], FamilyTreeSeeder::attributes());
+            $tree = $this->createMissing($family->familyTrees(), ['slug' => 'main'], AlZoubiSeedDefaults::treeAttributes());
             $audit = function (Model $record) use ($family): Model {
                 if ($record->wasRecentlyCreated) {
                     app(AuditLogger::class)->record(null, $family, $record, 'unified_seed_imported', null, app(AuditLogger::class)->snapshot($record));

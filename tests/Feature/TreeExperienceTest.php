@@ -9,7 +9,7 @@ use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\User;
 use App\Services\Genealogy\BranchFocusService;
-use Database\Seeders\TreeStressFixtureSeeder;
+use Database\Seeders\Fixtures\TreeStressFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 

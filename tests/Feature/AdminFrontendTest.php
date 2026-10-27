@@ -5,7 +5,7 @@ use App\Models\Family;
 use App\Models\FamilyInvitation;
 use App\Models\FamilyMembership;
 use App\Models\User;
-use Database\Seeders\DevelopmentAdminSeeder;
+use App\Services\Imports\LegacySeeders\DevelopmentAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;

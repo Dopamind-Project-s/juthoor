@@ -4,7 +4,7 @@ use App\Models\Family;
 use App\Models\Person;
 use App\Models\Source;
 use App\Services\Imports\SeedAuditService;
-use Database\Seeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

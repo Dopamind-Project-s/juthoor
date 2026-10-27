@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Services\Imports\LegacySeeders;
 
 use App\Models\Family;
 use App\Services\Imports\BranchFounderResolutionImporter;

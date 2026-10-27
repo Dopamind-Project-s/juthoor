@@ -1,6 +1,8 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Services\Imports\LegacySeeders;
+
+use Database\Seeders\PersonAttributeSeeder;
 
 use App\Models\Family;
 use App\Models\Person;

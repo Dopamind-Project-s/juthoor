@@ -9,9 +9,9 @@ use App\Models\Family;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\User;
-use Database\Seeders\AlQawasmehBranchSeeder;
-use Database\Seeders\AlZoubiRootVariantSeeder;
-use Database\Seeders\FamilySeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiRootVariantSeeder;
+use App\Services\Imports\LegacySeeders\FamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fixtures\LegacyGenealogySeeder;
 

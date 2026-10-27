@@ -2,8 +2,8 @@
 
 namespace Tests\Fixtures;
 
-use Database\Seeders\AlZoubiGenealogySeeder;
-use Database\Seeders\DevelopmentAdminSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiGenealogySeeder;
+use App\Services\Imports\LegacySeeders\DevelopmentAdminSeeder;
 use Database\Seeders\PersonAttributeSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Seeder;

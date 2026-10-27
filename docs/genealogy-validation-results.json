@@ -978,5 +978,11 @@
     "candidate_drawing_nodes": 5046,
     "candidate_drawing_relationships": 4660,
     "potential_duplicate_groups": 268
+  },
+  "final_cleanup": {
+    "performed": true,
+    "checks_or_tests_run": false,
+    "reason": "User explicitly requested completion without checks/tests within three minutes.",
+    "prior_results_cover_namespace_relocation": false
   }
 }

@@ -6,10 +6,10 @@ use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Services\Genealogy\DuplicatePersonDetector;
 use App\Services\Imports\AlQawasmehBranchImporter;
-use Database\Seeders\AlQawasmehBranchSeeder;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
-use Database\Seeders\FamilySeeder;
-use Database\Seeders\FamilyTreeSeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\FamilySeeder;
+use App\Services\Imports\LegacySeeders\FamilyTreeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fixtures\LegacyGenealogySeeder;
 

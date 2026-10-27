@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\Genealogy\LivingStatusClassifier;
 use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Imports\CsvImportService;
-use Database\Seeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Fixtures\LegacyGenealogySeeder;

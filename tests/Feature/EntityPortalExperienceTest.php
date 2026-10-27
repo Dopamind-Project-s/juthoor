@@ -9,7 +9,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\Community\MediaService;
 use App\Services\Portal\PortalSettings;
-use Database\Seeders\HeritageShowcaseFixtureSeeder;
+use Database\Seeders\Fixtures\HeritageShowcaseFixtureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;

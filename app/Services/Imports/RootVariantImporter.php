@@ -8,10 +8,10 @@ use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\Source;
 use App\Services\AuditLogger;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
-use Database\Seeders\FamilySeeder;
-use Database\Seeders\FamilyTreeSeeder;
-use Database\Seeders\SourceSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\FamilySeeder;
+use App\Services\Imports\LegacySeeders\FamilyTreeSeeder;
+use App\Services\Imports\LegacySeeders\SourceSeeder;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 

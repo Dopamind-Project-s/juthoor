@@ -13,8 +13,8 @@ use App\Services\ChangeReviewService;
 use App\Services\Genealogy\BranchFocusService;
 use App\Services\Genealogy\GenealogyTraversalService;
 use App\Services\Imports\AlQawasmehBranchImporter;
-use Database\Seeders\AlQawasmehBranchSeeder;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

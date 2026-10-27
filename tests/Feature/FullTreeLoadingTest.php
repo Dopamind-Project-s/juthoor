@@ -6,8 +6,8 @@ use App\Models\Person;
 use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\User;
-use Database\Seeders\AlZoubiResearchContextSeeder;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiResearchContextSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

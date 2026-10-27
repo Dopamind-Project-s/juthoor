@@ -11,8 +11,8 @@ use App\Models\Person;
 use App\Models\Source;
 use App\Models\User;
 use App\Services\Genealogy\BranchMembershipService;
-use Database\Seeders\AlQawasmehBranchSeeder;
-use Database\Seeders\AlZoubiRootVariantSeeder;
+use App\Services\Imports\LegacySeeders\AlQawasmehBranchSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiRootVariantSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fixtures\LegacyGenealogySeeder;
 

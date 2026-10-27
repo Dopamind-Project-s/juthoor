@@ -2,9 +2,9 @@
 
 use App\Models\Family;
 use App\Models\User;
-use Database\Seeders\AlZoubiResearchContextSeeder;
-use Database\Seeders\AlZoubiSharedAncestrySeeder;
-use Database\Seeders\DevelopmentAdminSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiResearchContextSeeder;
+use App\Services\Imports\LegacySeeders\AlZoubiSharedAncestrySeeder;
+use App\Services\Imports\LegacySeeders\DevelopmentAdminSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 
