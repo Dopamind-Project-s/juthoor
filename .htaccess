@@ -1,50 +1,30 @@
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+# Preferred deployment: configure the domain document root as <project>/public.
+# Fallback for Hostinger plans serving the complete project from public_html.
+Options -Indexes -MultiViews
+DirectoryIndex index.php
 
-    RewriteEngine On
-
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-# Redirect to public folder
-RewriteRule ^(.*)$ public/$1 [L]
-
-    # Redirect to public folder
-    RewriteRule ^(.*)$ public/$1 [L]
-</IfModule>
-
-# Log PHP errors to a file
-<IfModule mod_php7.c>
-    php_flag log_errors on
-    php_value error_reporting 32767
-    php_value error_log "../storage/logs/php-errors.log"
-</IfModule>
-<IfModule mod_php.c>
-    php_flag log_errors on
-    php_value error_reporting 32767
-    php_value error_log "../storage/logs/php-errors.log"
-</IfModule>
-
-
-
-
-
-# No directory listings, server-side includes or CGI; symlinks are needed by mod_rewrite.
-Options -Indexes -Includes -ExecCGI +FollowSymLinks
-
-# PHP resolves error_log relative to public/ (the front controller); logs go to storage/logs, outside the web root.
-# Any stray log file inside the web root is refused.
-<FilesMatch "(^error_log|\.log$)">
+# Never serve dotfiles, credentials, logs or backup copies from either layout.
+<FilesMatch "(?i)(^\.|^error_log$|\.(?:log|sql|sqlite|sqlite3|bak|backup|old|orig|save|swp)$)">
     Require all denied
 </FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Preserve Laravel authentication and CSRF headers across internal rewrites.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:X-XSRF-Token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Remove /public only from URLs actually requested by the client.
+    # Internal rewrites must not trigger this redirect.
+    RewriteCond %{THE_REQUEST} \s/+public(?:[/\s?]) [NC]
+    RewriteRule ^public(?:/public)*(?:/(.*))?$ /$1 [R=308,L]
+
+    # Only the public subtree may be served; existing project files get no bypass.
+    RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+    # public/vendor contains the application's intentionally published CSS/JS.
+    RewriteRule ^public/ - [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

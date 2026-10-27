@@ -1,22 +1,35 @@
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+# Laravel public document root (also used by the project-root fallback).
+Options -Indexes -MultiViews
+DirectoryIndex index.php
 
+<FilesMatch "(?i)(^\.|^error_log$|\.(?:log|sql|sqlite|sqlite3|bak|backup|old|orig|save|swp)$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Canonicalize old /public URLs even when this is the document root.
+    RewriteCond %{THE_REQUEST} \s/+public(?:[/\s?]) [NC]
+    RewriteRule ^public(?:/public)*(?:/(.*))?$ /$1 [R=308,L]
+
+    RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+    # Media and source downloads must go through their authorized controllers.
+    RewriteRule ^(?:storage|resources|database|bootstrap|config|app|routes|tests|tools|node_modules)(?:/|$) - [F,L,NC]
+    RewriteRule ^(?!index\.php$).*\.(?:php[0-9]?|phtml|phar)(?:/|$) - [F,L,NC]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteCond %{HTTP:X-XSRF-Token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # Redirect Trailing Slashes If Not A Folder...
+    # Strip trailing slashes using the original URL, never an internal /public path.
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
+    RewriteCond %{THE_REQUEST} \s/+([^?\s]+?)/+[?\s]
+    RewriteRule ^ /%1 [R=308,L]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
