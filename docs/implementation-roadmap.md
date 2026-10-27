@@ -263,5 +263,21 @@ Details: `docs/project-audit.md` §17.
 ### UX-P0.3 readiness
 Ready: the portal links to the unified tree through one entry point (`genealogy.tree`, `?q=`), so a new tree renderer (compact single-child chains, enlarged founder nodes, new pan/zoom) can replace `genealogy-tree.js` behind the same route without touching family sites. Dependencies: approved Al-Zoubi cover image and entity pages (data, not code); decision on caching the tree graph if production timings require it.
 
+## UX-P0.3 — Unified genealogy tree redesign, compact ancestry & founder nodes (done 2026-10-27)
+
+Details: `docs/project-audit.md` §18.
+
+- [x] **Gate** — UX-P0.2 verified on PostgreSQL 16 (one ordering-only test defect fixed, plus three latent ones); migration rollback/re-apply on a disposable database; root `.htaccess` defects confirmed in Apache and fixed (log exposure, listings, SSI).
+- [x] **Payload** — founders from approved associations, edge verification, attribute dictionary, permission-based URL templates, larger batches (≈186 B/person).
+- [x] **Layout** — compact single-child chains with folds, sibling grids, wrapped wide families, RTL; pure module with Node tests (11) and mutation checks (9/9).
+- [x] **Renderer** — virtualization and levels of detail, founder cards and popovers, verification-styled connectors, legend, breadcrumb, full/ancestor/descendant views, history, fullscreen, keyboard, touch, search into folded chains, person actions (UX-P0.1).
+- [x] **Fakhd tree** — `BranchFocusService` path, same renderer, link back to the full tree.
+- [x] **Mobile** — readable start at root/founder, bottom sheet, no horizontal growth at 390 px; tablet.
+- [x] **Performance** — 100 → 10,000 people benchmarked (ready 0.6 → 1.3 s, pan frames 33 ms).
+- [x] **Tests** — 7 PHP + 11 Node; SQLite 428/428; Chrome 9/9.
+
+### UX-P0.4 readiness
+Ready. The tree, portal and management workflows share stable entry points (`genealogy.tree` with `person`, `view`, `q`; `genealogy.branch`; templates in the graph payload). Open inputs for the next phase: an icon column for person attributes if the design system needs icons; birth-order data for sibling ordering; a decision on printable/exportable tree views (must reuse the batch privacy rules); approved Al-Zoubi media and entity data for the portal; infrastructure enablement of family hosts.
+
 ### Next recommended phase
-UX-P0.3 (tree experience), then UX-00–01 (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.
+UX-P0.4 / UX-00–01 (design system across portal, tree and management), then Phase 5 — production readiness (design system and portal screens on the verified workflows), then Phase 5 — production readiness (JTH-29): backups with a restore drill, monitoring and error reporting, security headers and CSP for the main site, 2FA for administrators, load tests at realistic family sizes, and caching of the tree graph only if measurements require it. Then decide whether to resume Phase 2.6/2.7 and define the content API/export (JTH-31) with the existing scope and privacy rules.

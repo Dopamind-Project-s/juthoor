@@ -2,12 +2,14 @@
 @section('title', $person->display_name)
 @section('content')
 <section class="family-page-head"><div class="container">
-    <div class="family-breadcrumb"><a href="{{ route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null]) }}">{{ $tree->name_ar }}</a><i class="bi bi-chevron-left"></i><span>صفحة شخص</span></div>
+    <div class="family-breadcrumb"><a href="{{ route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null, 'person' => $person->id]) }}">{{ $tree->name_ar }}</a><i class="bi bi-chevron-left"></i><span>صفحة شخص</span></div>
     <span class="status-badge verified">{{ request()->boolean('private') ? 'معاينة خاصة' : (in_array($person->verification_status,['verified','sourced']) ? 'سجل تاريخي مراجع' : 'رواية مقدمة؛ قيد المراجعة') }}</span>
     <h1>{{ $person->display_name }}</h1><x-person-descriptors :person="$person" />
     @if($person->alternate_names)<p class="mb-1">تهجئات بديلة مسجلة: {{ implode('، ', $person->alternate_names) }}</p>@endif
     @if($personFields || request()->boolean('private'))<dl class="person-public-facts">@if(request()->boolean('private'))<dt>حالة الحياة</dt><dd>{{ \App\Models\Person::LIVING_STATUS_LABELS[$person->living_status] }}</dd>@endif @foreach($personFields as $field)<dt>{{ $field['label'] }}</dt><dd>{{ $field['value'] instanceof \DateTimeInterface ? $field['value']->format('Y-m-d') : (['male'=>'ذكر','female'=>'أنثى'][$field['value']] ?? $field['value']) }}</dd>@endforeach</dl>@endif
     <p>مسار هذا الشخص داخل شجرة {{ $family->name_ar }} الموحدة.</p>
+    @php($treeLink = fn (?string $view) => route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => request()->boolean('private') ? 1 : null, 'person' => $person->id, 'view' => $view]))
+    <div class="d-flex flex-wrap gap-2"><a class="btn btn-light" href="{{ $treeLink(null) }}"><i class="bi bi-diagram-3"></i> عرض في الشجرة</a><a class="btn btn-outline-light" href="{{ $treeLink('ancestors') }}">الأسلاف</a><a class="btn btn-outline-light" href="{{ $treeLink('descendants') }}">الذرية</a></div>
 </div></section>
 
 <section class="section-space"><div class="container">

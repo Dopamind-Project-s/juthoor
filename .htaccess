@@ -28,16 +28,23 @@ RewriteRule ^(.*)$ public/$1 [L]
 <IfModule mod_php7.c>
     php_flag log_errors on
     php_value error_reporting 32767
-    php_value error_log "error_log.txt"
+    php_value error_log "../storage/logs/php-errors.log"
 </IfModule>
 <IfModule mod_php.c>
     php_flag log_errors on
     php_value error_reporting 32767
-    php_value error_log "error_log.txt"
+    php_value error_log "../storage/logs/php-errors.log"
 </IfModule>
 
 
 
 
 
-Options All
+# No directory listings, server-side includes or CGI; symlinks are needed by mod_rewrite.
+Options -Indexes -Includes -ExecCGI +FollowSymLinks
+
+# PHP resolves error_log relative to public/ (the front controller); logs go to storage/logs, outside the web root.
+# Any stray log file inside the web root is refused.
+<FilesMatch "(^error_log|\.log$)">
+    Require all denied
+</FilesMatch>

@@ -165,19 +165,22 @@ test('review page: values, impact, publication effect, earlier decisions, own-re
 });
 
 test('tree node actions follow permissions: add for creators, propose for members, nothing for visitors', function () {
-    $nodeFor = function (?User $user) {
+    // The full-tree payload carries action URL templates only for permitted actions; the client fills in the node id.
+    $actionsFor = function (?User $user) {
         $user ? $this->actingAs($user) : auth()->logout();
+        $payload = $this->getJson(route('genealogy.graph', [$this->family->slug, 'all' => 1]))->assertOk()->json();
+        $id = (string) $payload['meta']['id_placeholder'];
 
-        return collect($this->getJson(route('genealogy.graph', [$this->family->slug, 'all' => 1]))->assertOk()->json('nodes'))->firstWhere('id', $this->son->id);
+        return collect($payload['meta']['templates'])->map(fn (string $template) => str_replace($id, (string) $this->son->id, $template))->all();
     };
-    $editor = $nodeFor(($this->as)('editor'));
-    expect($editor['add_child_url'])->toContain('father_id='.$this->son->id)->and($editor['edit_url'])->not->toBeNull()->and($editor['propose_url'])->toContain('target='.$this->son->id);
-    $reader = $nodeFor(($this->as)('reader'));
-    expect($reader['add_child_url'])->toBeNull()->and($reader['edit_url'])->toBeNull()->and($reader['propose_url'])->not->toBeNull();
-    $newsEditor = $nodeFor(($this->as)('reader', ['news-editor']));
-    expect($newsEditor['add_child_url'])->toBeNull();
-    $visitor = $nodeFor(null);
-    expect($visitor['add_child_url'])->toBeNull()->and($visitor['propose_url'])->toBeNull()->and($visitor['manage_url'])->toBeNull();
+    $editor = $actionsFor(($this->as)('editor'));
+    expect($editor['add_child'])->toContain('father_id='.$this->son->id)->and($editor['edit'])->not->toBeNull()->and($editor['propose'])->toContain('target='.$this->son->id)->and($editor['person'])->toContain('/people/'.$this->son->id);
+    $reader = $actionsFor(($this->as)('reader'));
+    expect($reader)->not->toHaveKey('add_child')->not->toHaveKey('edit')->toHaveKey('propose');
+    $newsEditor = $actionsFor(($this->as)('reader', ['news-editor']));
+    expect($newsEditor)->not->toHaveKey('add_child');
+    $visitor = $actionsFor(null);
+    expect(array_keys($visitor))->toBe(['person']);
 
     $this->actingAs(($this->as)('editor'))->get(route('genealogy.tree', $this->family->slug))->assertOk()->assertSee('data-quick-add-url', false)->assertSee('إضافة ابن من هنا');
     $this->actingAs(($this->as)('reader'))->get(route('genealogy.tree', $this->family->slug))->assertOk()->assertDontSee('data-quick-add-url', false);

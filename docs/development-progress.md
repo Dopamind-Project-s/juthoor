@@ -2,16 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-27, after session 14 — UX-P0.2)
+## Current state (2026-10-27, after session 15 — UX-P0.3)
 
-- Branch `main` at `9882e9f` (UX-P0.1 committed by the maintainer); session 14 (UX-P0.2) changes are uncommitted (nothing committed, pushed, tagged or deployed by the assistant).
-- Suite: **421 passed / 0 failed** on SQLite (404 before the session + 17 new). PostgreSQL 16: baseline 404/404 verified; the final run after the changes did not complete — re-run before release.
-- UX-P0.2 complete in code: private datasets out of the web root; family domain lifecycle and host routing (off by default); dynamic, database-backed family portals with branding draft/preview/publish. `al-zoubi.juthoor.dopamind.cloud` is **not** live: DNS, TLS and proxy are unverified.
-- Still deferred: Phase 2.6, 2.7 (GEDCOM), Facebook, CV/job backends, multi-family entity ownership.
+- Branch `main` at `6e2e4e2` (UX-P0.2 committed by the maintainer); session 15 (UX-P0.3) changes are uncommitted (nothing committed, pushed, tagged or deployed by the assistant).
+- Suite: **428 passed / 0 failed** on SQLite and PostgreSQL 16 (4788 assertions); Node layout tests 11/11.
+- UX-P0.3 complete: redesigned unified tree (compact chains, founder nodes, dynamic attributes, views, mobile), UX-P0.2 PostgreSQL gate closed, root `.htaccess` hardened. Family hosts remain disabled (infrastructure not verified).
 
 ## Next task to execute
 
-UX-P0.3 — tree experience behind the existing tree route (see `docs/implementation-roadmap.md`, "UX-P0.3 readiness"); production enablement of the Al-Zoubi host is an infrastructure task (`docs/project-audit.md` §17.2).
+UX-P0.4 / UX-00–01 — shared design system across portal, tree and management (see `docs/implementation-roadmap.md`, "UX-P0.4 readiness").
 
 ## Work log
 
@@ -118,6 +117,18 @@ UX-P0.3 — tree experience behind the existing tree route (see `docs/implementa
 | Administration | media/archive forms, attachments, usage, delete, cover choice | `CommunityContentController.php`, `management/entities/content/{form,fields/*}.blade.php`, `Management/CommunityEntityController.php`, `management/entities/form.blade.php` | admin tests; Chrome |
 | Integrity | archive person guards, consistency command | `GenealogyDeletionService.php`, `PersonMergeService.php`, `Console/Commands/VerifyMediaFiles.php` | tests |
 | Fixes during the session | media root moved out of the `local` disk root; media access scopes computed once per family (177 → 77 queries for members); sticky section bar below the site header; GD output also stripped of its comment segment | as above | re-measured; Chrome |
+
+### Session 15 — UX-P0.3 unified tree redesign
+| Area | Change | Files | Tests / verification |
+|---|---|---|---|
+| Gate | PostgreSQL 420/421 → ordering-only test defect fixed (+3 latent); migration rollback on a disposable DB | `tests/Feature/CommunityEventTest.php`, `CommunityMediaTest.php`, `CommunityNewsTest.php`, `CommunityEntityTest.php` | file re-run 3× on PostgreSQL |
+| Web server config | `Options -Indexes -Includes -ExecCGI +FollowSymLinks`; PHP error log outside the web root; log files denied | `.htaccess` | Apache 2.4 probe before/after on a scratch copy |
+| Graph payload | founders (approved), edge verification, attribute dictionary, URL templates, `batch` up to 2,000 | `ProgressiveGraphService.php`, `GenealogyGraphController.php` | `TreeExperienceTest` (7), updated `PersonManagementUxTest` |
+| Fakhd path | `BranchFocusService` path to the tree page | `GenealogyTreeController.php`, `genealogy/tree.blade.php` | `TreeExperienceTest` |
+| Layout | pure layout module | `public/js/tree-layout.js` | `tests/js/tree-layout.test.cjs` (11, `node --test tests/js/`); 9 mutations caught |
+| Renderer & page | renderer rewrite, toolbar, legend, popover, panel, person page tree links, styles | `public/js/genealogy-tree.js`, `genealogy/tree.blade.php`, `genealogy/person.blade.php`, `public/css/juthoor.css` | Chrome 9/9 |
+| Fixtures | labelled synthetic stress trees (opt-in, local/testing) | `database/seeders/TreeStressFixtureSeeder.php` | `TreeExperienceTest` |
+| Fixes during the session | popover gated on `(hover: hover)` (false in headless/touch-less environments) → pointer type; mobile toolbar/path widened the layout viewport to 674 px → clipped; very wide synthetic families → row wrapping; Arabic count grammar | as above | Chrome, Node |
 
 ### Session 14 — UX-P0.2 family domains, portals & branding
 | Area | Change | Files | Tests / verification |
@@ -253,13 +264,33 @@ UX-P0.3 — tree experience behind the existing tree route (see `docs/implementa
 | Landing page always uses public rules | A shared public page must not vary with the viewer's memberships |
 | Branding as structured values with approved palettes | No executable HTML, scripts or CSS from administrators |
 | Private datasets moved, not deleted; provenance path kept | Closes SD-08 without changing imports, checksums or recorded sources |
+| Extend the SVG renderer instead of adding a graph library | The bottlenecks were layout, payload and redraw strategy; measured gains without a new dependency |
+| Layout as a pure module tested in Node | Integrity rules (each person once, order, folds, views) are testable without a browser |
+| Compact chains need ≥ 3 single-child people and skip founders/root/focus | Saves space only where it is safe; important people keep full cards |
+| Chains never reveal hidden children counts | A note states that compact chains do not deny unpublished branches; no data is inferred |
+| Founders only from approved branch roots and the tree root | No founder inferred from a name, title or position |
+| URL templates instead of per-node URLs | Halves the payload; templates exist only for permitted actions, routes still authorize |
+| Edge verification drawn on every connector and chain dot | Stored genealogy is visibly distinct from verified genealogy |
+
+## Verification evidence (session 15 — UX-P0.3)
+
+| Check | Result |
+|---|---|
+| UX-P0.2 gate | SQLite 421/421; PostgreSQL 420/421 (ordering-only test defect, fixed and re-run 3× green); migration rollback/re-apply on a disposable PostgreSQL database |
+| Full suite after UX-P0.3, SQLite | 428 / 428 (4788 assertions) |
+| Full suite after UX-P0.3, PostgreSQL 16 | 428 / 428 (4788 assertions). A first full run showed one more order-only test defect (`portalContent()` picked “the first admin” without family or order; another family's admin could come first on PostgreSQL); helpers in `CommunityPortalTest`, `CommunityNewsTest`, `CommunityEventTest` now select the owner family's admin by id |
+| Node layout tests | 11 / 11; 9 / 9 layout mutations caught |
+| Pint, `node --check`, `git diff --check` | pass |
+| Chrome (real seeded Al-Zoubi + Qawasmeh; labelled synthetic fixtures for dense shapes) | 9/9, no console errors: full tree (85 public of 119), chain fold/expand, search into a folded chain + breadcrumb + back, founder popover by mouse and keyboard + arrow navigation, fakhd Bakr with the full approved path, dense descendants and legend, editor actions + quick add vs. visitor, 390 px and 820 px, ancestor/descendant views + fullscreen + person page round trip |
+| Performance | `docs/project-audit.md` §18.4 |
+| Not run | Safari/Firefox; real devices; MySQL; production Apache with mod_php |
 
 ## Verification evidence (session 14 — UX-P0.2)
 
 | Check | Result |
 |---|---|
 | Baseline before changes | 404 / 404 SQLite and PostgreSQL 16 |
-| Full suite, SQLite / PostgreSQL 16 | SQLite 421 / 421 (4693 assertions); PostgreSQL final run **not completed** |
+| Full suite, SQLite / PostgreSQL 16 | SQLite 421 / 421 (4693 assertions); PostgreSQL completed in session 15: 420 / 421, the one failure an ordering-only test defect (fixed) |
 | Pint, `node --check`, `git diff --check` | pass |
 | Chrome (host routing on, `*.localhost`, seeded Al-Zoubi + Qawasmeh, local test entities, synthetic demo family) | 10/10, no page errors besides the expected 403 when a family admin is redirected to `/site-admin/domains`: desktop landing; mobile; hero search → tree on the family host; fakhd card → entity page on the family host; media upload + branding draft; private preview then publication; cover via the media route (original and unknown uuid 404); no draft entities, QW keys or phone data in anonymous HTML; second family portal; unknown host, other-family paths and administration redirects |
 | Performance | 53 ms seeded / 494 ms with 10,000 extra people (median, server time); constant queries |

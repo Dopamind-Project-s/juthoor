@@ -35,7 +35,7 @@ beforeEach(function () {
 /** @param  array<string, mixed>  $governance */
 function newsPost(CommunityEntity $owner, array $fields, array $governance = [], ?User $as = null): Model
 {
-    $as ??= User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin'))->firstOrFail();
+    $as ??= User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin')->where('family_id', $owner->family_id))->orderBy('id')->firstOrFail();
 
     return app(CommunityContentService::class)->save($as, $owner, new NewsPost, ['category' => 'news', 'body' => 'نص الخبر', ...$fields],
         ['publication_status' => 'published', 'verification_status' => 'pending_review', 'audience' => 'public', 'subjects' => [], 'audiences' => [], ...$governance]);
@@ -141,7 +141,7 @@ test('published news is corrected or cancelled through visible notices, never si
 
     $this->get(route('community.news.show', ['zain', $post->id]))->assertSee('data-cancelled', false)->assertSeeInOrder(['أُلغي الاجتماع', 'تغيّر موعد الاجتماع إلى المساء']);
     expect($post->notices()->pluck('kind')->all())->toBe(['cancellation', 'update'])
-        ->and(AuditLog::query()->where('auditable_type', NewsPost::class)->where('auditable_id', $post->id)->pluck('action')->all())->toBe(['created', 'notice_update', 'notice_cancellation']);
+        ->and(AuditLog::query()->where('auditable_type', NewsPost::class)->where('auditable_id', $post->id)->orderBy('id')->pluck('action')->all())->toBe(['created', 'notice_update', 'notice_cancellation']);
 });
 
 test('drafts, member news and hidden owners stay private on lists and detail pages', function () {

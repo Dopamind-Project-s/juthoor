@@ -31,7 +31,7 @@ beforeEach(function () {
 /** Creates an event as the family administrator; times are wall clock in the event's zone. */
 function communityEvent(CommunityEntity $owner, array $fields, array $governance = [], ?User $creator = null): Model
 {
-    $creator ??= User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin'))->firstOrFail();
+    $creator ??= User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin')->where('family_id', $owner->family_id))->orderBy('id')->firstOrFail();
 
     return app(CommunityContentService::class)->save($creator, $owner, new CommunityEvent, CommunityEvent::prepareContentFields(['category' => 'gathering', 'timezone' => 'Asia/Amman', ...$fields]),
         ['publication_status' => 'published', 'verification_status' => 'pending_review', 'audience' => 'public', 'subjects' => [], 'audiences' => [], ...$governance]);
@@ -96,7 +96,7 @@ test('schedule changes keep the replaced values, stay visible and notify', funct
         ->and($event->notices()->where('kind', 'rescheduled')->sole()->previous['starts_at'])->toStartWith('2030-03-15T15:00')
         ->and($event->notices()->where('kind', 'relocated')->sole()->previous['location_name'])->toBe('الديوان القديم')
         ->and($this->editor->fresh()->notifications()->count())->toBe(3)
-        ->and(AuditLog::query()->where('auditable_type', CommunityEvent::class)->where('auditable_id', $event->id)->pluck('action')->all())->toBe(['created', 'notice_rescheduled', 'notice_relocated', 'notice_postponed']);
+        ->and(AuditLog::query()->where('auditable_type', CommunityEvent::class)->where('auditable_id', $event->id)->orderBy('id')->pluck('action')->all())->toBe(['created', 'notice_rescheduled', 'notice_relocated', 'notice_postponed']);
 
     $this->post($notice, ['kind' => 'cancellation', 'message' => 'أُلغي اللقاء'])->assertSessionHasNoErrors();
     auth()->logout();

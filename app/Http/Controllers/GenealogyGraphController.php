@@ -28,7 +28,10 @@ class GenealogyGraphController extends Controller
             'mode' => ['nullable', 'in:focus,isolated'], 'after' => ['nullable', 'integer', 'min:0'],
         ]);
         if ($request->boolean('all')) {
-            return response()->json($graphs->batch($tree, (int) ($data['cursor'] ?? 0), (int) ($data['limit'] ?? 160), ! $private));
+            // Full-tree batches are larger than focus pages: the renderer loads every eligible person once.
+            $batch = $request->validate(['batch' => ['nullable', 'integer', 'between:10,2000']])['batch'] ?? null;
+
+            return response()->json($graphs->batch($tree, (int) ($data['cursor'] ?? 0), (int) ($batch ?? $data['limit'] ?? 160), ! $private));
         }
         $branch = null;
         if (! empty($data['branch'])) {

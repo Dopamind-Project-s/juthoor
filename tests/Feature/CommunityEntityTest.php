@@ -205,7 +205,7 @@ test('editors draft, administrators publish and review', function () {
     auth()->logout();
 
     $this->get(route('community.entities.show', ['zain', 'clan']))->assertOk()->assertSee('آخر مراجعة: <strong>'.now()->format('Y-m-d'), false);
-    expect(AuditLog::query()->where('auditable_type', CommunityEntity::class)->where('auditable_id', $clan->id)->pluck('action')->all())->toBe(['created', 'updated']);
+    expect(AuditLog::query()->where('auditable_type', CommunityEntity::class)->where('auditable_id', $clan->id)->orderBy('id')->pluck('action')->all())->toBe(['created', 'updated']);
 });
 
 test('entity managers act only within their subtree', function () {

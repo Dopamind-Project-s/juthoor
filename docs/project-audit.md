@@ -1,6 +1,6 @@
 # Juthoor — Repository Audit & Requirements Traceability
 
-Audit date: 2026-10-27 (updated after UX-P0.2 — family domains, portals, branding; see §17; UX-P0.1 in §16). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
+Audit date: 2026-10-27 (updated after UX-P0.3 — unified tree redesign; see §18; UX-P0.2 in §17, UX-P0.1 in §16). Approved priority change (2026-10-26): Phase 2.6 (mothers, spouses, life events), Phase 2.7 (GEDCOM) and Facebook publishing are **deferred, not cancelled**; Phase 3 proceeds now, then Phase 4 without Facebook. Reference: *Juthoor — Master Project Requirements & Architecture Reference v2.0* (2026-10-22). The reference file is **not in the repository**; it was read from `~/Downloads/Juthoor_Master_Project_Requirements_v2.0.md` on the maintainer's machine. Requirement IDs (JTH-xx, UC-xx, ADR-xxx) below are the reference's own.
 
 Status values: **Implemented** (verified by code + executed tests), **Partial**, **Missing**, **Broken**, **Unverified**. "Implemented" never means "listed in the reference".
 
@@ -10,9 +10,9 @@ Status values: **Implemented** (verified by code + executed tests), **Partial**,
 |---|---|
 | Stack | Laravel 13.31, PHP ^8.3 (composer), Pest 4.7, Blade + Bootstrap 5 RTL + vanilla JS (`public/js/genealogy-tree.js`, `public/js/juthoor.js`). No Vite/npm build. |
 | Databases | SQLite (tests, local); MySQL per `.env.example` history; PostgreSQL 16 now verified (full suite green). |
-| Branch / HEAD | `main` at `9882e9f` (UX-P0.1 committed by the maintainer); UX-P0.2 changes (session 14) are uncommitted. |
-| Test baseline (start of session 14) | 404 passed, 0 failed, 4477 assertions on SQLite and on PostgreSQL 16 (re-run before any change). |
-| Test result (end of session 14) | **421 passed, 0 failed** (4693 assertions) on SQLite. The final PostgreSQL 16 run was started but did not complete before the session ended — **not verified**. |
+| Branch / HEAD | `main` at `6e2e4e2` (UX-P0.2 committed by the maintainer); UX-P0.3 changes (session 15) are uncommitted. |
+| Test baseline (start of session 15) | SQLite 421 / 421; PostgreSQL 16 420 / 421 (ordering-only test defect, fixed — §18.1). |
+| Test result (end of session 15) | **428 passed, 0 failed** (4788 assertions) on SQLite; PostgreSQL 16: **428 passed, 0 failed** (4788 assertions). Node layout tests 11/11. |
 | Environment note | Host PHP builds lack `dom`/`mbstring`/`pdo_sqlite`; all PHP ran in `php:8.3-cli` containers. Laravel Boost MCP did not connect. |
 
 ## 2. Implementation inventory (route → controller → service → model → view → policy → tests)
@@ -647,3 +647,65 @@ The portal is dominated by the single tree-graph load (as entity pages, §13); c
 - Branding publication needs one family administrator (no second approver); every change is audited.
 - Logged-in members see the public version of the landing page; members-only content stays on entity pages.
 - The tree page itself is unchanged (UX-P0.3).
+
+## 18. Unified tree redesign (UX-P0.3, 2026-10-27)
+
+### 18.1 UX-P0.2 verification gate
+
+| Check | Result |
+|---|---|
+| HEAD / tree | `6e2e4e2` (UX-P0.2 committed by the maintainer), clean before this phase |
+| SQLite full suite | 421 / 421 |
+| PostgreSQL 16 full suite (disposable container) | 420 / 421 — `CommunityEventTest` compared audit actions without `ORDER BY`; PostgreSQL does not guarantee row order. Test fixed (`orderBy('id')`), file re-run 3× green; the same latent pattern fixed in `CommunityMediaTest`, `CommunityNewsTest`, `CommunityEntityTest`. Not an application defect. |
+| Migration `2026_10_27_082059` rollback / re-apply | Disposable database `juthoor_mig_p2` in a disposable container: migrate + seed + domain request + portal draft; rollback dropped both tables with genealogy untouched (85 people); re-apply restored the schema; database dropped afterwards |
+| Root `.htaccess` (probed with Apache 2.4 on a scratch copy, dummy files only) | **Confirmed defects:** `php_value error_log "error_log.txt"` is relative to `public/` (front controller) → PHP error logs would be web-downloadable (200); `Options All` → directory listings (200) and server-side includes executed. **Fix:** `Options -Indexes -Includes -ExecCGI +FollowSymLinks`, error log to `../storage/logs/php-errors.log`, `<FilesMatch "(^error_log\|\.log$)"> Require all denied`. After: logs 403, listings 403, SSI not executed, `/.env` still routed to the front controller, normal files unaffected. The duplicated rewrite rules are behaviourally harmless and were left as they are. |
+
+### 18.2 Previous renderer (findings)
+
+Hand-written SVG in `genealogy-tree.js`: every person a 240 px card in a classic top-down tidy layout; single-child chains took a full row per generation (the real Al-Zoubi tree was **780 × 10,149 px**, one column of 75+ ancestors); every node redrawn on each pan/zoom; full tree fetched in 160-person batches with five absolute URLs per node; branch focus recomputed client-side; the attribute legend was rebuilt from nodes. At 10,000 synthetic people: 60 requests, 3.9 MB, 56,679 SVG elements, ~403 ms per pan frame, 1.7 million px wide, 23 s to ready. The library (plain SVG) is adequate; layout, payload and rendering strategy were the bottlenecks — extended in place, no new framework.
+
+### 18.3 Architecture
+
+| Layer | Implementation |
+|---|---|
+| Payload (`ProgressiveGraphService::batch`, `all=1`) | Same privacy rules (people and edges `publiclyVisible`, both ends visible). Per node: id, display name, verification, attribute ids, founder (if any). Per edge: id, child, father, **verification**. Per batch: attribute dictionary (from the lookup table, active only, global or this family) and URL templates with an id placeholder — management templates only for permitted actions (`person.create`, `person.edit-unpublished`, `person.propose`). Batches up to 2,000 (`batch=`); ≈186 bytes per person. |
+| Founders | Only approved associations: published branches (members: branches with a founder) by `root_person_id` → classification «مؤسس <branch type>», branch name, description (published branches only), verification, branch-tree URL, public entity page URL (`CommunityHierarchy::publicIds`); the tree root as «الجد الجامع للشجرة». Never from names or position. |
+| Layout (`public/js/tree-layout.js`, pure, Node-tested) | visible set per view (full / ancestors / descendants / fakhd focus or isolated with the `BranchFocusService` path); units: cards, **compact chains**, **sibling grids**; tidy placement with **row wrapping** for wide families (connector corridor); mirrored for RTL. |
+| Renderer (`public/js/genealogy-tree.js`) | one load, viewport virtualization, three levels of detail by zoom, connectors drawn as three paths (verified solid / sourced light / pending dashed), founder cards, chain rows with fold, grid cells, popover, panel/bottom sheet, breadcrumb, views, history, fullscreen, keyboard, touch pan/pinch, search, UX-P0.1 quick add. |
+| Fakhd page | `GenealogyTreeController::branch` passes the `BranchFocusService` ancestor path (approved father chain, limited to people the viewer may see) as `data-branch-path`; the same renderer is used. |
+
+**Compact lineage algorithm** — a chain is a maximal run of ≥ 3 people who each have exactly one *visible* child and are not founders, the root, collapsed, or the view's focus. It is drawn as one card with one row per person in father → son order, with a dot coloured by verification. Runs longer than 9 show the first 3 and the last 3 around a fold («⋯ N جيلًا — إظهار»). Search, the breadcrumb and keyboard selection expand the fold that contains the target before focusing it. The chain is presentation only: it adds and removes no edge. The note under the toolbar says that a compact chain does not deny unpublished branches; the number of hidden children is never revealed.
+
+**Sibling grids and wrapping** — ≥ 5 children of one father without visible children of their own form a grid under him. A father whose children's sub-trees would be wider than 3,200 px places them in rows beside a connector corridor (orthogonal connectors in the gaps, never across cards).
+
+**Founder nodes** — wider (272 px) cards with a dark heritage band, gold border, «★ classification» and branch name. Mouse hover or keyboard focus shows a popover (description, verification, links to the fakhd page and branch tree); touch opens the same content in the bottom sheet. The root uses a bronze band.
+
+**Attributes** — chips with the administrator's colour and text colour plus a «◆» marker and the label (not colour alone); the legend lists the attributes in use with their labels; inactive attributes and other families' attributes are never sent. A legend note: honorary attributes are not verification.
+
+### 18.4 Performance (synthetic labelled fixtures, Chrome 1440×900, local server, median of 3; host load average 13–16)
+
+| People (published) | Requests / payload | Ready | Layout | Draw | Pan frame p50 / p95 | Fit | Search → results* | Focus | JS heap |
+|---|---|---|---|---|---|---|---|---|---|
+| 100 (96) | 1 / 21 KB | 597 ms | 4.5 ms | 0.1 ms | 33 / 34 ms | 31 ms | 320 ms | 33 ms | 14 MB |
+| 1,000 (935) | 1 / 171 KB | 602 ms | 11 ms | 0.1 ms | 33 / 34 ms | 41 ms | 316 ms | 21 ms | 18 MB |
+| 5,000 (4,717) | 5 / 870 KB | 863 ms | 42 ms | 2.8 ms | 33 / 34 ms | 39 ms | 320 ms | 25 ms | 21 MB |
+| 10,000 (9,444) | 10 / 1.7 MB | 1,335 ms | 64 ms | 3.6 ms | 33 / 34 ms | 42 ms | 327 ms | 21 ms | 17 MB |
+
+\* includes the 250 ms typing debounce. 33 ms = two animation frames (the measurement waits for both). Mounted SVG groups stay below ~700 at any zoom (virtualization + level of detail). Previous renderer at 10,000: 23 s, 60 requests, 3.9 MB, 56,679 elements, 403 ms per pan frame. Measurements before the row-wrapping change; the change affects only placement (Node test: 10,000 people laid out well under 1.5 s).
+
+### 18.5 Privacy verification
+
+Feature tests (`TreeExperienceTest`): the public payload contains exactly the `publiclyVisible` people and edges (each once); living, unknown-status and pending people, unpublished branches and their descriptions appear in no node, edge, founder, attribute dictionary, search result or tree HTML; members' private preview needs membership; other families never appear; unpublished entity pages are not linked; inactive and foreign attributes are omitted. Chrome: the public payload of the real seeded tree has 85 nodes (119 in the database), no canonical keys, living flags or birth years.
+
+### 18.6 Screenshots
+
+`docs/screenshots/ux-p0.3/` — before: full tree (default and fitted), mobile; after: full tree, long chain folded and expanded, founder popover, fakhd Bakr, search and focus with breadcrumb, mobile start and founder sheet, tablet, person actions (editor, private preview), large branching and attribute legend (labelled synthetic fixture: the seeded public Al-Zoubi records carry no attributes and have no large sibling groups).
+
+### 18.7 Limitations
+
+- The full overview of thousands of people is navigable but not legible at fit; reading happens zoomed in, in a branch, or through search.
+- Attribute "icons" are a shared marker (◆) plus the label; the lookup table has no icon column (not added in this phase).
+- Children order follows edge id (record order); there is no birth-order field.
+- The fold threshold (9) and wrap width (3,200 px) are constants, not settings.
+- Print/export views do not exist yet (nothing to leak; any future export must reuse `batch` rules).
+- Shared-ancestry (cross-family) links are not drawn inside a family's tree; governance is unchanged (super-admin edits).

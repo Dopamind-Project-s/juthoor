@@ -3,50 +3,130 @@
 namespace App\Services\Genealogy;
 
 use App\Models\Branch;
+use App\Models\CommunityEntity;
 use App\Models\FamilyTree;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Services\Access\FamilyPermissions;
+use App\Services\Community\CommunityHierarchy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class ProgressiveGraphService
 {
+    /** Sentinel id in URL templates; the tree replaces it with a node id client-side. */
+    public const ID_PLACEHOLDER = 987654321987;
+
+    /**
+     * The full tree in id-ordered batches for the unified tree renderer. Only people and father edges the viewer may
+     * see are included (public: Person/PersonRelationship::publiclyVisible, both ends visible). Attributes are sent once
+     * as a dictionary; founders only from approved associations (published branches for visitors, the tree root);
+     * action URLs as templates and only for permitted actions.
+     *
+     * @return array<string, mixed>
+     */
     public function batch(FamilyTree $tree, int $after, int $limit, bool $publicOnly): array
     {
         $query = $tree->people()->when($publicOnly, fn ($query) => $query->publiclyVisible());
         $total = (clone $query)->count();
-        $people = $query->where('id', '>', $after)->orderBy('id')->limit($limit + 1)->with('personAttributes')->get();
+        $people = $query->where('id', '>', $after)->orderBy('id')->limit($limit + 1)->with('personAttributes')->get(['id', 'family_tree_id', 'full_name_ar', 'title', 'honorific', 'verification_status']);
         $complete = $people->count() <= $limit;
         $people = $people->take($limit);
         $edges = $tree->personRelationships()->where('relationship_type', 'father')->where('is_primary', true)
             ->whereIn('person_id', $people->modelKeys())
-            ->when($publicOnly, fn ($query) => $query->publiclyVisible()->whereHas('relatedPerson', fn ($query) => $query->publiclyVisible()))->get();
-        $states = [];
+            ->when($publicOnly, fn ($query) => $query->publiclyVisible()->whereHas('relatedPerson', fn ($query) => $query->publiclyVisible()))
+            ->orderBy('id')->get(['id', 'person_id', 'related_person_id', 'verification_status']);
         $rootId = $tree->people()->when($publicOnly, fn ($q) => $q->publiclyVisible())->whereKey($tree->root_person_id)->value('id');
-
-        $actions = $this->actions($tree);
+        $founders = $this->founders($tree, $people->modelKeys(), $publicOnly, $rootId);
+        $attributes = [];
 
         return [
             'tree' => ['id' => $tree->id, 'name' => $tree->name_ar], 'root_id' => $rootId,
-            'nodes' => $people->values()->map(fn (Person $person): array => [
-                'id' => $person->id,
-                'name' => $person->display_name,
-                'title' => $person->title, 'honorific' => $person->honorific,
-                'attributes' => $person->setRelation('familyTree', $tree)->displayAttributes()->map(fn ($attribute) => [
-                    'id' => $attribute->id, 'label' => $attribute->label,
-                    'color' => $attribute->color, 'text_color' => $attribute->text_color,
-                ])->all(),
-                'status' => $states[$person->id] ?? 'visible',
-                'verification' => $person->verification_status,
-                'has_more_children' => false,
-                ...$actions($person),
-                'url' => route('genealogy.person', [$tree->family->slug, $person->id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
-            ])->all(),
-            'edges' => $edges->map(fn ($edge) => ['id' => $edge->id, 'child_id' => $edge->person_id, 'parent_id' => $edge->related_person_id])->all(),
-            'meta' => ['complete' => $complete, 'total' => $total, 'next_cursor' => $complete ? null : $people->last()->id],
+            'nodes' => $people->values()->map(function (Person $person) use ($tree, $founders, &$attributes): array {
+                $ids = [];
+                foreach ($person->setRelation('familyTree', $tree)->displayAttributes() as $attribute) {
+                    $attributes[$attribute->id] ??= ['id' => $attribute->id, 'key' => $attribute->key, 'label' => $attribute->label, 'color' => $attribute->color, 'text_color' => $attribute->text_color];
+                    $ids[] = $attribute->id;
+                }
+
+                return array_filter([
+                    'id' => $person->id, 'name' => $person->display_name, 'verification' => $person->verification_status,
+                    'attributes' => $ids, 'founder' => $founders[$person->id] ?? null,
+                ], fn ($value) => $value !== null && $value !== []) + ['id' => $person->id];
+            })->all(),
+            'edges' => $edges->map(fn ($edge) => ['id' => $edge->id, 'child_id' => $edge->person_id, 'parent_id' => $edge->related_person_id, 'verification' => $edge->verification_status])->all(),
+            'meta' => [
+                'complete' => $complete, 'total' => $total, 'next_cursor' => $complete ? null : $people->last()->id,
+                'attributes' => array_values($attributes),
+                'templates' => $this->templates($tree, $publicOnly),
+                'id_placeholder' => self::ID_PLACEHOLDER,
+            ],
         ];
+    }
+
+    /**
+     * Founder classification of the batch's people from approved associations only: a branch whose founder they are
+     * (published branches for visitors) and, for its root, the tree itself. Entity links only to public entities.
+     *
+     * @param  array<int, int>  $ids
+     * @return array<int, array<string, mixed>>
+     */
+    private function founders(FamilyTree $tree, array $ids, bool $publicOnly, ?int $rootId): array
+    {
+        $branches = Branch::query()->where('family_tree_id', $tree->id)->whereIn('root_person_id', $ids)
+            ->when($publicOnly, fn ($query) => $query->published())->orderBy('sort_order')->orderBy('id')->get();
+        $entityIds = $publicOnly ? app(CommunityHierarchy::class)->publicIds($tree->family_id) : null;
+        $entities = CommunityEntity::query()->where('family_id', $tree->family_id)->whereIn('branch_id', $branches->modelKeys())
+            ->when($entityIds !== null, fn ($query) => $query->whereIn('id', $entityIds))->get(['id', 'slug', 'name_ar', 'branch_id'])->keyBy('branch_id');
+        $slug = $tree->family->slug;
+        $founders = [];
+        foreach ($branches as $branch) {
+            if (isset($founders[$branch->root_person_id])) {
+                $founders[$branch->root_person_id]['also'][] = $branch->name_ar;
+
+                continue;
+            }
+            $entity = $entities->get($branch->id);
+            $founders[$branch->root_person_id] = array_filter([
+                'kind' => $branch->branch_type,
+                'classification' => 'مؤسس '.($branch->type_label),
+                'branch' => $branch->name_ar,
+                'description' => $branch->description ? Str::limit($branch->description, 280) : null,
+                'verification' => $branch->verification_status,
+                'branch_url' => route('genealogy.branch', [$slug, $branch->slug, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
+                'entity_url' => $entity ? route('community.entities.show', [$slug, $entity->slug]) : null,
+                'entity' => $entity?->name_ar,
+            ], fn ($value) => $value !== null);
+        }
+        if ($rootId && in_array($rootId, $ids, true) && ! isset($founders[$rootId])) {
+            $founders[$rootId] = ['kind' => 'root', 'classification' => 'الجد الجامع للشجرة', 'branch' => $tree->name_ar];
+        }
+
+        return $founders;
+    }
+
+    /**
+     * URL templates for the viewer: the person page always; management actions only when permitted (each route checks
+     * again). The id placeholder is replaced client-side.
+     *
+     * @return array<string, string>
+     */
+    private function templates(FamilyTree $tree, bool $publicOnly): array
+    {
+        $id = self::ID_PLACEHOLDER;
+        $slug = $tree->family->slug;
+        $user = auth()->user();
+        $permissions = $user?->hasVerifiedEmail() ? app(FamilyPermissions::class)->for($user, $tree->family) : [];
+
+        return array_filter([
+            'person' => route('genealogy.person', [$slug, $id, 'tree' => $tree->slug, 'private' => $publicOnly ? null : 1]),
+            'add_child' => in_array('person.create', $permissions, true) ? route('management.records.create', [$slug, 'people', 'tree' => $tree->slug, 'father_id' => $id]) : null,
+            'edit' => in_array('person.edit-unpublished', $permissions, true) ? route('management.records.edit', [$slug, 'people', $id, 'tree' => $tree->slug]) : null,
+            'propose' => in_array('person.propose', $permissions, true) ? route('management.changes.create', [$slug, 'tree' => $tree->slug, 'kind' => 'person', 'target' => $id]) : null,
+            'manage' => in_array('person.propose', $permissions, true) ? route('management.people.show', [$slug, $id, 'tree' => $tree->slug]) : null,
+        ]);
     }
 
     /** @return array<string, mixed> */

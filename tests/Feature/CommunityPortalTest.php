@@ -73,7 +73,8 @@ beforeEach(function () {
  */
 function portalContent(string $model, CommunityEntity $owner, array $fields, array $governance = []): Model
 {
-    $admin = User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin'))->firstOrFail();
+    // The owner family's administrator (other families' admins may exist; no row order is assumed).
+    $admin = User::query()->whereHas('familyMemberships', fn ($q) => $q->where('role', 'admin')->where('family_id', $owner->family_id))->orderBy('id')->firstOrFail();
 
     return app(CommunityContentService::class)->save($admin, $owner, new $model, $fields, [
         'publication_status' => 'published', 'verification_status' => 'sourced', 'audience' => 'public', 'subjects' => [], 'audiences' => [], ...$governance,

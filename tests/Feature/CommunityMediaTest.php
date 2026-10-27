@@ -275,7 +275,7 @@ test('files in use cannot be deleted; unused drafts are deleted with their files
     expect($used->checksum)->toBe(hash('sha256', mediaJpeg('better')))->and($used->original_name)->toBe('better.jpg')
         ->and(Storage::disk('media')->exists($old[0]))->toBeFalse()->and(Storage::disk('media')->exists($used->path))->toBeTrue()
         ->and($record->mediaAttachments()->sole()->media_item_id)->toBe($used->id)
-        ->and(AuditLog::query()->where('auditable_type', MediaItem::class)->where('auditable_id', $used->id)->pluck('action')->all())->toBe(['created', 'file_replaced', 'updated'])
+        ->and(AuditLog::query()->where('auditable_type', MediaItem::class)->where('auditable_id', $used->id)->orderBy('id')->pluck('action')->all())->toBe(['created', 'file_replaced', 'updated'])
         ->and(AuditLog::query()->where('auditable_type', MediaAttachment::class)->where('action', 'created')->exists())->toBeTrue();
 });
 

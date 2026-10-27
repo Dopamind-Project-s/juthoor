@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Family;
 use App\Models\FamilyTree;
 use App\Models\Person;
+use App\Services\Genealogy\BranchFocusService;
 use App\Services\Genealogy\GenealogyTraversalService;
 use App\Services\Genealogy\PersonPrivacy;
 use App\Services\Genealogy\PublishedTreeTraversal;
@@ -66,9 +67,28 @@ class GenealogyTreeController extends Controller
             'tree' => $tree,
             'trees' => $family->familyTrees()->active()->get(),
             'focusedBranch' => $focusedBranch,
+            'branchPath' => $focusedBranch ? $this->branchPath($tree, $focusedBranch) : [],
             'branches' => $tree->branches()->when(request()->boolean('private'), fn ($query) => $query->whereNotNull('root_person_id'), fn ($query) => $query->published())
                 ->orderBy('sort_order')->get(),
         ]);
+    }
+
+    /**
+     * Founder path of a fakhd view from BranchFocusService (approved father chain), limited to people the viewer may
+     * see, so switching between the fakhd and the full tree never drops an eligible ancestor.
+     *
+     * @return array<int, int>
+     */
+    private function branchPath(FamilyTree $tree, Branch $branch): array
+    {
+        $focus = app(BranchFocusService::class)->getBranchFocus($branch->id, BranchFocusService::MODE_ISOLATED, 0);
+        $ids = collect($focus['nodes'])->filter(fn (array $node) => in_array($node['state'], ['ancestor_path', 'branch_root'], true))->map(fn (array $node) => $node['person']->id)->all();
+        if (! request()->boolean('private')) {
+            $ids = $tree->people()->publiclyVisible()->whereKey($ids)->pluck('id')->all();
+        }
+        sort($ids);
+
+        return array_values($ids);
     }
 
     /** @return array{Family, FamilyTree} */
