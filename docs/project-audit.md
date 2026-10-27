@@ -810,3 +810,14 @@ The directory on a 10,000-person tree now loads the public graph once to count p
 - Achievement category filters reload the page (`?category=`), whereas archive and gallery filters are client-side; both are kept as they were.
 - No real Al-Zoubi heritage content, cover or diwans exist yet, so the Al-Zoubi pages show empty states (data, not code).
 - Safari and Firefox, real devices and screen readers other than Chrome's accessibility tree were not tested.
+
+
+## Unified development genealogy rebuild — 2026-10-27
+
+The default seed path now consumes a separate normalized, source-traced Al-Zoubi proposal through `AlZoubiFamilyTreeSeeder`, followed by scoped local-only `SiteUsersSeeder`; RBAC and PersonAttribute catalogs remain intact. The final proposal has 1,688 people, 1,687 father edges, 17 branches (16 linked founders), one family and one tree. The 79-person supplied ancestry is shared once; ROOT-076 is Yusuf, ROOT-078/079 replace prior Rahaymeh anchor aliases. Qawasmeh includes its 34 submitted identities and additional chart-supported descendants. All descendants retain unknown living status/pending review. No chart-only death inference or automatic historical verification is performed.
+
+All v4 rows are classified, including 1,428 parentless/blank source rows retained for review. The recursive inventory includes editable Diagram Designer evidence beyond the PNG/PDF/XLSX copies. Conflicting Awtalat ancestry, Faqara/Abdul-Latif family attachment, and unresolved chart identity mappings remain review material. The safe initialization command refuses nonempty/nonlocal targets and never drops tables. Previous seeder implementations remain explicit audit/test compatibility fixtures; deleting them after migrating their dependent commands is still outstanding.
+
+See [source inventory](genealogy-source-inventory.md), [database coverage](genealogy-import-coverage.md), and [architecture, accounts, commands and validation](genealogy-seeder-reference.md). Screenshots and browser journeys are in `docs/screenshots/genealogy-rebuild/`. No migration/source evidence was deleted; no production database, deployment, subdomain activation or Git commit/push was performed.
+
+Final verification: SQLite 453/453 and PostgreSQL 16.15 453/453 (11,760 assertions each); PostgreSQL final regression subset 20/20; Node layout 11/11. Raw unified source observations are now reviewer-only, including direct download access. The PostgreSQL savepoint/lock-exhaustion defect was fixed in the importer without raising server limits. Development canonical portal routing uses the existing database-backed portal and entity components; production host routing remains unchanged. See `genealogy-validation-results.json`.

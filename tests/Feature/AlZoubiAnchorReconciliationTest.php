@@ -11,6 +11,7 @@ use Database\Seeders\AlZoubiSharedAncestrySeeder;
 use Database\Seeders\FamilySeeder;
 use Database\Seeders\FamilyTreeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -21,7 +22,7 @@ function anchorCounts(): array
 }
 
 test('the base seed followed by the Qawasmeh seeder reconciles ROOT-077 in place without duplicating people', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $root77 = Person::query()->where('canonical_key', 'ROOT-077')->sole();
     expect($root77->full_name_ar)->toBe('ذبيان');
 
@@ -46,11 +47,11 @@ test('the base seed followed by the Qawasmeh seeder reconciles ROOT-077 in place
 });
 
 test('repeating both seeders keeps person relationship citation and audit counts identical', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $before = anchorCounts();
 
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
 
     expect(anchorCounts())->toBe($before)
@@ -58,7 +59,7 @@ test('repeating both seeders keeps person relationship citation and audit counts
 });
 
 test('the recorded variant spelling stays searchable in the public tree', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $root77 = Person::query()->where('canonical_key', 'ROOT-077')->sole();
 
@@ -67,11 +68,11 @@ test('the recorded variant spelling stays searchable in the public tree', functi
 });
 
 test('the base seed refuses to overwrite unreconciled names and writes nothing', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     Person::query()->where('canonical_key', 'ROOT-010')->update(['full_name_ar' => 'اسم معدل يدويا']);
     $before = anchorCounts();
 
-    expect(fn () => $this->seed())->toThrow(RuntimeException::class, 'ROOT-010: existing [اسم معدل يدويا]');
+    expect(fn () => $this->seed(LegacyGenealogySeeder::class))->toThrow(RuntimeException::class, 'ROOT-010: existing [اسم معدل يدويا]');
     expect(anchorCounts())->toBe($before)
         ->and(Person::query()->where('canonical_key', 'ROOT-010')->value('full_name_ar'))->toBe('اسم معدل يدويا');
 });
@@ -84,7 +85,7 @@ test('the shared ancestry path keeps its own anchors and the base seed cannot si
 
     expect(Person::query()->where('canonical_key', 'QW-0001')->sole()->outgoingRelationships()->sole()->relatedPerson->canonical_key)->toBe('ROOT-078')
         ->and(AuditLog::query()->where('action', 'spelling_reconciled')->exists())->toBeFalse();
-    expect(fn () => $this->seed())->toThrow(RuntimeException::class);
+    expect(fn () => $this->seed(LegacyGenealogySeeder::class))->toThrow(RuntimeException::class);
     expect(anchorCounts())->toBe($before);
 });
 
@@ -93,7 +94,7 @@ test('the Qawasmeh seeder explains its prerequisite on an empty database', funct
 });
 
 test('seeded people get Arabic search keys so public search and duplicate detection see them', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $noah = Person::query()->where('canonical_key', 'ROOT-010')->sole();
 
     expect(Person::query()->whereNull('name_search')->count())->toBe(0)

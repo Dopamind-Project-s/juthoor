@@ -13,11 +13,12 @@ use Database\Seeders\AlQawasmehBranchSeeder;
 use Database\Seeders\AlZoubiRootVariantSeeder;
 use Database\Seeders\FamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $this->seed(AlZoubiRootVariantSeeder::class);
     $this->slug = FamilySeeder::SLUG;

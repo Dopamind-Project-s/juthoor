@@ -61,7 +61,7 @@ if (! $canonicalPortal) {
 }
 Route::get('/families/{family}', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.show');
 Route::get('/families/{family}/portal', [FamilyPortalController::class, 'show'])->middleware('throttle:240,1')->name('portal.page');
-Route::redirect('/families/al-zoubi/branches', '/al-zoubi/branches');
+Route::redirect('/families/al-zoubi/branches', $canonicalPortal ? '/families/al-zoubi/entities' : '/al-zoubi/branches');
 Route::redirect('/al-zoubi/tree', '/families/al-zoubi/tree')->name('family.tree');
 
 Route::prefix('al-zoubi')->name('family.')->group(function () use ($data, $canonicalPortal) {
@@ -74,12 +74,25 @@ Route::prefix('al-zoubi')->name('family.')->group(function () use ($data, $canon
         ])->name('home');
     }
     Route::view('/history', 'families.al-zoubi.history', ['history' => $data('history')])->name('history');
-    Route::view('/branches', 'families.al-zoubi.branches.index', ['branches' => $data('branches')])->name('branches');
+    if ($canonicalPortal) {
+        Route::redirect('/branches', '/families/al-zoubi/entities')->name('branches');
+    } else {
+        Route::view('/branches', 'families.al-zoubi.branches.index', ['branches' => $data('branches')])->name('branches');
+    }
 
     foreach ($data('branches') as $branch) {
-        Route::view("/branches/{$branch['slug']}", 'families.al-zoubi.branches.show', ['branch' => $branch])->name('branches.'.$branch['slug']);
+        if ($canonicalPortal) {
+            Route::get("/branches/{$branch['slug']}", fn () => redirect()->route('community.entities.show', ['al-zoubi', $branch['slug'], 'preview' => request()->boolean('preview') ? 1 : null]))->name('branches.'.$branch['slug']);
+        } else {
+            Route::view("/branches/{$branch['slug']}", 'families.al-zoubi.branches.show', ['branch' => $branch])->name('branches.'.$branch['slug']);
+        }
         foreach ($branch['children'] as $child) {
-            Route::view("/branches/{$child['slug']}", 'families.al-zoubi.branches.show', ['branch' => $child, 'parent' => $branch])->name('branches.'.str_replace('/', '.', $child['slug']));
+            if ($canonicalPortal) {
+                $entitySlug = basename($child['slug']);
+                Route::get("/branches/{$child['slug']}", fn () => redirect()->route('community.entities.show', ['al-zoubi', $entitySlug, 'preview' => request()->boolean('preview') ? 1 : null]))->name('branches.'.str_replace('/', '.', $child['slug']));
+            } else {
+                Route::view("/branches/{$child['slug']}", 'families.al-zoubi.branches.show', ['branch' => $child, 'parent' => $branch])->name('branches.'.str_replace('/', '.', $child['slug']));
+            }
         }
     }
 

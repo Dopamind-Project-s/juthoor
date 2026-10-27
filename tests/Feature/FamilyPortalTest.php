@@ -225,5 +225,8 @@ test('legacy Al-Zoubi routes keep working; the dynamic portal is available along
     $router->getRoutes()->refreshNameLookups();
     $this->get('/al-zoubi')->assertRedirect(route('portal.show', 'al-zoubi'));
     $this->get('/families/al-zoubi')->assertOk()->assertSee('عشيرة الزعبي');
+    $this->get('/al-zoubi/branches')->assertRedirect('/families/al-zoubi/entities');
+    $this->get('/al-zoubi/branches/al-qawasmeh?preview=1')->assertRedirect(route('community.entities.show', ['al-zoubi', 'al-qawasmeh', 'preview' => 1]));
+    $this->get('/al-zoubi/branches/bakr/eid')->assertRedirect(route('community.entities.show', ['al-zoubi', 'eid']));
     $this->get('/al-zoubi/history')->assertOk();
 });

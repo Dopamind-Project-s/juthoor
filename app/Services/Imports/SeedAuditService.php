@@ -91,6 +91,31 @@ class SeedAuditService
         [$conflicts, $preserved, $expected] = $isCurated && $family
             ? $this->compareWithDatasets($family, $tree, $byKey, $edges)
             : [[], [], ['ready_root' => 0, 'ready_root_present' => 0, 'founder_path' => 0, 'founder_path_present' => 0, 'qawasmeh' => 0, 'qawasmeh_present' => 0, 'root_variant_claims' => 0]];
+        $unified = null;
+        if ($isCurated && $family?->sources()->where('reference', 'like', 'unified:%')->exists()) {
+            $proposal = app(UnifiedGenealogyDataset::class)->data();
+            $missing = [];
+            $conflicts = [];
+            $preserved = [];
+            $fathers = $edges->where('is_primary', true)->keyBy('person_id');
+            foreach ($proposal['people'] as $row) {
+                $person = $byKey->get($row['key']);
+                if (! $person) {
+                    $missing[] = 'normalized person '.$row['key'];
+
+                    continue;
+                }
+                if ($person->full_name_ar !== $row['name']) {
+                    $preserved[] = ['record' => 'person', 'key' => $row['key'], 'field' => 'full_name_ar', 'current' => $person->full_name_ar, 'seed' => $row['name']];
+                }
+                $father = $fathers->get($person->id);
+                if (($row['father'] && $father?->related_person_id !== $byKey->get($row['father'])?->id) || (! $row['father'] && $father)) {
+                    $conflicts[] = ['key' => $row['key'], 'type' => 'normalized father conflict', 'existing' => (string) $father?->related_person_id, 'expected' => $row['father'] ?? 'root'];
+                }
+            }
+            $expected = ['ready_root' => 79, 'ready_root_present' => $byKey->keys()->filter(fn ($key) => str_starts_with($key, 'ROOT-'))->count(), 'founder_path' => collect($proposal['people'])->filter(fn ($row) => str_starts_with($row['key'], 'AZ-') && ! str_starts_with($row['key'], 'AZ-DESC-'))->count(), 'founder_path_present' => $byKey->keys()->filter(fn ($key) => str_starts_with($key, 'AZ-') && ! str_starts_with($key, 'AZ-DESC-'))->count(), 'qawasmeh' => 34, 'qawasmeh_present' => $byKey->keys()->filter(fn ($key) => str_starts_with($key, 'QW-'))->count(), 'root_variant_claims' => $tree->assertions()->where('import_key', 'like', 'unified:root-variant:%')->count()];
+            $unified = ['version' => $proposal['version'], 'expected_people' => count($proposal['people']), 'review_observations' => Citation::query()->where('family_tree_id', $tree->id)->where('locator', 'like', 'unified-review:%')->count()];
+        }
         $integrity = $this->integrity($edges);
         $duplicates = $this->duplicates($people, $edges);
         $privacy = $this->privacy($tree, $people);
@@ -98,6 +123,7 @@ class SeedAuditService
         $hasWarnings = $preserved !== [] || $duplicates !== [] || $privacy['webroot_datasets'] !== [];
 
         return [
+            'unified' => $unified,
             'generated_at' => now()->toIso8601String(),
             'family_slug' => $familySlug,
             'read_only' => true,
@@ -333,6 +359,9 @@ class SeedAuditService
             ['Branch founder review', resource_path('data/al-zoubi/branch-founder-review.php'), null],
             ['Qawasmeh manifest', resource_path('data/al-qawasmeh/manifest.json'), null],
         ];
+        foreach (['normalized.json', 'source-manifest.json', 'review-queue.json'] as $name) {
+            $files[] = ['Unified package '.$name, resource_path('data/genealogy/al-zoubi/'.$name), null];
+        }
         try {
             foreach ($this->qawasmeh->manifest()['sources'] as $row) {
                 $files[] = ['Qawasmeh attachment', SourceDocuments::path($row['file']), $row['sha256']];

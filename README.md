@@ -34,7 +34,7 @@ php artisan site:make-super-admin owner@example.com --name="مالك الموق�
 
 ```bash
 php artisan migrate
-php artisan db:seed --class=DevelopmentAdminSeeder
+php artisan db:seed  # حزمة النسب الموحدة وحسابات التطوير المحددة بالنطاق
 ```
 
 رابط الدخول: http://127.0.0.1:8000/login. يقبل الحقل اسم المستخدم أو البريد الإلكتروني.
@@ -46,7 +46,7 @@ php artisan db:seed --class=DevelopmentAdminSeeder
 | editor | editor@juthoor.test | محرر |
 | reader | reader@juthoor.test | قارئ |
 
-كلمة المرور الأولية لهذه الحسابات هي `password`. الحسابات الجديدة نشطة وموثقة، ويُحوّل السوبر أدمن إلى `/site-admin` بعد الدخول. يرفض السيدر التشغيل خارج `local/testing`، ولا يعيد تعيين كلمات المرور أو الأدوار لحسابات موجودة، ولا يكرر العضويات. يعيد استخدام عائلة الزعبي وأشجارها أو أول عائلة موجودة دون تغيير الأسماء؛ وينشئ عائلة تجريبية فقط إذا لم توجد أي عائلة.
+كلمة المرور الأولية لهذه الحسابات هي `password`. الحسابات الجديدة نشطة وموثقة، ويُحوّل السوبر أدمن إلى `/site-admin` بعد الدخول. يرفض السيدر التشغيل خارج `local/testing`، ولا يعيد تعيين كلمات المرور أو الأدوار لحسابات موجودة، ولا يكرر العضويات. يربط الحسابات بعائلة الزعبي وشجرتها الموحدة.
 
 قوائم الإدارة المستقلة متاحة تحت `/site-admin/{families,trees,users,memberships,invitations,audit}`. صفحات إدارة العائلة متاحة من الشريط الجانبي تحت `/manage/families/{slug}/pages/{section}`. سجلات التدقيق للقراءة والتراجع المصرّح فقط؛ تُنشأ تلقائيًا مع العمليات ولا تُعدّل يدويًا.
 
@@ -54,10 +54,13 @@ php artisan db:seed --class=DevelopmentAdminSeeder
 
 ```bash
 # يحتاج Playwright المتوافق مع إصدار Node وChrome؛ لا ينشئ بيانات أنساب.
-NODE_PATH=/tmp/juthoor-browser/node_modules node tests/Browser/admin.cjs
+php tests/Browser/fixtures/unified-genealogy.php
+BROWSER_BASE_URL=http://127.0.0.1:8039 NODE_PATH=/tmp/juthoor-browser/node_modules node tests/Browser/unified-genealogy.cjs
 ```
 
 يمكن ضبط `BROWSER_BASE_URL` و`CHROME_PATH` و`BROWSER_ARTIFACTS`. اختبارات الصلاحيات والنماذج والسيدر ضمن `tests/Feature/AdminFrontendTest.php` تستخدم SQLite في الذاكرة.
+
+لتهيئة قاعدة محلية فارغة بعد التحقق من الهدف: `php artisan genealogy:initialize-development`. يستورد المسار الموحد 1,688 شخصًا و1,687 علاقة أبوة في شجرة واحدة، ويهيئ 14 حساب تطوير بكلمة المرور `password` عبر Laravel Hash. الحسابات الوظيفية محددة بنطاق العائلة أو الكيان، ولا تعمل في الإنتاج أو على عنوان عام. التفاصيل والجرد والمراجعات: [مرجع السيدرز](docs/genealogy-seeder-reference.md) و[تقرير التغطية](docs/genealogy-import-coverage.md).
 
 ## عائلة جديدة وعدة أشجار
 

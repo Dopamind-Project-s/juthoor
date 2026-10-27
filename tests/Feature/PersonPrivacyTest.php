@@ -12,6 +12,7 @@ use App\Services\Imports\CsvImportService;
 use Database\Seeders\AlQawasmehBranchSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -213,7 +214,7 @@ test('the classifier only resolves unknown records that carry explicit evidence'
 });
 
 test('the seeded published genealogy remains public while the Qawasmeh records stay unknown', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
 
     expect(Person::query()->where('canonical_key', 'like', 'ROOT-%')->where('living_status_basis', LivingStatusClassifier::BASIS_HISTORICAL_RECORD)->count())->toBe(77)

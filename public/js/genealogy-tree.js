@@ -59,7 +59,7 @@
         data = {nodes, edges, rootId: payload.root_id};
         idx = L.index(nodes, edges);
         renderLegend();
-        progress.textContent = `اكتمل التحميل: ${nodes.length} شخصًا منشورًا ضمن هذا العرض، و${idx.parent.size} علاقة أبوة.`;
+        progress.textContent = `اكتمل التحميل: ${nodes.length} شخصًا مسموحًا بعرضه ضمن هذا العرض، و${idx.parent.size} علاقة أبوة.`;
     }
 
     // ---- layout -------------------------------------------------------------------------------------------------

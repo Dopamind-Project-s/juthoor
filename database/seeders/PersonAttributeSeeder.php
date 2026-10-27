@@ -22,7 +22,7 @@ class PersonAttributeSeeder extends Seeder
             'fakhd-founder' => ['مؤسس الفخذ', '#2D4F73'],
             'sub-branch-founder' => ['الجد المؤسس لفرع تابع', '#5B4A7A'],
         ] as $key => [$label, $color]) {
-            PersonAttribute::query()->firstOrCreate(['key' => $key], [
+            PersonAttribute::query()->firstOrCreate(['key' => $key, 'family_id' => null], [
                 'family_id' => null, 'label' => $label, 'color' => $color, 'is_active' => true,
             ]);
         }

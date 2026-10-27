@@ -11,13 +11,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(AlZoubiGenealogySeeder::class);
-        $this->call(PersonAttributeSeeder::class);
-        // Safe in every environment: creates missing catalog entries only and never touches assignments or
-        // customizations. Runs after the genealogy seeders so a refused genealogy run leaves nothing behind.
         $this->call(RolePermissionSeeder::class);
+        $this->call(PersonAttributeSeeder::class);
         if (app()->environment(['local', 'testing'])) {
-            $this->call(DevelopmentAdminSeeder::class);
+            $this->call(AlZoubiFamilyTreeSeeder::class);
+            $this->call(SiteUsersSeeder::class);
         }
     }
 }

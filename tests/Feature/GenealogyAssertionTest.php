@@ -14,6 +14,7 @@ use App\Services\Genealogy\BranchMembershipService;
 use Database\Seeders\AlQawasmehBranchSeeder;
 use Database\Seeders\AlZoubiRootVariantSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -244,7 +245,7 @@ test('a shared ancestor fact is changed only by a platform reviewer and its impa
 });
 
 test('ROOT name differences are recorded once for review without changing any person', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $people = Person::query()->orderBy('id')->get(['id', 'full_name_ar', 'alternate_names'])->toArray();
 

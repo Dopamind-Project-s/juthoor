@@ -2,6 +2,10 @@
 @section('title','تدقيق البيانات والسيدرز')
 @section('page-heading','إدارة الموقع / تدقيق البيانات والسيدرز')
 @section('content')
+@if($report['unified'] ?? null)
+<div class="alert alert-info">حزمة النسب الموحدة — الإصدار {{ $report['unified']['version'] }} · الأشخاص المتوقعون {{ $report['unified']['expected_people'] }} · ملاحظات المصدر غير المحسومة {{ $report['unified']['review_observations'] }}. الادعاءات المستوردة قيد المراجعة وليست تحققًا تاريخيًا.</div>
+@endif
+
 @php
     $statusLabel = ['ok' => ['سليم', 'success'], 'warnings' => ['تنبيهات', 'warning'], 'conflicts' => ['تعارضات', 'danger']][$report['status']] ?? [$report['status'], 'secondary'];
     $countLabels = ['people' => 'الأشخاص', 'relationships' => 'العلاقات', 'father_edges' => 'روابط الأبوة', 'branches' => 'الفروع', 'active_branches' => 'فروع نشطة', 'founders' => 'فروع لها مؤسس', 'sources' => 'المصادر', 'citations' => 'الاستشهادات', 'open_claims' => 'روايات مفتوحة'];

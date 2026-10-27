@@ -81,7 +81,7 @@ class FileWriter
     {
         $config = json_decode($content);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_object($config)) {
             return false;
         }
 
@@ -93,7 +93,14 @@ class FileWriter
     protected function updateJson5File(string $content): bool
     {
         $masked = $this->maskUnquotedComments($content);
-        $configKeyPattern = '/["\']'.preg_quote($this->configKey, '/').'["\']\\s*:\\s*\\{/';
+
+        if (! str_starts_with(ltrim($masked), '{')) {
+            return false;
+        }
+
+        $quotedConfigKey = '["\']'.preg_quote($this->configKey, '/').'["\']';
+        $unquotedConfigKey = '(?<=^|\\s|,|{)'.preg_quote($this->configKey, '/');
+        $configKeyPattern = '/(?:'.$quotedConfigKey.'|'.$unquotedConfigKey.')\\s*:\\s*\\{/m';
 
         if (preg_match($configKeyPattern, $masked, $matches, PREG_OFFSET_CAPTURE)) {
             return $this->injectIntoExistingConfigKey($content, $masked, $matches);
@@ -285,11 +292,12 @@ class FileWriter
         for ($i = count($lines) - 1; $i >= 0; $i--) {
             $line = $lines[$i];
 
-            if (preg_match('/^(\s*)"([^"]+)"\s*:\s*\{/', $line, $matches)) {
+            if (preg_match('/^(\s*)(?:["\']([^"\']+)["\']|([a-zA-Z_][a-zA-Z0-9_]*))\s*:\s*\{/', $line, $matches)) {
                 $indent = strlen($matches[1]);
+                $key = $matches[2] !== '' ? $matches[2] : $matches[3];
 
                 // The configKey line itself sits one level shallower than its servers
-                return $matches[2] === $this->configKey ? max($indent * 2, 4) : $indent;
+                return $key === $this->configKey ? max($indent * 2, 4) : $indent;
             }
         }
 

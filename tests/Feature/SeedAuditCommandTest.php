@@ -9,6 +9,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -38,7 +39,7 @@ test('the dry-run audit on an empty database reports missing dependencies and wr
 });
 
 test('the dry-run audit on seeded data reports counts checksums and privacy without any mutation', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $before = seedAuditFingerprint();
     $writes = [];
@@ -71,7 +72,7 @@ test('the dry-run audit on seeded data reports counts checksums and privacy with
 });
 
 test('the audit reports preserved edits identity conflicts duplicates and integrity problems', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $family = Family::query()->where('slug', 'al-zoubi')->sole();
     $tree = $family->primaryTree;
     $family->update(['name_ar' => 'اسم إداري']);

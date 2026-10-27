@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\PersonRelationship;
 use Database\Seeders\JuthoorUiDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -23,13 +24,13 @@ test('demo fixtures need the explicit opt-in and refuse production even when opt
 
 test('db:seed never runs the demo fixtures', function () {
     config(['seeding.demo_fixtures' => true]);
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
 
     expect(Family::query()->where('slug', JuthoorUiDemoSeeder::SLUG)->exists())->toBeFalse();
 });
 
 test('demo fixtures are synthetic unpublished isolated from real families and idempotent', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $zoubi = Family::query()->where('slug', 'al-zoubi')->sole();
     $zoubiPeople = Person::query()->whereIn('family_tree_id', $zoubi->familyTrees()->select('id'))->get()->map->getAttributes()->all();
     config(['seeding.demo_fixtures' => true]);

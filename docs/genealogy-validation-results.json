@@ -1,0 +1,982 @@
+{
+  "sqlite_full": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 453,
+    "passed": 453,
+    "assertions": 11760,
+    "duration_ms": 372624
+  },
+  "postgresql_16_full": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 453,
+    "passed": 453,
+    "assertions": 11760,
+    "duration_ms": 597075
+  },
+  "postgresql_final_regressions": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 20,
+    "passed": 20,
+    "assertions": 6952,
+    "duration_ms": 297342
+  },
+  "sqlite_final_seeder": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 10,
+    "passed": 10,
+    "assertions": 6833,
+    "duration_ms": 117454
+  },
+  "node_tree_layout": {
+    "tests": 11,
+    "passed": 11,
+    "command": "node tests/js/tree-layout.test.cjs"
+  },
+  "database_audit": {
+    "unified": {
+      "version": 1,
+      "expected_people": 1688,
+      "review_observations": 3620
+    },
+    "generated_at": "2026-10-27T18:01:01+00:00",
+    "family_slug": "al-zoubi",
+    "read_only": true,
+    "status": "ok",
+    "families": [
+      {
+        "slug": "al-zoubi",
+        "name_ar": "عشيرة الزعبي",
+        "is_active": true,
+        "trees": 1,
+        "people": 1688
+      }
+    ],
+    "family": {
+      "id": 1,
+      "slug": "al-zoubi",
+      "name_ar": "عشيرة الزعبي",
+      "is_active": true
+    },
+    "trees": [
+      {
+        "id": 1,
+        "slug": "main",
+        "name_ar": "الشجرة الجامعة لعشيرة الزعبي",
+        "is_primary": true,
+        "is_active": true,
+        "root_key": "ROOT-001"
+      }
+    ],
+    "counts": {
+      "people": 1688,
+      "relationships": 1687,
+      "father_edges": 1687,
+      "branches": 17,
+      "active_branches": 0,
+      "founders": 16,
+      "sources": 56,
+      "citations": 8067,
+      "open_claims": 40
+    },
+    "expected": {
+      "ready_root": 79,
+      "ready_root_present": 79,
+      "founder_path": 7,
+      "founder_path_present": 7,
+      "qawasmeh": 34,
+      "qawasmeh_present": 34,
+      "root_variant_claims": 40
+    },
+    "branches": [
+      {
+        "slug": "bakr",
+        "name_ar": "بكر",
+        "parent_slug": null,
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-BAKR-FOUNDER",
+        "founder_name": "بكر"
+      },
+      {
+        "slug": "eid",
+        "name_ar": "عيد",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-EID-FOUNDER",
+        "founder_name": "عيد"
+      },
+      {
+        "slug": "khamis",
+        "name_ar": "خميس",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-KHAMIS-FOUNDER",
+        "founder_name": "خميس"
+      },
+      {
+        "slug": "al-rahaymeh",
+        "name_ar": "الرحايمة",
+        "parent_slug": null,
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-RAHAYMEH-FOUNDER",
+        "founder_name": "عبد الرحمن"
+      },
+      {
+        "slug": "ali-wahsh",
+        "name_ar": "علي (وحش)",
+        "parent_slug": null,
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-ALI-WAHSH-FOUNDER",
+        "founder_name": "علي (وحش)"
+      },
+      {
+        "slug": "al-qawasmeh",
+        "name_ar": "القواسمة",
+        "parent_slug": null,
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "QW-0003",
+        "founder_name": "قاسم"
+      },
+      {
+        "slug": "qawasmeh-amar",
+        "name_ar": "أعمر",
+        "parent_slug": "al-qawasmeh",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "QW-0005",
+        "founder_name": "أعمر"
+      },
+      {
+        "slug": "qawasmeh-qasim",
+        "name_ar": "قاسم",
+        "parent_slug": "al-qawasmeh",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "QW-0006",
+        "founder_name": "قاسم"
+      },
+      {
+        "slug": "qawasmeh-hamdan",
+        "name_ar": "حمدان",
+        "parent_slug": "al-qawasmeh",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "QW-0007",
+        "founder_name": "حمدان"
+      },
+      {
+        "slug": "qawasmeh-samrin",
+        "name_ar": "سمرين",
+        "parent_slug": "al-qawasmeh",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "QW-0008",
+        "founder_name": "سمرين"
+      },
+      {
+        "slug": "al-awtalat",
+        "name_ar": "العوتلات",
+        "parent_slug": null,
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": null,
+        "founder_name": null
+      },
+      {
+        "slug": "bakr-jumah",
+        "name_ar": "جمعة",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-B0A0BE0112919136FA9C",
+        "founder_name": "جمعة"
+      },
+      {
+        "slug": "bakr-hamdan",
+        "name_ar": "حمدان",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-492F6D9A3528104765CD",
+        "founder_name": "حمدان"
+      },
+      {
+        "slug": "bakr-thalji",
+        "name_ar": "ثلجي",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-61D097EE7A231C7BA178",
+        "founder_name": "ثلجي"
+      },
+      {
+        "slug": "bakr-mahmoud",
+        "name_ar": "محمود",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-E317631822D4A50FB64D",
+        "founder_name": "محمود"
+      },
+      {
+        "slug": "bakr-hamdallah",
+        "name_ar": "حمد الله",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-D82E2A8317F30882EB91",
+        "founder_name": "حمد الله"
+      },
+      {
+        "slug": "bakr-ahmad",
+        "name_ar": "أحمد",
+        "parent_slug": "bakr",
+        "is_active": false,
+        "verification_status": "pending_review",
+        "founder_key": "AZ-DESC-CA0E50F40444A73A0807",
+        "founder_name": "أحمد"
+      }
+    ],
+    "sources": [
+      {
+        "reference": "unified:18143ffe68c428b207d9f1f5317a2cc1a5c49abe2c35c142c6e7a8e3e1ce769b",
+        "title": "user:2026-10-27",
+        "verification_status": "pending_review",
+        "citations": 225
+      },
+      {
+        "reference": "unified:d2cc848969035ee817b4f54fb0a68530bfe6e7455d0a1d0de9f5ddbca566bcc8",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 153
+      },
+      {
+        "reference": "unified:f93954a998dc9fb05dae52742ac0666c596e9821fa984ac0507e00900a9faba3",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 127
+      },
+      {
+        "reference": "unified:73d211be708e45a80d84660bf7b43557fc1ab0c6ef80aa7aaa92fe15cd87d6be",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 109
+      },
+      {
+        "reference": "unified:260b3ec806d851bfcc426ef1751cc1abb06f3200522c8d686e03d0a342bfb3cb",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 5.ddd",
+        "verification_status": "pending_review",
+        "citations": 165
+      },
+      {
+        "reference": "unified:e3491515d4dc2e243be8c4202560bc96c0f93710b3dd3e8c867e7868fed93905",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 7.ddd",
+        "verification_status": "pending_review",
+        "citations": 186
+      },
+      {
+        "reference": "unified:551cb649bfbb833b18cd9542862a6c8567977c7df7860467cf13593f7ddbb5a4",
+        "title": "resources/data/al-zoubi/branch-founder-resolution.php",
+        "verification_status": "pending_review",
+        "citations": 12
+      },
+      {
+        "reference": "unified:e92e420ad7be3971504aa8ca915f8e697017850bfe70b114d888ee88da00da99",
+        "title": "resources/data/شجرة عيلة الزعبي/علي (وحش) - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 101
+      },
+      {
+        "reference": "unified:7688a93b37bbeb7d55058b815905ab402eb5b422c6174bddd4f59f0facda2b7c",
+        "title": "resources/data/بكر عيد1.png",
+        "verification_status": "pending_review",
+        "citations": 13
+      },
+      {
+        "reference": "unified:ec6673d064963e18a6066f73778aa2d274dc82657aaea9b9271618d0481d0a19",
+        "title": "resources/data/qq.ddd",
+        "verification_status": "pending_review",
+        "citations": 221
+      },
+      {
+        "reference": "unified:72aa2a3a8678739f150fd728887314f5edb62937b9f69ea47420d3e1d3384c92",
+        "title": "resources/data/شجرة عيلة الزعبي/qq.ddd",
+        "verification_status": "pending_review",
+        "citations": 221
+      },
+      {
+        "reference": "unified:90e704298e4d131a889733432986e5c8b758d97769038f2ced73d506d4a00e26",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 162
+      },
+      {
+        "reference": "unified:29c0775f501aaeb422d7b4b9d01966dc0cebd7cc86f975b54a0d1f54b648cb73",
+        "title": "resources/data/شجرة عيلة الزعبي/قاسم - 6.ddd",
+        "verification_status": "pending_review",
+        "citations": 201
+      },
+      {
+        "reference": "unified:3d136d2dbcf24031cf5f7f7befabd31264d7471550bc37a26fb5f345da5ab720",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - أحمد - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 149
+      },
+      {
+        "reference": "unified:896fe24c97997a8d83b360798b6527f05dc05ce1b5967b91f9a6b9332225ba8c",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - ثلجي - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 122
+      },
+      {
+        "reference": "unified:50096956fbd0dec5fdbb2c0de578ef2af4ee91ec417f8fb9df89421af2b2a52e",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - ثلجي - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 118
+      },
+      {
+        "reference": "unified:267fdd1696eb5f7992f37d88433e41910540f2af1f3b93ff649b5ed76385e64f",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - ثلجي - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 179
+      },
+      {
+        "reference": "unified:4e42338cd94c355d5b08711d8cfc3ca31a40c73f97274f7b1a9ebe0a88585c42",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - ثلجي - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 191
+      },
+      {
+        "reference": "unified:8f413b146a4f803c9a73355270bbd97029e957abc779ba459d415d2abdc2a79b",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - ثلجي - 5.ddd",
+        "verification_status": "pending_review",
+        "citations": 206
+      },
+      {
+        "reference": "unified:94ee4b3e6ac85e582fd03748b2240ff323689115e097b146c277472e0ac397b1",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - جمعه - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 41
+      },
+      {
+        "reference": "unified:4aa714e0fed301d54be8adc6a477b452f180686c0b1408f7536566c19bf7c71d",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - جمعه - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 203
+      },
+      {
+        "reference": "unified:8807c9bcf2795fde1141aa4f751bbbc1651558fc9d64fa4c1bbc9cbaf5effd73",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - حمد الله -1.ddd",
+        "verification_status": "pending_review",
+        "citations": 148
+      },
+      {
+        "reference": "unified:90a81d106116e264fcaa84220077cd877ae81e866e1153b04cde267e9175c91a",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - حمدان - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 101
+      },
+      {
+        "reference": "unified:16af5fb3dd649af34c1e8b10f2b28cac2c5b7d76920cfbd82c3816dc29cc718f",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - حمدان - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 167
+      },
+      {
+        "reference": "unified:3a4dbaf7175a5287d1ca7b194f00a7bcf55134f6580064f1178c00dddd5f02b3",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - خميس - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 163
+      },
+      {
+        "reference": "unified:bb1ef4d32132c82adc40d522678a794a0c73f96df2a9253aa4d372ea0eb70252",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - خميس - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 158
+      },
+      {
+        "reference": "unified:b185c1c2071dd1463e2b5bdf7fd2d3c51ad4ea2dc51f79f423fb2565eee6c101",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - خميس - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 127
+      },
+      {
+        "reference": "unified:c66f87da948305a4eb6662174184a37663bd7b7ec0dbd877f5b7c8a64b2cce67",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - خميس - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 192
+      },
+      {
+        "reference": "unified:0bb59a5dd7717e328e4bc256c58e2f1b8a97c1fb9b514bbff85e70fbcd0e3e30",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - عيد - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 112
+      },
+      {
+        "reference": "unified:3e6043d2f6f21ef3c536f2219ba6dd5569d49412d5ca4929788b3e64cf4fb069",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - عيد - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 170
+      },
+      {
+        "reference": "unified:3c5363106399008bdb9ef5f8002ed90b000dfb2958f30d99b65917ade9e8aa7c",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - عيد - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 256
+      },
+      {
+        "reference": "unified:f822d5d1768497f75d5b04183b6eaad18df048e3f85f58c0330e046ea4fe765f",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - عيد - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 142
+      },
+      {
+        "reference": "unified:0ca2c4d5703c663560144239285a886cd10c4b6ab80793f85f2f7d274ea8d03e",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - محمود - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 150
+      },
+      {
+        "reference": "unified:478065840e6f5eb6bbf7c00df1b68f43f63e65e1adf6cc09db682dabd74b8d24",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - محمود - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 191
+      },
+      {
+        "reference": "unified:058cfd4a8c8b48bc0c9ddfd0df7694f94ab87807350e46f2ce7024dfebaf9321",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - محمود - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 163
+      },
+      {
+        "reference": "unified:fb7e145864097e710f4b19ebc4c572083ac64ad20d875521a06c0ad321c8002e",
+        "title": "resources/data/شجرة عيلة الزعبي/بكر - محمود - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 177
+      },
+      {
+        "reference": "unified:f7a01bd7c582531abcd59c2408fceca13add500f6d7fc954e0ec47478c467b07",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد الرحمن - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 188
+      },
+      {
+        "reference": "unified:0b69393bf4674bcc099070d604162a73f4da10ad73155580feaae9bcf22e8917",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد الرحمن - 3 ).ddd",
+        "verification_status": "pending_review",
+        "citations": 198
+      },
+      {
+        "reference": "unified:d43920dc0ce45050cf82350a3f4f2072af4c1a6a3e1de95250cce7caf86398ec",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد الرحمن - 4).ddd",
+        "verification_status": "pending_review",
+        "citations": 194
+      },
+      {
+        "reference": "unified:678f0e889dd6f035b833b4ee336576b707abfde48e496b60698387cfb1da5bf1",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد الرحمن - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 165
+      },
+      {
+        "reference": "unified:0df939080f545227016f3cb6a291f91b4db72f77ba761f82e9e589782e647aed",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد اللطيف - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:e85972355dbb04d70476adc6574b0e54e4d20a00b91633bf43af1eff982cef42",
+        "title": "resources/data/شجرة عيلة الزعبي/عبد اللطيف - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:ae172735c740db355a1fb5b8aafe5ecdb00bf4ba6be377240a1decc3cc641408",
+        "title": "resources/data/شجرة عيلة الزعبي/عوده - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:b3b95b4fd9c8858b34a37f23eb45c552b6dbceaa5e885f0ad7543fde75551b8c",
+        "title": "resources/data/شجرة عيلة الزعبي/عوده - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:585e11656c9c7a9ecb2ec27e2fe337223030dac28733aaccbd476bdf4d781c2e",
+        "title": "resources/data/شجرة عيلة الزعبي/عوده - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:b59106041df844223cb875b5b3bb514fb0ff824823a0d6b476b471526d397eb7",
+        "title": "resources/data/شجرة عيلة الزعبي/عوده - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:75ab21ee599983be6aec63a0723913d5b00a9ca9002daaac0f30ed509095be7e",
+        "title": "resources/data/شجرة عيلة الزعبي/عوده - 5.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:4256707738367694723f092f6d80ef3faca24716be7d9be4b581e8c9dd917604",
+        "title": "resources/data/شجرة عيلة الزعبي/فقراء - 1.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:3871f01e81e92b4f35bf153cbff035be0d9bbe0ee7ff479b4687ce98b4b77167",
+        "title": "resources/data/شجرة عيلة الزعبي/فقراء - 2.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:35f301ed0a9cfa365d19e18a1f008055e44a4f95932cc1f33fd6ccd3a656309e",
+        "title": "resources/data/شجرة عيلة الزعبي/فقراء - 3.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:f981cf44e5981fd61fd8b8a59fb6160145bad4b55c53786876b76055ae9db6ad",
+        "title": "resources/data/شجرة عيلة الزعبي/فقراء - 4.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:c15071a549c0a12ee75ab60f3850b692b9cb1df69f1117619aa3c50dab2c6a13",
+        "title": "resources/data/شجرة عيلة الزعبي/فقراء - 7.ddd",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:2ef436020f8ba6cd184c498346776ec7c075c7a582507dba741984a5e4064640",
+        "title": "resources/data/source-documents/juthoor_alzoubi_genealogy_dataset_v4.json",
+        "verification_status": "pending_review",
+        "citations": 1468
+      },
+      {
+        "reference": "unified:00827f6b70f1919d927ffaae031c0f28651612cefcecd8d3a6bae3adbb5ffffc",
+        "title": "resources/data/al-zoubi/branch-founder-review.php",
+        "verification_status": "pending_review",
+        "citations": 2
+      },
+      {
+        "reference": "unified:b9b74e28209095ebdad75338e4f022ddb0998800f2c54787d10f0d2dbb409a65",
+        "title": "resources/data/قواسمه1.png",
+        "verification_status": "pending_review",
+        "citations": 1
+      },
+      {
+        "reference": "unified:b024ccaa071c0c0a844feee15a65ec8a2236cf3d75cd67f3bb8b5cead02ff510",
+        "title": "resources/data/source-documents/juthoor_alzoubi_genealogy_dataset_v4 (1).xlsx",
+        "verification_status": "pending_review",
+        "citations": 317
+      }
+    ],
+    "datasets": [
+      {
+        "label": "Al-Zoubi genealogy dataset",
+        "path": "resources/data/source-documents/juthoor_alzoubi_genealogy_dataset_v4.json",
+        "exists": true,
+        "bytes": 4535965,
+        "sha256": "acb0a71d2303b70a0df20500327a3777f4c654b860ed2d94ea573ae6f8efc176",
+        "version": "v4",
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Shared ancestry list",
+        "path": "resources/data/al-zoubi/shared-ancestry.php",
+        "exists": true,
+        "bytes": 1566,
+        "sha256": "7af64c9f83476a3a10469d7551333c6eab5af564d85a30aef0783affc44f84ee",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Branch founder resolution",
+        "path": "resources/data/al-zoubi/branch-founder-resolution.php",
+        "exists": true,
+        "bytes": 4101,
+        "sha256": "d8f318e8be5d893d8c7e8d560b63ca6383be3e69a4e5895ac050284934e7cd65",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Branch founder review",
+        "path": "resources/data/al-zoubi/branch-founder-review.php",
+        "exists": true,
+        "bytes": 1575,
+        "sha256": "a36e57aee303f97332d7b6b1943219cb1b508a51079ee4c9cfcc4c646e73fda6",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Qawasmeh manifest",
+        "path": "resources/data/al-qawasmeh/manifest.json",
+        "exists": true,
+        "bytes": 14167,
+        "sha256": "3abf909ff30b4694e93484e5f0b2f9e8cf32653a0f301cfb2c58f3408a452d09",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Unified package normalized.json",
+        "path": "resources/data/genealogy/al-zoubi/normalized.json",
+        "exists": true,
+        "bytes": 2034765,
+        "sha256": "a6ce54166f8bda01062ea315f2d21332d684f4ceef0a087221f20e1b712f03b7",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Unified package source-manifest.json",
+        "path": "resources/data/genealogy/al-zoubi/source-manifest.json",
+        "exists": true,
+        "bytes": 148047,
+        "sha256": "be4f408efbd4f10862c2c5f337313f98011fd3fd1e1f8f22dd8ee0f58257dd8a",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Unified package review-queue.json",
+        "path": "resources/data/genealogy/al-zoubi/review-queue.json",
+        "exists": true,
+        "bytes": 2078480,
+        "sha256": "32fa8aacfd6a74b16d677b4ab2af76e429abcb3ed280aa251342a4f922009137",
+        "version": null,
+        "expected_sha256": null,
+        "matches": null
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه.png",
+        "exists": true,
+        "bytes": 81373,
+        "sha256": "1cdd079e2d35fa0fc8fca858da42d17dcdccc40df6e406bd1d78c4c344be17bb",
+        "version": null,
+        "expected_sha256": "1cdd079e2d35fa0fc8fca858da42d17dcdccc40df6e406bd1d78c4c344be17bb",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه1.png",
+        "exists": true,
+        "bytes": 50099,
+        "sha256": "60f0af9fa747b8cf7c5ab005a85d11f2de0e1b105e85685da79435ad938d7a8a",
+        "version": null,
+        "expected_sha256": "60f0af9fa747b8cf7c5ab005a85d11f2de0e1b105e85685da79435ad938d7a8a",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه2.png",
+        "exists": true,
+        "bytes": 37054,
+        "sha256": "266124b9536fa79fbda885925e5849587504e5fffb4ca8142a320f4526fde2d0",
+        "version": null,
+        "expected_sha256": "266124b9536fa79fbda885925e5849587504e5fffb4ca8142a320f4526fde2d0",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه3.png",
+        "exists": true,
+        "bytes": 41806,
+        "sha256": "46a57bea26ec36545c2f343e5c8dee82416dd24ffd821e8a35c930f0378b60cf",
+        "version": null,
+        "expected_sha256": "46a57bea26ec36545c2f343e5c8dee82416dd24ffd821e8a35c930f0378b60cf",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه4.png",
+        "exists": true,
+        "bytes": 60706,
+        "sha256": "2e8ef4a9945a5a24ee037ace7cfa7db016eef9fd8949f3679df1e247b4034e03",
+        "version": null,
+        "expected_sha256": "2e8ef4a9945a5a24ee037ace7cfa7db016eef9fd8949f3679df1e247b4034e03",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه5.png",
+        "exists": true,
+        "bytes": 62726,
+        "sha256": "f1058860a71610fcbe9cf019be732fe360d751716a0aa6c68c0eb8e73db112fd",
+        "version": null,
+        "expected_sha256": "f1058860a71610fcbe9cf019be732fe360d751716a0aa6c68c0eb8e73db112fd",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه6.png",
+        "exists": true,
+        "bytes": 83749,
+        "sha256": "c433ec7cdbc394828072e6a4ba157a172300420619cee663b7ed3f02db2f7ee4",
+        "version": null,
+        "expected_sha256": "c433ec7cdbc394828072e6a4ba157a172300420619cee663b7ed3f02db2f7ee4",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه7.png",
+        "exists": true,
+        "bytes": 75580,
+        "sha256": "83a7d158737e7ffdfd4744e19b49457a85d512e63a126c98600f52787de03fb0",
+        "version": null,
+        "expected_sha256": "83a7d158737e7ffdfd4744e19b49457a85d512e63a126c98600f52787de03fb0",
+        "matches": true
+      },
+      {
+        "label": "Qawasmeh attachment",
+        "path": "resources/data/source-documents/قواسمه.pdf",
+        "exists": true,
+        "bytes": 2065240,
+        "sha256": "0a78e3c44aea7de3ceab6100fabc7699262ee321911ff0d642902c0638ab1a7a",
+        "version": null,
+        "expected_sha256": "0a78e3c44aea7de3ceab6100fabc7699262ee321911ff0d642902c0638ab1a7a",
+        "matches": true
+      }
+    ],
+    "missing_dependencies": [],
+    "identity_conflicts": [],
+    "preserved_edits": [],
+    "duplicate_candidates": [],
+    "integrity": {
+      "self_parent": [],
+      "multiple_primary_fathers": [],
+      "cycles": []
+    },
+    "privacy": {
+      "living": 0,
+      "unknown": 1609,
+      "unknown_but_sourced": 0,
+      "pending_review": 1688,
+      "qawasmeh_pending": 34,
+      "public_people": 79,
+      "public_narratives": 79,
+      "webroot_datasets": []
+    }
+  },
+  "postgresql_settings": {
+    "version": "16.15",
+    "max_locks_per_transaction": 64,
+    "temporary_cluster": true
+  },
+  "original_database": {
+    "environment": "local",
+    "connection": "sqlite",
+    "path": "database/database.sqlite",
+    "initial_bytes": 0,
+    "resets_limited_to_agent_generated_records": true
+  },
+  "browser": {
+    "checks": [
+      "public family portal and private descendant protection",
+      "public 79-ancestor narrative",
+      "local canonical family homepage uses database portal",
+      "legacy fakhd directory uses database entities",
+      "legacy fakhd preview uses seeded database page",
+      "complete private unified tree",
+      "founder attributes from database",
+      "repeated Arabic name search",
+      "private branch al-qawasmeh",
+      "private branch bakr",
+      "private branch qawasmeh-samrin",
+      "private branch eid",
+      "private branch khamis",
+      "private branch bakr-mahmoud",
+      "private branch bakr-thalji",
+      "private branch bakr-hamdan",
+      "private branch ali-wahsh",
+      "deep descendant profile",
+      "/families/al-zoubi/entities",
+      "/families/al-zoubi/entities/al-qawasmeh?preview=1",
+      "/families/al-zoubi/entities/qawasmeh-samrin?preview=1",
+      "/manage/families/al-zoubi/dashboard",
+      "/manage/families/al-zoubi/roles",
+      "/site-admin/seed-audit",
+      "/manage/families/al-zoubi/sources/53",
+      "mobile tree and founder tap",
+      "mobile portal",
+      "demo login familyadmin",
+      "demo login editor",
+      "demo login reader",
+      "demo login demo_genealogy_manager",
+      "demo login demo_genealogy_editor",
+      "demo login demo_genealogy_reviewer",
+      "demo login demo_content_manager",
+      "demo login demo_news_editor",
+      "demo login demo_news_publisher",
+      "demo login demo_death_notice_reviewer",
+      "demo login demo_directory_moderator",
+      "demo login entity_admin",
+      "demo login entity_editor",
+      "reader cannot inspect raw unresolved sources"
+    ],
+    "errors": []
+  },
+  "coverage": {
+    "counts": {
+      "people": 1688,
+      "person_relationships": 1687,
+      "families": 1,
+      "family_trees": 1,
+      "branches": 17,
+      "sources": 56,
+      "citations": 8067,
+      "assertions": 40,
+      "users": 14,
+      "community_entities": 18
+    },
+    "branches": [
+      {
+        "slug": "bakr",
+        "name": "بكر",
+        "type": "fakhd",
+        "founder": "AZ-BAKR-FOUNDER",
+        "people": 955
+      },
+      {
+        "slug": "eid",
+        "name": "عيد",
+        "type": "sub_fakhd",
+        "founder": "AZ-EID-FOUNDER",
+        "people": 189
+      },
+      {
+        "slug": "khamis",
+        "name": "خميس",
+        "type": "sub_fakhd",
+        "founder": "AZ-KHAMIS-FOUNDER",
+        "people": 171
+      },
+      {
+        "slug": "al-rahaymeh",
+        "name": "الرحايمة",
+        "type": "fakhd",
+        "founder": "AZ-RAHAYMEH-FOUNDER",
+        "people": 254
+      },
+      {
+        "slug": "ali-wahsh",
+        "name": "علي (وحش)",
+        "type": "family_group",
+        "founder": "AZ-ALI-WAHSH-FOUNDER",
+        "people": 40
+      },
+      {
+        "slug": "al-qawasmeh",
+        "name": "القواسمة",
+        "type": "fakhd",
+        "founder": "QW-0003",
+        "people": 356
+      },
+      {
+        "slug": "qawasmeh-amar",
+        "name": "أعمر",
+        "type": "sub_fakhd",
+        "founder": "QW-0005",
+        "people": 199
+      },
+      {
+        "slug": "qawasmeh-qasim",
+        "name": "قاسم",
+        "type": "sub_fakhd",
+        "founder": "QW-0006",
+        "people": 62
+      },
+      {
+        "slug": "qawasmeh-hamdan",
+        "name": "حمدان",
+        "type": "sub_fakhd",
+        "founder": "QW-0007",
+        "people": 33
+      },
+      {
+        "slug": "qawasmeh-samrin",
+        "name": "سمرين",
+        "type": "sub_fakhd",
+        "founder": "QW-0008",
+        "people": 60
+      },
+      {
+        "slug": "al-awtalat",
+        "name": "العوتلات",
+        "type": "fakhd",
+        "founder": null,
+        "people": 0
+      },
+      {
+        "slug": "bakr-jumah",
+        "name": "جمعة",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-B0A0BE0112919136FA9C",
+        "people": 66
+      },
+      {
+        "slug": "bakr-hamdan",
+        "name": "حمدان",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-492F6D9A3528104765CD",
+        "people": 87
+      },
+      {
+        "slug": "bakr-thalji",
+        "name": "ثلجي",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-61D097EE7A231C7BA178",
+        "people": 167
+      },
+      {
+        "slug": "bakr-mahmoud",
+        "name": "محمود",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-E317631822D4A50FB64D",
+        "people": 172
+      },
+      {
+        "slug": "bakr-hamdallah",
+        "name": "حمد الله",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-D82E2A8317F30882EB91",
+        "people": 69
+      },
+      {
+        "slug": "bakr-ahmad",
+        "name": "أحمد",
+        "type": "sub_fakhd",
+        "founder": "AZ-DESC-CA0E50F40444A73A0807",
+        "people": 33
+      }
+    ],
+    "review_observations": 3620,
+    "source_files": 408,
+    "processed_distinct_evidence_files": 83,
+    "extracted_person_label_occurrences": 4956,
+    "unique_source_files": 380,
+    "reviewed_drawings": 37,
+    "drawing_files": 49,
+    "candidate_drawing_nodes": 5046,
+    "candidate_drawing_relationships": 4660,
+    "potential_duplicate_groups": 268
+  }
+}

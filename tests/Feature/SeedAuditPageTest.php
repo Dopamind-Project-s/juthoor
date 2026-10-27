@@ -3,14 +3,14 @@
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
 test('the seed audit page is read-only and reserved for super admins', function () {
-    $this->seed(DatabaseSeeder::class);
+    $this->seed(LegacyGenealogySeeder::class);
     $family = Family::query()->where('slug', 'al-zoubi')->sole();
     $admin = User::factory()->create(['is_active' => true]);
     FamilyMembership::query()->create(['family_id' => $family->id, 'user_id' => $admin->id, 'role' => 'admin']);

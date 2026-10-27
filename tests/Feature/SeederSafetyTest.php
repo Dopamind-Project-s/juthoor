@@ -16,6 +16,7 @@ use Database\Seeders\AlZoubiRootVariantSeeder;
 use Database\Seeders\SourceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Fixtures\LegacyGenealogySeeder;
 
 uses(RefreshDatabase::class);
 
@@ -33,9 +34,9 @@ function seederSafetyCounts(): array
 }
 
 test('db:seed twice keeps identical counts with and without the Qawasmeh import', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $base = seederSafetyCounts();
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     expect(seederSafetyCounts())->toBe($base)
         ->and($base['people'])->toBe(85)
         ->and($base['relationships'])->toBe(84)
@@ -43,7 +44,7 @@ test('db:seed twice keeps identical counts with and without the Qawasmeh import'
 
     $this->seed(AlQawasmehBranchSeeder::class);
     $withQawasmeh = seederSafetyCounts();
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     expect(seederSafetyCounts())->toBe($withQawasmeh)
         ->and($withQawasmeh['people'])->toBe(119)
@@ -53,7 +54,7 @@ test('db:seed twice keeps identical counts with and without the Qawasmeh import'
 });
 
 test('rerunning the seeders preserves administrator edits to family tree people branches founders and colors', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $family = Family::query()->where('slug', 'al-zoubi')->sole();
     $tree = $family->primaryTree;
     $family->update(['name_ar' => 'اسم معدل إداريًا', 'short_description' => 'وصف إداري', 'location' => 'موقع إداري', 'is_active' => false]);
@@ -83,7 +84,7 @@ test('rerunning the seeders preserves administrator edits to family tree people 
     $before = $snapshot();
     $counts = seederSafetyCounts();
 
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
 
     expect($snapshot())->toBe($before)
         ->and(seederSafetyCounts())->toBe($counts)
@@ -91,7 +92,7 @@ test('rerunning the seeders preserves administrator edits to family tree people 
 });
 
 test('a seeded person whose father was changed by review is refused without writing anything', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $tree = Family::query()->where('slug', 'al-zoubi')->sole()->primaryTree;
     $person = $tree->people()->where('canonical_key', 'ROOT-010')->sole();
     $other = $tree->people()->where('canonical_key', 'ROOT-005')->sole();
@@ -99,33 +100,33 @@ test('a seeded person whose father was changed by review is refused without writ
     $tree->people()->where('canonical_key', 'ROOT-020')->sole()->outgoingRelationships()->delete();
     $before = seederSafetyCounts();
 
-    expect(fn () => $this->seed())->toThrow(RuntimeException::class, 'ROOT-010: existing father [ROOT-005], dataset [ROOT-009]');
+    expect(fn () => $this->seed(LegacyGenealogySeeder::class))->toThrow(RuntimeException::class, 'ROOT-010: existing father [ROOT-005], dataset [ROOT-009]');
     expect(seederSafetyCounts())->toBe($before)
         ->and($person->outgoingRelationships()->sole()->related_person_id)->toBe($other->id)
         ->and($person->outgoingRelationships()->count())->toBe(1);
 });
 
 test('founder path records with a different father or name are refused before any write', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $tree = Family::query()->where('slug', 'al-zoubi')->sole()->primaryTree;
     $muhammad = $tree->people()->where('canonical_key', 'AZ-BAKR-MUHAMMAD')->sole();
     $muhammad->outgoingRelationships()->sole()->update(['related_person_id' => $tree->people()->where('canonical_key', 'ROOT-077')->value('id')]);
     $before = seederSafetyCounts();
 
-    expect(fn () => $this->seed())->toThrow(DomainException::class, 'AZ-BAKR-MUHAMMAD: existing father differs from [AZ-BAKR-ALI]');
+    expect(fn () => $this->seed(LegacyGenealogySeeder::class))->toThrow(DomainException::class, 'AZ-BAKR-MUHAMMAD: existing father differs from [AZ-BAKR-ALI]');
     expect(seederSafetyCounts())->toBe($before);
 });
 
 test('a missing seeded record is recreated but existing ones are not reset and unknown status is not reclassified', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $tree = Family::query()->where('slug', 'al-zoubi')->sole()->primaryTree;
     $unknown = $tree->people()->where('canonical_key', 'ROOT-030')->sole();
     $unknown->update(['is_living' => null]);
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     expect($unknown->fresh()->is_living)->toBeNull();
 
     $tree->branches()->where('slug', 'al-awtalat')->delete();
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     expect($tree->branches()->where('slug', 'al-awtalat')->sole())
         ->name_ar->toBe('العوتلات')
         ->is_active->toBeFalse()
@@ -133,13 +134,13 @@ test('a missing seeded record is recreated but existing ones are not reset and u
 });
 
 test('root variants and the ROOT-077 decision stay intact across reseeding', function () {
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $this->seed(AlZoubiRootVariantSeeder::class);
     $claims = Assertion::query()->where('import_key', 'like', 'root-variant:%')->count();
     $root77 = Person::query()->where('canonical_key', 'ROOT-077')->sole()->getAttributes();
 
-    $this->seed();
+    $this->seed(LegacyGenealogySeeder::class);
     $this->seed(AlQawasmehBranchSeeder::class);
     $this->seed(AlZoubiRootVariantSeeder::class);
 

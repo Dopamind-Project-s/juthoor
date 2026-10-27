@@ -41,6 +41,7 @@ class SourceController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $sources = Source::query()->where('family_id', $family->id)
+            ->when(! auth()->user()->can('review', $family), fn ($query) => $query->where(fn ($query) => $query->whereNull('reference')->orWhere('reference', 'not like', 'unified:%')))
             ->when(! auth()->user()->isSuperAdmin() && auth()->user()->roleFor($family) !== 'admin', fn ($q) => $q->whereDoesntHave('citations', fn ($q) => $q->whereNotNull('cross_family_link_id')))
             ->orderByDesc('id')->paginate(20)->withQueryString();
 
@@ -51,6 +52,9 @@ class SourceController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -82,6 +86,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -131,6 +138,9 @@ class SourceController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -144,6 +154,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -169,6 +182,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -204,6 +220,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
@@ -223,6 +242,9 @@ class SourceController extends Controller
         [$family,$tree] = $this->context($family);
         Gate::authorize('manageSources', $family);
         $source = $family->sources()->findOrFail($source);
+        if (str_starts_with((string) $source->reference, 'unified:')) {
+            Gate::authorize('review', $family);
+        }
         if ($source->citations()->whereNotNull('cross_family_link_id')->exists()) {
             Gate::authorize('manageMembers', $family);
         }
