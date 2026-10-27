@@ -187,3 +187,29 @@ test('synthetic stress fixtures: opt-in, isolated, complete in the payload at sc
         ->and($bytes / $eligible)->toBeLessThan(200)
         ->and(microtime(true) - $started)->toBeLessThan(5.0);
 });
+
+test('display boundaries use published branch hierarchy rather than genealogical depth or person attributes', function () {
+    $laterMain = $this->tree->branches()->create([
+        'name_ar' => 'فخذ رئيسي أعمق', 'slug' => 'later-main', 'root_person_id' => $this->grandson->id,
+        'branch_type' => 'fakhd', 'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
+        'is_active' => true, 'verification_status' => 'verified',
+    ]);
+    $subPerson = ($this->person)('مؤسس الفرع التابع', $this->grandson);
+    $this->tree->branches()->create([
+        'name_ar' => 'الفخذ الفرعي', 'slug' => 'later-sub', 'root_person_id' => $subPerson->id,
+        'parent_branch_id' => $laterMain->id, 'branch_type' => 'sub_fakhd', 'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
+        'is_active' => true, 'verification_status' => 'sourced',
+    ]);
+    $hidden = ($this->person)('مؤسس غير منشور', $subPerson, ['verification_status' => 'pending_review']);
+    $this->tree->branches()->create([
+        'name_ar' => 'حد خاص', 'slug' => 'private-boundary', 'root_person_id' => $hidden->id,
+        'branch_type' => 'fakhd', 'membership_mode' => Branch::MEMBERSHIP_DESCENDANTS,
+        'is_active' => true, 'verification_status' => 'verified',
+    ]);
+    $graph = ($this->full)();
+    expect($graph['nodes'][$this->founder->id]['founder']['boundaries'])->toBe(['main'])
+        ->and($graph['nodes'][$this->grandson->id]['founder']['boundaries'])->toBe(['main'])
+        ->and($graph['nodes'][$subPerson->id]['founder']['boundaries'])->toBe(['sub'])
+        ->and($graph['nodes'])->not->toHaveKey($hidden->id);
+    expect(json_encode($graph, JSON_UNESCAPED_UNICODE))->not->toContain('private-boundary')->not->toContain('حد خاص');
+});

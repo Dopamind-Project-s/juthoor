@@ -1,0 +1,147 @@
+{
+  "phase": "UX-P0.7",
+  "baseline_head": "347428b3",
+  "graph_records": {
+    "people": 1688,
+    "father_relationships": 1687,
+    "default_serpentine_prefix_people": 76
+  },
+  "node": {
+    "tests": 40,
+    "passed": 40,
+    "failed": 0,
+    "benchmarks": [
+      "# deep-chain 20k: 118.4 ms",
+      "# wide hierarchy 10k: 51.1 ms"
+    ]
+  },
+  "performance": {
+    "nodes": 10000,
+    "previous": {
+      "median_ms": 27.49268900230527,
+      "width": 2296,
+      "height": 331852,
+      "placed": 10000
+    },
+    "hybrid": {
+      "median_ms": 40.940175998955965,
+      "width": 1573388,
+      "height": 1228,
+      "placed": 10000
+    }
+  },
+  "sqlite": {
+    "tests": 59,
+    "passed": 52,
+    "failed": 7,
+    "errors": 0,
+    "assertions": 493,
+    "duration_ms": 31648,
+    "failures": [
+      {
+        "test": "a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+        "message": "Failed asserting that '<!doctype html>\\n\n<html lang=\"ar\" dir=\"rtl\">\\n\n<head>\\n\n <meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\\n\n <meta name=\"description\" c"
+      },
+      {
+        "test": "every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+        "message": "Failed asserting that 15 is identical to 13."
+      },
+      {
+        "test": "batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+        "message": "Failed asserting that 1 is identical to null."
+      },
+      {
+        "test": "an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+        "message": "Failed asserting that true is false."
+      },
+      {
+        "test": "the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+        "message": "Failed asserting that 4 is identical to 3."
+      },
+      {
+        "test": "legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+        "message": "Expected response status code [200] but received 302.\nFailed asserting that 302 is identical to 200."
+      },
+      {
+        "test": "notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+        "message": "Expecting '<!doctype html><html lang=\"…tml>' not to contain 'http://localhost/families/dem…ople/7'."
+      }
+    ]
+  },
+  "postgresql16": {
+    "tests": 59,
+    "passed": 52,
+    "failed": 7,
+    "errors": 0,
+    "assertions": 493,
+    "duration_ms": 80484,
+    "failures": [
+      {
+        "test": "a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+        "message": "Failed asserting that '<!doctype html>\\n\n<html lang=\"ar\" dir=\"rtl\">\\n\n<head>\\n\n <meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\\n\n <meta name=\"description\" c"
+      },
+      {
+        "test": "every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+        "message": "Failed asserting that 15 is identical to 13."
+      },
+      {
+        "test": "batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+        "message": "Failed asserting that 2415 is identical to null."
+      },
+      {
+        "test": "an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+        "message": "Failed asserting that true is false."
+      },
+      {
+        "test": "the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+        "message": "Failed asserting that 4 is identical to 3."
+      },
+      {
+        "test": "legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+        "message": "Expected response status code [200] but received 302.\nFailed asserting that 302 is identical to 200."
+      },
+      {
+        "test": "notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+        "message": "Expecting '<!doctype html><html lang=\"…tml>' not to contain 'http://localhost/families/dem…e/4476'."
+      }
+    ]
+  },
+  "new_failure_names_against_prior_full_suite": [],
+  "new_boundary_test": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 1,
+    "passed": 1,
+    "assertions": 8,
+    "duration_ms": 209
+  },
+  "browser": {
+    "checks": [
+      "actual full unified data uses individual serpentine ancestors",
+      "long ancestry remains clickable with database attribute colors",
+      "main and subordinate modes preserve branch paths in the actual unified tree",
+      "Qawasmeh filter and its ancestor path survive all display modes",
+      "search reveals an actual deep Qawasmeh result inside a collapsed mode",
+      "synthetic founders retain generations five seven and nine",
+      "an earlier main founder does not hide a deeper main founder",
+      "manual expansion/collapse stays in the unified graph and preserves the anchor",
+      "fifteen siblings stay on one real generation row",
+      "private records are absent from the received graph and all modes",
+      "optional compact ancestor presentation remains available",
+      "keyboard navigation founder popover and person profile remain compatible",
+      "ancestor descendant filters and browser history preserve display mode",
+      "embedded branch view reuses the same display selector and layout",
+      "fullscreen zoom fit reset and drag navigation remain functional",
+      "mobile virtual canvas modes and touch controls do not overflow the page"
+    ],
+    "errors": [],
+    "metrics": [
+      {
+        "layoutMs": "21.1",
+        "mounted": "30",
+        "visible": "1688",
+        "serpentine": "76"
+      }
+    ]
+  }
+}

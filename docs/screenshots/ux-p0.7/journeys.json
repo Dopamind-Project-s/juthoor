@@ -1,0 +1,29 @@
+{
+  "checks": [
+    "actual full unified data uses individual serpentine ancestors",
+    "long ancestry remains clickable with database attribute colors",
+    "main and subordinate modes preserve branch paths in the actual unified tree",
+    "Qawasmeh filter and its ancestor path survive all display modes",
+    "search reveals an actual deep Qawasmeh result inside a collapsed mode",
+    "synthetic founders retain generations five seven and nine",
+    "an earlier main founder does not hide a deeper main founder",
+    "manual expansion/collapse stays in the unified graph and preserves the anchor",
+    "fifteen siblings stay on one real generation row",
+    "private records are absent from the received graph and all modes",
+    "optional compact ancestor presentation remains available",
+    "keyboard navigation founder popover and person profile remain compatible",
+    "ancestor descendant filters and browser history preserve display mode",
+    "embedded branch view reuses the same display selector and layout",
+    "fullscreen zoom fit reset and drag navigation remain functional",
+    "mobile virtual canvas modes and touch controls do not overflow the page"
+  ],
+  "errors": [],
+  "metrics": [
+    {
+      "layoutMs": "21.1",
+      "mounted": "30",
+      "visible": "1688",
+      "serpentine": "76"
+    }
+  ]
+}

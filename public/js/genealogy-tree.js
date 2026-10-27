@@ -13,6 +13,12 @@
     const loading = $('[data-tree-loading]'), empty = $('[data-tree-empty]'), error = $('[data-tree-error]');
     const panel = $('[data-person-panel]'), popover = $('[data-founder-popover]'), progress = $('[data-tree-progress]');
     const branchSelect = $('[data-branch-select]'), modeSelect = $('[data-focus-mode]');
+    const displaySelect = $('[data-display-mode]'), ancestrySelect = $('[data-ancestry-layout]');
+    let displayMode = ['full', 'main_branches', 'sub_branches'].includes(new URLSearchParams(location.search).get('display')) ? new URLSearchParams(location.search).get('display') : 'full';
+    displaySelect.value = displayMode;
+    if (new URLSearchParams(location.search).get('ancestry') === 'compact') ancestrySelect.value = 'compact';
+    const branchExpanded = new Set(), searchRevealed = new Set();
+    let renderedIds = new Set(), scopedIds = new Set(), ancestryWidth = 0, previousStageWidth = stage.clientWidth;
     const ns = 'http://www.w3.org/2000/svg';
     const VERIFICATION = {verified: 'موثق ومراجع', sourced: 'مسند إلى مصدر', pending_review: 'قيد المراجعة', disputed: 'مختلف عليه', unresolved: 'غير محسوم'};
     // Arabic counted noun: 3–10 take the plural, 11+ the singular accusative.
@@ -92,7 +98,7 @@
         const w = kind === 'founder' ? L.S.founder : L.S.card;
         const nameLines = lines(node.name, w - 28, kind === 'founder' ? '800 15px Cairo, Tahoma, sans-serif' : undefined);
         const chips = (node.attributes || []).length ? 26 : 0;
-        const h = (kind === 'founder' ? 64 : 22) + nameLines.length * (kind === 'founder' ? 21 : 19) + chips + 26;
+        const h = ((idx.children.get(node.id) || []).some(id => scopedIds.has(id)) ? 24 : 0) + (kind === 'founder' ? 64 : 22) + nameLines.length * (kind === 'founder' ? 21 : 19) + chips + 26;
         cardHeights.set(node.id, {lines: nameLines, h});
         return {w, h};
     }
@@ -104,18 +110,28 @@
     }
     function relayout() {
         const started = performance.now();
-        const vis = L.visible(idx, {...view, ...branchSpec()}, collapsed);
+        const scope = L.visible(idx, {...view, ...branchSpec()});
+        scopedIds = scope.ids;
+        const vis = L.displayVisible(idx, scope, displayMode, branchExpanded, collapsed, searchRevealed);
+        renderedIds = vis.ids;
         visibleState = vis.state;
+        app.dataset.visibleCount = String(vis.ids.size);
+        app.dataset.activeDisplayMode = displayMode;
+        const summary = $('[data-display-summary]');
+        if (summary) summary.textContent = `عرض ${vis.ids.size} من ${scope.ids.size} سجلًا ضمن النطاق المحدد`;
         // Only a view's focus is kept as a full card; a selected chain member stays in its chain (highlighted).
         const keep = new Set([view.focus].filter(id => id !== null));
-        units = L.units(idx, vis, {collapsed, expanded, keep});
+        const compact = ancestrySelect.value === 'compact';
+        units = L.units(idx, vis, {collapsed, expanded, keep, compact});
         cardHeights.clear();
-        layout = L.layout(idx, units, {measure, expanded, leafHeight: 58});
+        ancestryWidth = Math.max(640, Math.min(1600, stage.clientWidth));
+        layout = L.layout(idx, units, {measure, expanded, leafHeight: 58, compact, ancestryWidth, keep, scopeIds: scopedIds});
+        app.dataset.serpentineNodes = String(layout.items.filter(item => item.serpentine).length);
         // Right-to-left: mirror horizontally so the first child appears on the right.
         const W = layout.width;
         layout.items.forEach(item => { item.x = W - item.x - item.w; (item.cells || []).forEach(cell => { cell.x = W - cell.x - cell.w; }); });
         layout.rects.forEach(rect => { rect.x = W - rect.x - rect.w; });
-        layout.links.forEach(link => { link.from.x = W - link.from.x; if (link.spineX !== undefined) link.spineX = W - link.spineX; link.to.forEach(to => { to.x = W - to.x; }); });
+        layout.links.forEach(link => { (link.points || []).forEach(point => { point.x = W - point.x; }); link.from.x = W - link.from.x; if (link.spineX !== undefined) link.spineX = W - link.spineX; link.to.forEach(to => { to.x = W - to.x; }); });
         buildEdges();
         // Timings for performance checks (layout of the visible tree; drawing below).
         app.dataset.layoutMs = (performance.now() - started).toFixed(1);
@@ -128,7 +144,15 @@
         const paths = {'is-verified': [], 'is-sourced': [], 'is-pending': []};
         layout.links.forEach(link => {
             link.to.forEach(to => {
-                paths[edgeClass(to.verification)].push(link.spineX === undefined
+                if (link.points?.length > 1) {
+                    const end = link.points.at(-1), previous = link.points.at(-2);
+                    const length = Math.hypot(end.x - previous.x, end.y - previous.y);
+                    if (length > 0) {
+                        const dx = (end.x - previous.x) / length, dy = (end.y - previous.y) / length;
+                        paths[edgeClass(to.verification)].push(`M${end.x - dx * 8 - dy * 4},${end.y - dy * 8 + dx * 4}L${end.x},${end.y}L${end.x - dx * 8 + dy * 4},${end.y - dy * 8 - dx * 4}`);
+                    }
+                }
+                paths[edgeClass(to.verification)].push(link.points ? link.points.map((point, i) => `${i ? 'L' : 'M'}${point.x},${point.y}`).join('') : link.spineX === undefined
                     ? `M${link.from.x},${link.from.y}V${link.barY}H${to.x}V${to.y}`
                     : `M${link.from.x},${link.from.y}V${link.barY}H${link.spineX}V${to.barY}H${to.x}V${to.y}`);
             });
@@ -172,7 +196,7 @@
     }
     function drawCard(item) {
         const node = nodeOf(item.id), founder = node.founder, measured = cardHeights.get(item.id) || {lines: [node.name]};
-        const group = element('g', {transform: `translate(${item.x} ${item.y})`, class: `tree-node tree-card ${founder ? 'is-founder founder-' + founder.kind : ''} ${stateClass(item.id)} v-${node.verification}`, 'data-id': item.id, role: 'button', tabindex: '0',
+        const group = element('g', {transform: `translate(${item.x} ${item.y})`, class: `tree-node tree-card ${founder ? 'is-founder founder-' + founder.kind : ''} ${stateClass(item.id)} v-${node.verification}`, 'data-id': item.id, 'data-generation': item.generation === undefined ? null : item.generation + 1, 'data-serpentine': item.serpentine ? '1' : '0', role: 'button', tabindex: '0',
             'aria-label': `${node.name}${founder ? '، ' + founder.classification + (founder.branch ? ' ' + founder.branch : '') : ''}، ${VERIFICATION[node.verification] || 'غير موثق'}`});
         group.append(element('title', {}, node.name));
         group.append(element('rect', {class: 'tree-card-bg', width: item.w, height: item.h, rx: founder ? 18 : 12}));
@@ -194,6 +218,12 @@
                 ids.slice(0, 2).forEach((id, i) => { const attribute = attributes.get(id); if (attribute) chip(group, attribute, 14 + i * (width + 4), top + measured.lines.length * 19 - 6, width); });
             }
             group.append(element('text', {class: `tree-meta v-${node.verification}`, x: item.w / 2, y: item.h - 10, 'text-anchor': 'middle'}, collapsed.has(item.id) ? `ذرية مطوية (${(idx.children.get(item.id) || []).length}+)` : (VERIFICATION[node.verification] || 'غير موثق')));
+        }
+        if (lod !== 'far' && (idx.children.get(item.id) || []).some(id => scopedIds.has(id))) {
+            const control = element('g', {'data-expand-id': item.id, class: 'tree-expand-control', role: 'button', tabindex: '0', 'aria-label': effectiveCollapsed(item.id) ? 'توسيع ذرية ' + node.name : 'طي ذرية ' + node.name, 'aria-expanded': String(!effectiveCollapsed(item.id))});
+            control.append(element('circle', {cx: item.w - 17, cy: item.h - 15, r: 12}));
+            control.append(element('text', {x: item.w - 17, y: item.h - 10, 'text-anchor': 'middle'}, effectiveCollapsed(item.id) ? '+' : '−'));
+            group.append(control);
         }
         return group;
     }
@@ -228,30 +258,36 @@
         });
         return group;
     }
-    function drawGrid(item) {
-        const group = element('g', {class: 'tree-grid', 'data-grid': item.key});
-        item.cells.forEach(cell => {
-            const node = nodeOf(cell.id);
-            const g = element('g', {transform: `translate(${cell.x} ${cell.y})`, class: `tree-node tree-leaf ${stateClass(cell.id)} v-${node.verification}`, 'data-id': cell.id, role: 'button', tabindex: '0', 'aria-label': `${node.name}، ${VERIFICATION[node.verification] || 'غير موثق'}`});
-            g.append(element('title', {}, node.name));
-            g.append(element('rect', {class: 'tree-card-bg', width: cell.w, height: cell.h, rx: 10}));
-            if (lod !== 'far') {
-                lines(node.name, cell.w - 20, '700 12px Cairo, Tahoma, sans-serif', 2).forEach((line, i) => g.append(element('text', {class: 'tree-name tree-name-leaf', x: cell.w / 2, y: 22 + i * 17, 'text-anchor': 'middle'}, line)));
-                g.append(element('circle', {class: `tree-chain-dot ${edgeClass(node.verification)}`, cx: 12, cy: 12, r: 4}));
-            }
-            group.append(g);
-        });
-        return group;
-    }
-    const drawItem = item => item.kind === 'card' ? drawCard(item) : item.kind === 'chain' ? drawChain(item) : drawGrid(item);
+    const drawItem = item => item.kind === 'card' ? drawCard(item) : drawChain(item);
 
     // ---- view state -----------------------------------------------------------------------------------------------
+    function effectiveCollapsed(id) {
+        return collapsed.has(id) || (idx.children.get(id) || []).some(child => scopedIds.has(child) && !renderedIds.has(child));
+    }
+    function keepAnchor(id, action) {
+        const before = layout.rects.get(id);
+        const screen = before ? {x: x + (before.x + before.w / 2) * scale, y: y + (before.y + before.h / 2) * scale} : null;
+        action(); relayout();
+        const after = layout.rects.get(id);
+        if (screen && after) { x = screen.x - (after.x + after.w / 2) * scale; y = screen.y - (after.y + after.h / 2) * scale; }
+        transform();
+    }
+    function toggleBranch(id) {
+        const opening = effectiveCollapsed(id);
+        keepAnchor(id, () => {
+            if (opening) { collapsed.delete(id); branchExpanded.add(id); }
+            else { branchExpanded.delete(id); collapsed.add(id); }
+        });
+        if (selected !== null) updatePanel();
+    }
     function reveal(id) {
         let changed = false;
+        if (displayMode !== 'full' && !renderedIds.has(id)) { searchRevealed.add(id); changed = true; }
         L.pathTo(idx, id).forEach(ancestor => { if (ancestor !== id && collapsed.delete(ancestor)) changed = true; });
         const vis = L.visible(idx, {...view, ...branchSpec()}, collapsed);
         if (!vis.ids.has(id)) { view = {mode: 'full', focus: null}; if (branchSelect.value) { branchSelect.value = ''; } changed = true; }
-        const chain = L.chainOf(units, id);
+        const placed = layout.rects.get(id)?.item;
+        const chain = placed?.kind === 'chain' ? placed.key : null;
         if (chain && !expanded.has(chain)) { expanded.add(chain); changed = true; }
         return changed;
     }
@@ -369,8 +405,8 @@
         setLink('[data-person-manage]', url('manage', selected));
         setLink('[data-person-entity]', node.founder?.entity_url || null);
         const toggle = $('[data-person-toggle]');
-        toggle.hidden = !children; toggle.textContent = collapsed.has(selected) ? 'توسيع الذرية' : 'طي الذرية';
-        toggle.onclick = () => { collapsed.has(selected) ? collapsed.delete(selected) : collapsed.add(selected); relayout(); center(selected); updatePanel(); };
+        toggle.hidden = !(idx.children.get(selected) || []).some(id => scopedIds.has(id)); toggle.textContent = effectiveCollapsed(selected) ? 'توسيع الذرية' : 'طي الذرية';
+        toggle.onclick = () => toggleBranch(selected);
         $('[data-person-ancestors]').onclick = () => setView('ancestors');
         $('[data-person-descendants]').onclick = () => setView('descendants');
         $('[data-person-load]').hidden = true;
@@ -383,7 +419,8 @@
         const params = new URLSearchParams(location.search);
         selected !== null ? params.set('person', selected) : params.delete('person');
         view.mode !== 'full' ? params.set('view', view.mode) : params.delete('view');
-        params.delete('q');
+        displayMode === 'full' ? params.delete('display') : params.set('display', displayMode);
+        ancestrySelect.value === 'compact' ? params.set('ancestry', 'compact') : params.delete('ancestry');
         const next = `${location.pathname}?${params}`;
         if (next === `${location.pathname}${location.search}`) return;
         historyIndex++; historyDepth = historyIndex;
@@ -398,32 +435,43 @@
         const s = event.state || {};
         historyIndex = s.index || 0; updateHistoryButtons();
         const person = Number(new URLSearchParams(location.search).get('person') || 0);
-        const mode = new URLSearchParams(location.search).get('view') || 'full';
-        if (person && idx.byId.has(person)) { selected = person; view = mode === 'full' ? {mode: 'full', focus: null} : {mode, focus: person}; select(person, {push: false}); }
+        const params = new URLSearchParams(location.search);
+        const mode = params.get('view') || 'full';
+        displayMode = ['main_branches', 'sub_branches'].includes(params.get('display')) ? params.get('display') : 'full';
+        displaySelect.value = displayMode;
+        ancestrySelect.value = params.get('ancestry') === 'compact' ? 'compact' : 'serpentine';
+        branchExpanded.clear(); collapsed.clear(); searchRevealed.clear();
+        if (person && idx.byId.has(person)) { selected = person; view = mode === 'full' ? {mode: 'full', focus: null} : {mode, focus: person}; relayout(); select(person, {push: false}); }
         else { selected = null; view = {mode: 'full', focus: null}; panel.hidden = true; relayout(); updatePath(); updateViewButtons(); }
     });
 
     // ---- pan, zoom, fit, keyboard --------------------------------------------------------------------------------------------
     function fit() {
         if (!layout.width) return;
-        scale = Math.max(0.02, Math.min(1, (stage.clientWidth - 40) / layout.width, (stage.clientHeight - 40) / layout.height));
+        scale = Math.max(Number.EPSILON, Math.min(1, (stage.clientWidth - 40) / layout.width, (stage.clientHeight - 40) / layout.height));
         x = (stage.clientWidth - layout.width * scale) / 2; y = 20; transform();
     }
     function zoom(factor, px = stage.clientWidth / 2, py = stage.clientHeight / 2) {
-        const next = Math.max(0.02, Math.min(2.5, scale * factor));
+        const minimum = Math.max(Number.EPSILON, Math.min(0.02, (stage.clientWidth - 40) / Math.max(1, layout.width), (stage.clientHeight - 40) / Math.max(1, layout.height)));
+        const next = Math.max(minimum, Math.min(2.5, scale * factor));
         x = px - (px - x) * next / scale; y = py - (py - y) * next / scale; scale = next; transform();
     }
     function initialView() {
         const narrow = stage.clientWidth < 700;
         const focusId = Number(branchSelect.selectedOptions[0]?.dataset.root || 0) || data.rootId;
         // Phones start readable on the root or fakhd founder; the full overview is one tap away (ملاءمة).
-        if (narrow && focusId && layout.rects.has(focusId)) { scale = 0.8; center(focusId, 0.8); return; }
+        if (narrow && focusId && layout.rects.has(focusId)) {
+            scale = 0.8; center(focusId, 0.8);
+            const root = layout.rects.get(focusId);
+            if (focusId === data.rootId && root.item.serpentine) { x = stage.clientWidth - 16 - (root.x + root.w) * scale; transform(); }
+            return;
+        }
         const fitScale = Math.min((stage.clientWidth - 40) / layout.width, (stage.clientHeight - 40) / layout.height);
         if (fitScale >= 0.75 || !focusId || !layout.rects.has(focusId)) { fit(); return; }
         // Too large to read when fitted: start at a legible scale on the root (or fakhd founder), near the top.
         scale = 0.85;
         const rect = layout.rects.get(focusId);
-        x = stage.clientWidth / 2 - (rect.x + rect.w / 2) * scale;
+        x = focusId === data.rootId && rect.item.serpentine ? stage.clientWidth - 24 - (rect.x + rect.w) * scale : stage.clientWidth / 2 - (rect.x + rect.w / 2) * scale;
         y = 24 - rect.y * scale + (focusId === data.rootId ? 0 : 80);
         transform();
     }
@@ -432,7 +480,7 @@
         if (action === 'zoom-in') zoom(1.3);
         if (action === 'zoom-out') zoom(1 / 1.3);
         if (action === 'fit') fit();
-        if (action === 'reset') { collapsed.clear(); expanded.clear(); selected = null; view = {mode: 'full', focus: null}; panel.hidden = true; relayout(); initialView(); updatePath(); updateViewButtons(); pushHistory(); }
+        if (action === 'reset') { displayMode = 'full'; displaySelect.value = 'full'; ancestrySelect.value = 'serpentine'; branchExpanded.clear(); searchRevealed.clear(); collapsed.clear(); expanded.clear(); selected = null; view = {mode: 'full', focus: null}; panel.hidden = true; relayout(); initialView(); updatePath(); updateViewButtons(); pushHistory(); }
         if (action === 'back') history.back();
         if (action === 'forward') history.forward();
         if (action === 'fullscreen') {
@@ -468,6 +516,8 @@
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => svg.addEventListener(type, release));
     svg.addEventListener('click', event => {
         if (moved) return;
+        const expansion = event.target.closest('[data-expand-id]');
+        if (expansion) { toggleBranch(Number(expansion.dataset.expandId)); return; }
         const fold = event.target.closest('[data-fold]');
         if (fold) { expanded.add(fold.dataset.fold); relayout(); return; }
         const target = event.target.closest('[data-id]');
@@ -480,6 +530,8 @@
     stage.addEventListener('keydown', event => {
         if (event.target.closest('input,select,textarea')) return;
         const key = event.key;
+        const expansion = event.target.closest('[data-expand-id]');
+        if (expansion && (key === 'Enter' || key === ' ')) { event.preventDefault(); toggleBranch(Number(expansion.dataset.expandId)); return; }
         if (key === '+' || key === '=') { zoom(1.2); event.preventDefault(); return; }
         if (key === '-') { zoom(1 / 1.2); event.preventDefault(); return; }
         if (key === '0') { fit(); event.preventDefault(); return; }
@@ -495,12 +547,33 @@
         if (next !== undefined && layout.rects.has(next)) { event.preventDefault(); select(next); }
     });
     $('[data-person-close]').addEventListener('click', () => { panel.hidden = true; selected = null; relayout(); updatePath(); updateViewButtons(); pushHistory(); });
-    new ResizeObserver(() => scheduleDraw()).observe(stage);
+    new ResizeObserver(() => {
+        const nextWidth = Math.max(640, Math.min(1600, stage.clientWidth));
+        const becameVisible = previousStageWidth === 0 && stage.clientWidth > 0;
+        previousStageWidth = stage.clientWidth;
+        if (data.nodes.length && becameVisible) {
+            relayout(); if (selected !== null) center(selected); else initialView();
+        } else if (data.nodes.length && ancestryWidth && nextWidth !== ancestryWidth && ancestrySelect.value !== 'compact') {
+            keepAnchor(selected ?? data.rootId, () => {});
+        } else scheduleDraw();
+    }).observe(stage);
 
     // ---- branch / mode ------------------------------------------------------------------------------------------------------
     [branchSelect, modeSelect].forEach(control => control?.addEventListener('change', () => {
-        view = {mode: 'full', focus: null}; collapsed.clear(); relayout(); initialView(); updateViewButtons();
+        view = {mode: 'full', focus: null}; collapsed.clear(); branchExpanded.clear(); searchRevealed.clear(); relayout();
+        if (selected !== null && !renderedIds.has(selected)) { selected = null; panel.hidden = true; updatePath(); }
+        else if (selected !== null) updatePanel();
+        initialView(); updateViewButtons();
     }));
+
+    displaySelect.addEventListener('change', () => {
+        keepAnchor(selected ?? Number(branchSelect.selectedOptions[0]?.dataset.root || data.rootId), () => {
+            displayMode = displaySelect.value; branchExpanded.clear(); collapsed.clear(); searchRevealed.clear();
+            if (selected !== null) searchRevealed.add(selected);
+        });
+        if (selected !== null) updatePanel(); pushHistory();
+    });
+    ancestrySelect.addEventListener('change', () => { keepAnchor(selected ?? data.rootId, () => expanded.clear()); pushHistory(); });
 
     // ---- search -----------------------------------------------------------------------------------------------------------
     const input = $('[data-tree-search]'), results = $('[data-tree-search-results]');
@@ -631,7 +704,7 @@
         const person = Number(params.get('person') || 0);
         if (person && idx.byId.has(person)) {
             const mode = params.get('view');
-            if (mode === 'ancestors' || mode === 'descendants') view = {mode, focus: person};
+            if (mode === 'ancestors' || mode === 'descendants') { view = {mode, focus: person}; relayout(); }
             select(person, {push: false});
             history.replaceState({person, view: view.mode, index: 0}, '', location.href);
         }

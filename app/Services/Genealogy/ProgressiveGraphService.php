@@ -83,13 +83,18 @@ class ProgressiveGraphService
         $slug = $tree->family->slug;
         $founders = [];
         foreach ($branches as $branch) {
+            $boundary = $branch->parent_branch_id !== null || $branch->branch_type === 'sub_fakhd' ? 'sub' : (in_array($branch->branch_type, ['fakhd', Branch::TYPE_FAMILY_GROUP], true) ? 'main' : null);
             if (isset($founders[$branch->root_person_id])) {
                 $founders[$branch->root_person_id]['also'][] = $branch->name_ar;
+                if ($boundary) {
+                    $founders[$branch->root_person_id]['boundaries'] = array_values(array_unique([...($founders[$branch->root_person_id]['boundaries'] ?? []), $boundary]));
+                }
 
                 continue;
             }
             $entity = $entities->get($branch->id);
             $founders[$branch->root_person_id] = array_filter([
+                'boundaries' => $boundary ? [$boundary] : [],
                 'kind' => $branch->branch_type,
                 'classification' => 'مؤسس '.($branch->type_label),
                 'branch' => $branch->name_ar,
