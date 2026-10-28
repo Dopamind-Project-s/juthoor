@@ -12,3 +12,9 @@
 <label class="flex-row align-items-center gap-2"><input type="checkbox" name="all_day" value="1" @checked($v('all_day'))> طوال اليوم</label>
 @if($record->exists)<p class="small mb-0" data-event-status>الحالة: <strong>{{ \App\Models\CommunityEvent::STATUSES[$record->display_status] }}</strong> — تُغيّر من «تحديثات وتغييرات الموعد» أدناه.</p>@endif
 <fieldset class="content-governance"><legend class="h6">المكان</legend>@include('management.entities.content.fields.place')</fieldset>
+
+@push('scripts')<script src="{{ asset('js/community-publications.js') }}" defer></script>@endpush
+<button class="btn btn-outline-primary" type="button" data-publication-preview>معاينة قبل الحفظ</button>
+<section class="content-card" data-publication-preview-panel hidden aria-live="polite"><p class="small text-muted">معاينة محلية؛ لا تنشر المناسبة ولا ترسل إشعارات.</p><h2 data-preview-title></h2><p data-preview-summary></p><div class="publication-preview-body" data-preview-body></div></section>
+
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-publications.css') }}">@endpush

@@ -8,6 +8,7 @@ use App\Models\Diwan;
 use App\Models\EntityContentLink;
 use App\Models\Family;
 use App\Models\MediaItem;
+use App\Models\NewsPost;
 use App\Models\Source;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -48,9 +49,13 @@ class CommunityContentService
         return DB::transaction(function () use ($user, $owner, $record, $fields, $governance, $subjects): Model {
             Family::query()->whereKey($owner->family_id)->lockForUpdate()->firstOrFail();
             $before = $record->exists ? $this->snapshot($record->refresh()) : null;
-            $mayPublish = Gate::forUser($user)->allows('publish', $owner);
+            $mayPublish = Gate::forUser($user)->allows('publish', [$owner, CommunityContentModules::keyFor($record)]);
             if (! $mayPublish && $record->exists && in_array($record->publication_status, [$record::STATUS_PUBLISHED, $record::STATUS_ARCHIVED], true)) {
                 throw ValidationException::withMessages(['publication_status' => 'هذا السجل منشور أو مؤرشف؛ تعديله من صلاحية مدير العائلة أو مدير الكيان.']);
+            }
+            if ($record instanceof NewsPost && array_key_exists('is_featured', $fields)
+                && (bool) $fields['is_featured'] !== (bool) $record->is_featured && ! $mayPublish) {
+                throw ValidationException::withMessages(['is_featured' => 'اختيار الخبر البارز من صلاحية الناشر فقط.']);
             }
             $status = $governance['publication_status'];
             if (! $mayPublish && ! in_array($status, [$record::STATUS_DRAFT, $record::STATUS_SUBMITTED], true)) {

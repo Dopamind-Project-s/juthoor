@@ -26,3 +26,13 @@
     @if($record->sensitive_confirmed_at)<p class="small mb-0" data-sensitive-confirmed>أكّد التحقق {{ $record->sensitiveConfirmer?->name }} في {{ $record->sensitive_confirmed_at->setTimezone($zone)->format('Y-m-d H:i') }}.</p>@endif
 </fieldset>
 <fieldset class="content-governance"><legend class="h6">المكان (للعزاء أو اللقاء)</legend>@include('management.entities.content.fields.place')</fieldset>
+
+@if($canPublish)
+<label class="d-flex gap-2 align-items-center"><input type="hidden" name="is_featured" value="0"><input type="checkbox" name="is_featured" value="1" @checked($v('is_featured'))> خبر بارز في واجهة الأخبار</label>
+@error('is_featured')<span class="field-error">{{ $message }}</span>@enderror
+@endif
+@push('scripts')<script src="{{ asset('js/community-publications.js') }}" defer></script>@endpush
+<button class="btn btn-outline-primary" type="button" data-publication-preview>معاينة قبل الحفظ</button>
+<section class="content-card" data-publication-preview-panel hidden aria-live="polite"><p class="small text-muted">معاينة محلية غير منشورة؛ لا تتجاوز مراجعة الناشر أو موافقة العائلة.</p><h2 data-preview-title></h2><p data-preview-summary></p><div class="publication-preview-body" data-preview-body></div></section>
+
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-publications.css') }}">@endpush

@@ -4,7 +4,7 @@
         <a class="btn btn-sm btn-outline-primary" href="{{ route('community.entities.news', [$family->slug, $entity->slug, 'scope' => $scope]) }}">كل الأخبار والبحث</a>
     </div>
     @forelse($content['news'] as $post)
-        <x-community.news-card :post="$post" :family="$family" />
+        <x-community.news-card :post="$post" :family="$family" :visible-media="$visibleMedia ?? []" />
     @empty
         <p class="text-muted mb-0 mt-2" role="status">لا توجد أخبار منشورة في هذا النطاق.</p>
     @endforelse

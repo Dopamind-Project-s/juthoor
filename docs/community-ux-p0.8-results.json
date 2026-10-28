@@ -1,0 +1,323 @@
+{
+  "baseline_commit": "009c932c",
+  "date": "2026-10-28",
+  "baseline": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 27,
+    "passed": 24,
+    "assertions": 343,
+    "duration_ms": 3125,
+    "failed": 3,
+    "failed_tests": [
+      "death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files"
+    ]
+  },
+  "sqlite_full": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 464,
+    "passed": 429,
+    "assertions": 4667,
+    "duration_ms": 154928,
+    "failed": 35,
+    "failed_tests": [
+      "anchor_parentage_root_source_checksums_and_duplicate_manifest_keys_block_without_changes",
+      "a_child_with_only_hidden_descendants_has_no_public_load_more_indicator",
+      "an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "the_genealogy_preview_reuses_the_published_tree_and_invents_no_founder",
+      "statistics_count_distinct_people_per_measure_and_never_present_records_as_a_population",
+      "notable_people_reuse_Person_records_and_never_expose_hidden_people",
+      "notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+      "the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+      "static_Al_Zoubi_branch_pages_link_to_the_database_branch_only_when_it_is_published",
+      "batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+      "a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+      "all_39_open_ROOT_differences_are_listed_with_their_record__spelling__source_and_evidence",
+      "a_reviewer_rejects_a_difference_with_a_reason__keeping_the_claim_and_evidence",
+      "a_difference_can_be_left_unresolved_and_stays_open_without_changing_the_tree",
+      "a_difference_on_a_shared_ancestor_is_decided_only_by_a_platform_reviewer",
+      "titles_and_descriptors_do_not_expose_living_or_pending_people_on_public_endpoints",
+      "an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+      "no_raw_genealogy_dataset_or_source_image_is_inside_the_web_root",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"visitor\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"reader\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"editor\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"family admin\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"super admin\"\"",
+      "public_person_and_branch_pages_never_reveal_hidden_people_or_their_names",
+      "edges_to_hidden_fathers_are_withheld_from_every_public_graph_response",
+      "the_dry_run_audit_on_seeded_data_reports_counts_checksums_and_privacy_without_any_mutation",
+      "the_audit_reports_preserved_edits_identity_conflicts_duplicates_and_integrity_problems",
+      "the_seed_audit_page_is_read_only_and_reserved_for_super_admins",
+      "the_site_dashboard_reports_global_counts_pending_work_and_system_health",
+      "failed_jobs_raise_an_operational_alert_on_the_site_dashboard",
+      "every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+      "the_complete_default_import_is_connected_private_traceable_scoped_and_repeatable"
+    ]
+  },
+  "sqlite_relevant": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 57,
+    "passed": 52,
+    "assertions": 639,
+    "duration_ms": 28928,
+    "failed": 5,
+    "failed_tests": [
+      "death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag"
+    ]
+  },
+  "new_tests_sqlite": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 6,
+    "passed": 6,
+    "assertions": 25,
+    "duration_ms": 878,
+    "failed_tests": []
+  },
+  "new_full_suite_failure_names": [],
+  "browser_public": {
+    "results": [
+      {
+        "journey": "news",
+        "status": 200
+      },
+      {
+        "journey": "news-category",
+        "status": 200
+      },
+      {
+        "journey": "news-search",
+        "status": 200
+      },
+      {
+        "journey": "calendar",
+        "status": 200
+      },
+      {
+        "journey": "calendar-list",
+        "status": 200
+      },
+      {
+        "journey": "article",
+        "status": 200
+      },
+      {
+        "journey": "congratulation",
+        "status": 200
+      },
+      {
+        "journey": "condolence",
+        "status": 200
+      },
+      {
+        "journey": "wedding",
+        "status": 200
+      },
+      {
+        "journey": "achievement",
+        "status": 200
+      },
+      {
+        "journey": "scope",
+        "status": 200
+      },
+      {
+        "journey": "mobile-news",
+        "status": 200,
+        "overflow": false
+      },
+      {
+        "journey": "mobile-calendar",
+        "status": 200,
+        "overflow": false
+      },
+      {
+        "journey": "share-without-preview-query",
+        "status": 200
+      }
+    ],
+    "errors": []
+  },
+  "browser_editorial": {
+    "journeys": [
+      "editor-login",
+      "local-safe-preview",
+      "contextual-death-fields",
+      "draft-save",
+      "submit-review",
+      "publisher-login",
+      "publisher-review"
+    ],
+    "errors": []
+  },
+  "performance_sample": [
+    {
+      "path": "/families/community-p08/entities/community/news",
+      "status": 200,
+      "queries": 17,
+      "html_bytes": 21887,
+      "milliseconds": 74.6
+    },
+    {
+      "path": "/families/community-p08/entities/community/calendar",
+      "status": 200,
+      "queries": 20,
+      "html_bytes": 28489,
+      "milliseconds": 20.1
+    },
+    {
+      "path": "/families/community-p08/entities/community/calendar?layout=list",
+      "status": 200,
+      "queries": 14,
+      "html_bytes": 18332,
+      "milliseconds": 13.9
+    },
+    {
+      "path": "/families/community-p08/news/1",
+      "status": 200,
+      "queries": 21,
+      "html_bytes": 17733,
+      "milliseconds": 19
+    }
+  ],
+  "node": {
+    "tests": 40,
+    "passed": 40,
+    "failed": 0
+  },
+  "files": [
+    "app/Http/Controllers/CommunityPublicationController.php",
+    "app/Models/CommunityEvent.php",
+    "app/Models/Concerns/HasPublicationSearch.php",
+    "app/Models/NewsPost.php",
+    "app/Services/Community/CommunityContentService.php",
+    "database/migrations/2026_10_28_020000_add_community_publication_discovery_fields.php",
+    "docs/community-ux-p0.8-results.json",
+    "docs/community-ux-p0.8.md",
+    "docs/development-progress.md",
+    "docs/implementation-roadmap.md",
+    "docs/project-audit.md",
+    "public/css/community-publications.css",
+    "public/js/community-publications.js",
+    "resources/views/community/events/calendar.blade.php",
+    "resources/views/community/events/show.blade.php",
+    "resources/views/community/news/index.blade.php",
+    "resources/views/community/news/show.blade.php",
+    "resources/views/community/sections/events.blade.php",
+    "resources/views/community/sections/news.blade.php",
+    "resources/views/components/community/event-card.blade.php",
+    "resources/views/components/community/news-card.blade.php",
+    "resources/views/management/entities/content/fields/events.blade.php",
+    "resources/views/management/entities/content/fields/news.blade.php",
+    "resources/views/portal/sections/events.blade.php",
+    "resources/views/portal/sections/news.blade.php",
+    "tests/Browser/community-editor.cjs",
+    "tests/Browser/community-publications.cjs",
+    "tests/Browser/fixtures/community-p08.php",
+    "tests/Feature/CommunityEventTest.php",
+    "tests/Feature/CommunityNewsTest.php"
+  ],
+  "postgresql_full": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 465,
+    "passed": 430,
+    "assertions": 4674,
+    "duration_ms": 435997,
+    "failed": 35,
+    "failed_tests": [
+      "anchor_parentage_root_source_checksums_and_duplicate_manifest_keys_block_without_changes",
+      "a_child_with_only_hidden_descendants_has_no_public_load_more_indicator",
+      "an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "the_genealogy_preview_reuses_the_published_tree_and_invents_no_founder",
+      "statistics_count_distinct_people_per_measure_and_never_present_records_as_a_population",
+      "notable_people_reuse_Person_records_and_never_expose_hidden_people",
+      "notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+      "the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+      "static_Al_Zoubi_branch_pages_link_to_the_database_branch_only_when_it_is_published",
+      "batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+      "a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+      "all_39_open_ROOT_differences_are_listed_with_their_record__spelling__source_and_evidence",
+      "a_reviewer_rejects_a_difference_with_a_reason__keeping_the_claim_and_evidence",
+      "a_difference_can_be_left_unresolved_and_stays_open_without_changing_the_tree",
+      "a_difference_on_a_shared_ancestor_is_decided_only_by_a_platform_reviewer",
+      "titles_and_descriptors_do_not_expose_living_or_pending_people_on_public_endpoints",
+      "an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+      "no_raw_genealogy_dataset_or_source_image_is_inside_the_web_root",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"visitor\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"reader\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"editor\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"family admin\"\"",
+      "every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"super admin\"\"",
+      "public_person_and_branch_pages_never_reveal_hidden_people_or_their_names",
+      "edges_to_hidden_fathers_are_withheld_from_every_public_graph_response",
+      "the_dry_run_audit_on_seeded_data_reports_counts_checksums_and_privacy_without_any_mutation",
+      "the_audit_reports_preserved_edits_identity_conflicts_duplicates_and_integrity_problems",
+      "the_seed_audit_page_is_read_only_and_reserved_for_super_admins",
+      "the_site_dashboard_reports_global_counts_pending_work_and_system_health",
+      "failed_jobs_raise_an_operational_alert_on_the_site_dashboard",
+      "every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+      "the_complete_default_import_is_connected_private_traceable_scoped_and_repeatable"
+    ]
+  },
+  "new_tests_postgresql": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 6,
+    "passed": 6,
+    "assertions": 25,
+    "duration_ms": 2424,
+    "failed_tests": []
+  },
+  "browser_total_journeys": 21,
+  "baseline_screenshots": {
+    "count": 3,
+    "method": "HEAD controller/templates rendered on localhost:8049 against the isolated synthetic SQLite fixture"
+  },
+  "postgresql_sqlite_failure_name_difference": [],
+  "quality": {
+    "pint": "passed",
+    "diff_check": "passed",
+    "new_failure_names": [],
+    "full_suite_counts_note": "Full-suite snapshots were collected while additional tests were being added; final six added cases were rerun separately on both databases.",
+    "release_ready": false,
+    "production_migration_run": false,
+    "deployment_run": false
+  },
+  "screenshots": [
+    "docs/screenshots/ux-p0.8/achievement.png",
+    "docs/screenshots/ux-p0.8/article.png",
+    "docs/screenshots/ux-p0.8/before-article.png",
+    "docs/screenshots/ux-p0.8/before-calendar.png",
+    "docs/screenshots/ux-p0.8/before-news.png",
+    "docs/screenshots/ux-p0.8/calendar-list.png",
+    "docs/screenshots/ux-p0.8/calendar.png",
+    "docs/screenshots/ux-p0.8/condolence.png",
+    "docs/screenshots/ux-p0.8/congratulation.png",
+    "docs/screenshots/ux-p0.8/editor-preview.png",
+    "docs/screenshots/ux-p0.8/editor-submitted.png",
+    "docs/screenshots/ux-p0.8/mobile-calendar.png",
+    "docs/screenshots/ux-p0.8/mobile-news.png",
+    "docs/screenshots/ux-p0.8/news-category.png",
+    "docs/screenshots/ux-p0.8/news-search.png",
+    "docs/screenshots/ux-p0.8/news.png",
+    "docs/screenshots/ux-p0.8/publisher-reviewed.png",
+    "docs/screenshots/ux-p0.8/scope.png",
+    "docs/screenshots/ux-p0.8/wedding.png"
+  ]
+}

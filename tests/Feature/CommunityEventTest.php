@@ -128,3 +128,11 @@ test('finished scheduled events show as completed without changing the record', 
     expect($event->display_status)->toBe('completed')->and($event->fresh()->event_status)->toBe('scheduled');
     $this->get(route('community.events.show', ['zain', $event->id]))->assertSee('data-event-status="completed"', false);
 });
+
+test('calendar list search and ongoing state use recorded times without rewriting event history', function () {
+    $event = communityEvent($this->fakhd, ['title' => 'إنجاز أبناء الفخذ', 'starts_at' => '2030-03-10T11:00', 'ends_at' => '2030-03-10T14:00']);
+    expect($event->display_status)->toBe('ongoing')->and($event->fresh()->event_status)->toBe('scheduled');
+    $url = route('community.entities.calendar', ['zain', 'f', 'month' => '2030-03', 'layout' => 'list', 'status' => 'ongoing', 'q' => 'انجاز ابناء']);
+    $this->get($url)->assertOk()->assertSee('جارية الآن')->assertSee('إنجاز أبناء الفخذ')->assertViewHas('listEvents', fn ($events) => $events->total() === 1);
+    $this->get(route('community.entities.calendar', ['zain', 'g', 'layout' => 'list', 'month' => '2030-03']))->assertDontSee('إنجاز أبناء الفخذ');
+});

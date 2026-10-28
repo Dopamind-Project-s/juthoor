@@ -4,7 +4,7 @@
         <a class="btn btn-sm btn-outline-primary" href="{{ route('community.entities.calendar', [$family->slug, $entity->slug, 'scope' => $scope]) }}"><i class="bi bi-calendar3"></i> التقويم والمناسبات السابقة</a>
     </div>
     @forelse($content['events'] as $event)
-        <x-community.event-card :event="$event" :family="$family" />
+        <x-community.event-card :event="$event" :family="$family" :visible-media="$visibleMedia ?? []" />
     @empty
         <p class="text-muted mb-0 mt-2" role="status">لا توجد مناسبات قادمة في هذا النطاق.</p>
     @endforelse

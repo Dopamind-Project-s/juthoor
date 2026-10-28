@@ -3,7 +3,10 @@
 @section('title', $event->title)
 @php($start = $event->localStart())
 @php($end = $event->localEnd())
+@push('styles')<link rel="stylesheet" href="{{ asset('css/community-publications.css') }}">@endpush
+@push('scripts')<script src="{{ asset('js/community-publications.js') }}" defer></script>@endpush
 @section('content')
+<div class="container pt-3"><button type="button" class="btn btn-outline-secondary" data-publication-share>مشاركة الرابط</button><span class="small ms-2" role="status" data-share-status></span></div>
 <section class="branch-hero entity-hero">
     <div class="container">
         <nav class="family-breadcrumb light" aria-label="مسار"><a href="{{ route('community.entities.show', [$family->slug, $event->ownerEntity->slug]) }}">{{ $event->ownerEntity->name_ar }}</a><i class="bi bi-chevron-left" aria-hidden="true"></i><a href="{{ route('community.entities.calendar', [$family->slug, $event->ownerEntity->slug]) }}">التقويم</a></nav>
@@ -21,6 +24,7 @@
             @if($announcements->isNotEmpty())<section class="entity-section"><h2 class="h6 fw-bold">إعلانات مرتبطة</h2><ul class="mb-0">@foreach($announcements as $announcement)<li><a href="{{ route('community.news.show', [$family->slug, $announcement->id]) }}">{{ $announcement->title }}</a></li>@endforeach</ul></section>@endif
         </article>
         <aside class="col-lg-4 d-grid gap-3 align-content-start">
+            @if($relatedEntities->isNotEmpty())<nav class="entity-aside" aria-label="المجتمعات المرتبطة"><h2 class="h6 fw-bold">المجتمعات المرتبطة</h2>@foreach($relatedEntities as $relatedEntity)<a class="d-block" href="{{ route('community.entities.show', [$family->slug, $relatedEntity->slug]) }}">{{ $relatedEntity->name_ar }}</a>@endforeach</nav>@endif
             <section class="entity-aside">
                 <dl class="entity-facts mb-0">
                     @if($event->organizer)<div><dt>المنظم</dt><dd>{{ $event->organizer }}</dd></div>@endif

@@ -3,12 +3,15 @@
 use App\Models\AuditLog;
 use App\Models\CommunityEntity;
 use App\Models\CommunityEntityManager;
+use App\Models\CommunityEvent;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\MediaItem;
 use App\Models\NewsPost;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Community\CommunityContentService;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -203,4 +206,42 @@ test('other families cannot manage or read each other\'s news', function () {
     $this->actingAs($outsider)->get(route('management.entities.content.edit', ['zain', $this->fakhd->id, 'news', $post->id]))->assertForbidden();
     $this->get(route('community.news.show', ['zain', $post->id]))->assertNotFound();
     $this->post(route('management.entities.content.notices.store', ['zain', $this->fakhd->id, 'news', $post->id]), ['kind' => 'update', 'message' => 'x'])->assertForbidden();
+});
+
+test('publication discovery normalizes Arabic and features only eligible news once', function () {
+    $featured = newsPost($this->fakhd, ['title' => 'إعلان أبناء العائلة', 'is_featured' => true]);
+    newsPost($this->fakhd, ['title' => 'خبر المستقبل', 'is_featured' => true, 'publish_at' => now()->addDay()]);
+    $response = $this->get(route('community.entities.news', ['zain', 'f', 'q' => 'اعلان ابناء']));
+    $response->assertOk()->assertSee('الخبر البارز')->assertDontSee('خبر المستقبل');
+    expect(substr_count($response->getContent(), 'data-record="news-'.$featured->id.'"'))->toBe(1);
+});
+
+test('an editor cannot feature a draft or bypass publication approval', function () {
+    $this->actingAs($this->editor)->post(route('management.entities.content.store', ['zain', $this->fakhd->id, 'news']), newsForm(['is_featured' => true]))
+        ->assertSessionHasErrors('is_featured');
+    expect(NewsPost::query()->count())->toBe(0);
+});
+
+test('news discovery validates filter shapes and preserves date boundaries', function () {
+    newsPost($this->fakhd, ['title' => 'خبر قديم', 'publish_at' => now()->subDays(10)]);
+    $recent = newsPost($this->fakhd, ['title' => 'خبر حديث', 'publish_at' => now()->subHour()]);
+    expect(newsRecords($this, route('community.entities.news', ['zain', 'f', 'from' => now()->subDay()->toDateString()])))->toBe(['news-'.$recent->id]);
+    $this->getJson(route('community.entities.news', ['zain', 'f', 'q' => ['invalid']]))->assertUnprocessable();
+    $this->getJson(route('community.entities.calendar', ['zain', 'f', 'month' => '2026-13']))->assertUnprocessable();
+});
+
+test('a news publisher may feature news without acquiring unrelated content privileges', function () {
+    $this->seed(RolePermissionSeeder::class);
+    $member = FamilyMembership::query()->where('user_id', $this->reader->id)->where('family_id', $this->family->id)->sole();
+    $member->roleAssignments()->create(['role_id' => Role::query()->where('key', 'news-publisher')->sole()->id]);
+    $this->actingAs($this->reader)->post(route('management.entities.content.store', ['zain', $this->fakhd->id, 'news']), newsForm(['is_featured' => true], ['publication_status' => 'published']))->assertSessionHasNoErrors();
+    expect(NewsPost::query()->sole()->is_featured)->toBeTrue()
+        ->and($this->reader->can('publish', [$this->fakhd, 'events']))->toBeTrue()
+        ->and($this->reader->can('publish', [$this->fakhd, 'narratives']))->toBeFalse();
+});
+
+test('a public article does not disclose its unpublished linked event', function () {
+    $event = CommunityEvent::query()->create(['owner_entity_id' => $this->fakhd->id, 'publication_status' => 'draft', 'category' => 'meeting', 'title' => 'موعد سري', 'starts_at' => now()->addDay(), 'timezone' => 'Asia/Amman']);
+    $post = newsPost($this->fakhd, ['title' => 'خبر عام', 'event_id' => $event->id]);
+    $this->get(route('community.news.show', ['zain', $post->id]))->assertOk()->assertDontSee('موعد سري')->assertDontSee('data-linked-event', false);
 });

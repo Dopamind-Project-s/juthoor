@@ -6,6 +6,7 @@ use App\Models\Concerns\CommunityContent;
 use App\Models\Concerns\HasLinkedPeople;
 use App\Models\Concerns\HasMediaAttachments;
 use App\Models\Concerns\HasNotices;
+use App\Models\Concerns\HasPublicationSearch;
 use App\Models\Concerns\HasPublicPlace;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,7 +21,7 @@ use Illuminate\Validation\Rule;
 #[Fillable(['owner_entity_id', 'publication_status', 'verification_status', 'audience', 'review_note', 'submitted_at', 'reviewed_at', 'reviewed_by', 'created_by', 'sort_order', 'location_name', 'public_address', 'city', 'governorate', 'latitude', 'longitude', 'maps_url', 'contact_name', 'contact_phone', 'contact_consent', 'category', 'title', 'description', 'organizer', 'starts_at', 'ends_at', 'timezone', 'all_day'])]
 class CommunityEvent extends Model
 {
-    use CommunityContent, HasLinkedPeople, HasMediaAttachments, HasNotices, HasPublicPlace;
+    use CommunityContent, HasLinkedPeople, HasMediaAttachments, HasNotices, HasPublicationSearch, HasPublicPlace;
 
     /** @var array<string, string> */
     public const CATEGORIES = [
@@ -34,7 +35,7 @@ class CommunityEvent extends Model
     ];
 
     /** @var array<string, string> */
-    public const STATUSES = ['scheduled' => 'قادمة', 'postponed' => 'مؤجلة', 'cancelled' => 'ملغاة', 'completed' => 'منتهية'];
+    public const STATUSES = ['scheduled' => 'قادمة', 'postponed' => 'مؤجلة', 'cancelled' => 'ملغاة', 'completed' => 'منتهية', 'ongoing' => 'جارية الآن'];
 
     /** Mirrors the column defaults so a just-saved event reads like a stored one. */
     protected $attributes = ['event_status' => 'scheduled', 'all_day' => false, 'contact_consent' => false];
@@ -93,6 +94,10 @@ class CommunityEvent extends Model
     {
         if ($this->event_status === 'scheduled' && ($this->ends_at ?? $this->starts_at)->isPast()) {
             return 'completed';
+        }
+
+        if ($this->event_status === 'scheduled' && $this->ends_at && $this->starts_at->isPast() && $this->ends_at->isFuture()) {
+            return 'ongoing';
         }
 
         return $this->event_status;
