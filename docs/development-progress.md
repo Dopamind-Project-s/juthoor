@@ -2,7 +2,15 @@
 
 Use this file to resume work without repeating the audit. Statuses and IDs refer to `docs/project-audit.md` and `docs/implementation-roadmap.md`.
 
-## Current state (2026-10-27, after session 16 — UX-P0.4 + UX-P0.5)
+## Current state (2026-10-29 — UX-P0.9)
+
+- Baseline branch `main`, `327d9c55`; all changes in this phase remain uncommitted.
+- Separate platform and family administration frames with shared primitives, scoped tasks/navigation, approved family branding and mobile accessibility.
+- Full SQLite/PostgreSQL 16: 445/478, 33 historical failures; two baseline dashboard defects fixed, no new failure names. Focused 61/61 each; 11 new cases; Node 40/40; Chrome 50/50.
+- Experience v3.0 implementation is delivered, with release approval conditional on the documented visibility/source-placement and other regression findings. No database reset or deployment occurred.
+- Resume from [UX-P0.9 report](admin-ux-p0.9.md) and [results](admin-ux-p0.9-results.json).
+
+## Historical state (2026-10-27, after session 16 — UX-P0.4 + UX-P0.5)
 
 - Branch `main` at `66951e2` (UX-P0.4 + UX-P0.5 committed by the maintainer). Journeys 17–20, their three screenshots and these doc updates came after that commit and are uncommitted. Nothing was committed, pushed, tagged or deployed by the assistant.
 - Suite: **441 passed / 0 failed** on SQLite and on PostgreSQL 16 (4913 assertions). Node layout tests: 11/11.
@@ -16,7 +24,7 @@ Use this file to resume work without repeating the audit. Statuses and IDs refer
 
 ## Next task to execute
 
-UX-P0.6 (see `docs/implementation-roadmap.md`, "UX-P0.6 readiness").
+Reconcile the known regression/security findings, then assess Experience v3.0 production readiness. Do not restart completed UX-P0.6–P0.9 work.
 
 ## Work log
 
@@ -464,3 +472,14 @@ Implemented the existing publishing experience: Arabic-normalized search and dat
 Validation: six new cases pass; full SQLite snapshot 429/464 with the same 35 historical failure names; final relevant SQLite 52/57 with five previously recorded expectation failures. Node 40/40. Chrome public/mobile and editor/publisher journeys pass with no page errors; baseline/current screenshots use synthetic local data. Full PostgreSQL 16.15 snapshot: 430/465, with the identical 35 historical failure names; the final six new tests pass on both databases. Chrome: 21/21 journeys, zero page errors, with three reconstructed baseline screenshots. Full-suite counts differ because additional tests were added between snapshots. Previously failing privacy/seeder/static-route expectations remain a regression/release blocker; UX-P0.9 release readiness is conditional.
 
 See [implementation, workflows, constraints, performance and reproduction](community-ux-p0.8.md), [exact results and changed files](community-ux-p0.8-results.json) and [screenshots](screenshots/ux-p0.8). Apply the additive discovery migration through the normal deployment workflow. No production database reset, dependency/vendor changes, commit, push or deployment occurred.
+
+
+## UX-P0.9 — Differentiated administration workspaces (2026-10-29)
+
+Implemented a central platform frame and a separately branded family frame, sharing the management shell and reusable UI components. Existing routes/policies/RBAC, portal branding, genealogy/review, publishing, directory moderation and audit/recovery services remain authoritative. Navigation, task cards and statistics follow effective family/entity permissions and maintenance switches; family switching clears previous record/tree/filter context. Added management filters/pagination, module-aware content links, private-sibling exclusion, review/task separation and mobile focus/table behavior. The existing tree gains an authorized private-mode return link; its layout and three modes are unchanged.
+
+Baseline: 467 tests, 432 passed, 35 failed. Final full SQLite and PostgreSQL 16.15: **445/478 passed, the same 33 unresolved historical failures, no new failure names or runtime errors**. Fixed two directly relevant platform-health baseline failures. An additional PostgreSQL snapshot-order issue was stabilized using explicit ID ordering without weakening its full-record comparison. A temporary test-file collision was resolved through isolated PostgreSQL test storage. Relevant administration/security/RBAC tests: 61/61 on each engine. New behavior cases: 11/11. Node: 40/40. Chrome: 50/50 actual journeys, no page errors; six before captures and platform/family side-by-side references.
+
+UX-P0.9 is implemented and verified relative to the documented baseline. Experience v3.0 release approval remains conditional on reconciling the 33 historical failures, especially public-name/privacy expectations and the existing source-placement check. No production database/reset, production migration, dependency/vendor change, domain activation, commit or deployment occurred.
+
+See [architecture, workflows, performance, files and limitations](admin-ux-p0.9.md), [baseline classifications](admin-ux-p0.9-baseline.md), [exact results](admin-ux-p0.9-results.json) and [screenshots](screenshots/ux-p0.9).

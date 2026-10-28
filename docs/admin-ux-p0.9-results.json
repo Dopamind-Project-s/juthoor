@@ -1,0 +1,550 @@
+{
+  "phase": "UX-P0.9",
+  "date": "2026-10-29",
+  "branch": "main",
+  "baseline_commit": "327d9c55",
+  "baseline_clean": true,
+  "stack": {
+    "laravel": "13.31",
+    "php": "8.3.6",
+    "postgresql": "16.15",
+    "chrome": "147"
+  },
+  "baseline_classification": "admin-ux-p0.9-baseline.json",
+  "baseline_sqlite": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 467,
+    "passed": 432,
+    "assertions": 4681,
+    "duration_ms": 149893,
+    "failed": 35,
+    "failed_tests": [
+      "P\\Tests\\Feature\\AlQawasmehBranchTest::__pest_evaluable_anchor_parentage_root_source_checksums_and_duplicate_manifest_keys_block_without_changes",
+      "P\\Tests\\Feature\\BetaReadinessTest::__pest_evaluable_a_child_with_only_hidden_descendants_has_no_public_load_more_indicator",
+      "P\\Tests\\Feature\\CommunityMediaTest::__pest_evaluable_an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_the_genealogy_preview_reuses_the_published_tree_and_invents_no_founder",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_statistics_count_distinct_people_per_measure_and_never_present_records_as_a_population",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_notable_people_reuse_Person_records_and_never_expose_hidden_people",
+      "P\\Tests\\Feature\\EntityPortalExperienceTest::__pest_evaluable_notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+      "P\\Tests\\Feature\\FamilyTreeMvpTest::__pest_evaluable_static_Al_Zoubi_branch_pages_link_to_the_database_branch_only_when_it_is_published",
+      "P\\Tests\\Feature\\FullTreeLoadingTest::__pest_evaluable_batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+      "P\\Tests\\Feature\\GenealogyExperienceTest::__pest_evaluable_a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_all_39_open_ROOT_differences_are_listed_with_their_record__spelling__source_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_reviewer_rejects_a_difference_with_a_reason__keeping_the_claim_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_can_be_left_unresolved_and_stays_open_without_changing_the_tree",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_on_a_shared_ancestor_is_decided_only_by_a_platform_reviewer",
+      "P\\Tests\\Feature\\PersonDescriptorsTest::__pest_evaluable_titles_and_descriptors_do_not_expose_living_or_pending_people_on_public_endpoints",
+      "P\\Tests\\Feature\\PersonPrivacyTest::__pest_evaluable_an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+      "P\\Tests\\Feature\\PrivateDatasetExposureTest::__pest_evaluable_no_raw_genealogy_dataset_or_source_image_is_inside_the_web_root",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"visitor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"reader\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"editor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"family admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"super admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_public_person_and_branch_pages_never_reveal_hidden_people_or_their_names",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_edges_to_hidden_fathers_are_withheld_from_every_public_graph_response",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_dry_run_audit_on_seeded_data_reports_counts_checksums_and_privacy_without_any_mutation",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_audit_reports_preserved_edits_identity_conflicts_duplicates_and_integrity_problems",
+      "P\\Tests\\Feature\\SeedAuditPageTest::__pest_evaluable_the_seed_audit_page_is_read_only_and_reserved_for_super_admins",
+      "P\\Tests\\Feature\\SiteAdminDashboardTest::__pest_evaluable_the_site_dashboard_reports_global_counts_pending_work_and_system_health",
+      "P\\Tests\\Feature\\SiteAdminDashboardTest::__pest_evaluable_failed_jobs_raise_an_operational_alert_on_the_site_dashboard",
+      "P\\Tests\\Feature\\TreeExperienceTest::__pest_evaluable_every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+      "P\\Tests\\Feature\\UnifiedGenealogySeederTest::__pest_evaluable_the_complete_default_import_is_connected_private_traceable_scoped_and_repeatable"
+    ],
+    "runtime_errors": []
+  },
+  "sqlite_full": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 478,
+    "passed": 445,
+    "assertions": 4741,
+    "duration_ms": 157715,
+    "failed": 33,
+    "failed_tests": [
+      "P\\Tests\\Feature\\AlQawasmehBranchTest::__pest_evaluable_anchor_parentage_root_source_checksums_and_duplicate_manifest_keys_block_without_changes",
+      "P\\Tests\\Feature\\BetaReadinessTest::__pest_evaluable_a_child_with_only_hidden_descendants_has_no_public_load_more_indicator",
+      "P\\Tests\\Feature\\CommunityMediaTest::__pest_evaluable_an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_the_genealogy_preview_reuses_the_published_tree_and_invents_no_founder",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_statistics_count_distinct_people_per_measure_and_never_present_records_as_a_population",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_notable_people_reuse_Person_records_and_never_expose_hidden_people",
+      "P\\Tests\\Feature\\EntityPortalExperienceTest::__pest_evaluable_notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+      "P\\Tests\\Feature\\FamilyTreeMvpTest::__pest_evaluable_static_Al_Zoubi_branch_pages_link_to_the_database_branch_only_when_it_is_published",
+      "P\\Tests\\Feature\\FullTreeLoadingTest::__pest_evaluable_batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+      "P\\Tests\\Feature\\GenealogyExperienceTest::__pest_evaluable_a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_all_39_open_ROOT_differences_are_listed_with_their_record__spelling__source_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_reviewer_rejects_a_difference_with_a_reason__keeping_the_claim_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_can_be_left_unresolved_and_stays_open_without_changing_the_tree",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_on_a_shared_ancestor_is_decided_only_by_a_platform_reviewer",
+      "P\\Tests\\Feature\\PersonDescriptorsTest::__pest_evaluable_titles_and_descriptors_do_not_expose_living_or_pending_people_on_public_endpoints",
+      "P\\Tests\\Feature\\PersonPrivacyTest::__pest_evaluable_an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+      "P\\Tests\\Feature\\PrivateDatasetExposureTest::__pest_evaluable_no_raw_genealogy_dataset_or_source_image_is_inside_the_web_root",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"visitor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"reader\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"editor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"family admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"super admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_public_person_and_branch_pages_never_reveal_hidden_people_or_their_names",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_edges_to_hidden_fathers_are_withheld_from_every_public_graph_response",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_dry_run_audit_on_seeded_data_reports_counts_checksums_and_privacy_without_any_mutation",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_audit_reports_preserved_edits_identity_conflicts_duplicates_and_integrity_problems",
+      "P\\Tests\\Feature\\SeedAuditPageTest::__pest_evaluable_the_seed_audit_page_is_read_only_and_reserved_for_super_admins",
+      "P\\Tests\\Feature\\TreeExperienceTest::__pest_evaluable_every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+      "P\\Tests\\Feature\\UnifiedGenealogySeederTest::__pest_evaluable_the_complete_default_import_is_connected_private_traceable_scoped_and_repeatable"
+    ],
+    "runtime_errors": []
+  },
+  "postgresql_full": {
+    "tool": "pest",
+    "result": "failed",
+    "tests": 478,
+    "passed": 445,
+    "assertions": 4741,
+    "duration_ms": 254134,
+    "failed": 33,
+    "failed_tests": [
+      "P\\Tests\\Feature\\AlQawasmehBranchTest::__pest_evaluable_anchor_parentage_root_source_checksums_and_duplicate_manifest_keys_block_without_changes",
+      "P\\Tests\\Feature\\BetaReadinessTest::__pest_evaluable_a_child_with_only_hidden_descendants_has_no_public_load_more_indicator",
+      "P\\Tests\\Feature\\CommunityMediaTest::__pest_evaluable_an_archive_entry_with_attached_files_is_shared_by_several_entities_without_copying_the_files",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_death_notices_need_a_family_administrator__recorded_consent_and_an_explicit_confirmation__and_never_change_the_person",
+      "P\\Tests\\Feature\\CommunityNewsTest::__pest_evaluable_linked_people_appear_only_to_viewers_allowed_to_see_them_and_media_is_reused__not_copied",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_the_genealogy_preview_reuses_the_published_tree_and_invents_no_founder",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_statistics_count_distinct_people_per_measure_and_never_present_records_as_a_population",
+      "P\\Tests\\Feature\\CommunityPortalTest::__pest_evaluable_notable_people_reuse_Person_records_and_never_expose_hidden_people",
+      "P\\Tests\\Feature\\EntityPortalExperienceTest::__pest_evaluable_notable_people_link_only_publicly_visible_persons_and_keep_the_non_exhaustive_disclaimer",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_the_portal_is_database_backed__statistics__hierarchy_and_genealogy_preview_never_expose_hidden_branches__unpublished_entities_or_private_people",
+      "P\\Tests\\Feature\\FamilyPortalTest::__pest_evaluable_legacy_Al_Zoubi_routes_keep_working__the_dynamic_portal_is_available_alongside_and_canonical_redirects_wait_for_the_flag",
+      "P\\Tests\\Feature\\FamilyTreeMvpTest::__pest_evaluable_static_Al_Zoubi_branch_pages_link_to_the_database_branch_only_when_it_is_published",
+      "P\\Tests\\Feature\\FullTreeLoadingTest::__pest_evaluable_batch_loading_excludes_living_restricted_pending_and_inactive_attributes_while_private_mode_stays_authorized",
+      "P\\Tests\\Feature\\GenealogyExperienceTest::__pest_evaluable_a_public_family_tree_renders_the_interactive_shell_backed_by_its_graph_endpoint",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_all_39_open_ROOT_differences_are_listed_with_their_record__spelling__source_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_reviewer_rejects_a_difference_with_a_reason__keeping_the_claim_and_evidence",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_can_be_left_unresolved_and_stays_open_without_changing_the_tree",
+      "P\\Tests\\Feature\\NameReconciliationTest::__pest_evaluable_a_difference_on_a_shared_ancestor_is_decided_only_by_a_platform_reviewer",
+      "P\\Tests\\Feature\\PersonDescriptorsTest::__pest_evaluable_titles_and_descriptors_do_not_expose_living_or_pending_people_on_public_endpoints",
+      "P\\Tests\\Feature\\PersonPrivacyTest::__pest_evaluable_an_unknown_living_status_is_private_everywhere_even_for_a_verified_historical_record",
+      "P\\Tests\\Feature\\PrivateDatasetExposureTest::__pest_evaluable_no_raw_genealogy_dataset_or_source_image_is_inside_the_web_root",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"visitor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"reader\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"editor\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"family admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_every_public_endpoint_applies_one_publication_rule_for_visitors_and_signed_in_members_alike with data set \"dataset \"super admin\"\"",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_public_person_and_branch_pages_never_reveal_hidden_people_or_their_names",
+      "P\\Tests\\Feature\\PublicVisibilityTest::__pest_evaluable_edges_to_hidden_fathers_are_withheld_from_every_public_graph_response",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_dry_run_audit_on_seeded_data_reports_counts_checksums_and_privacy_without_any_mutation",
+      "P\\Tests\\Feature\\SeedAuditCommandTest::__pest_evaluable_the_audit_reports_preserved_edits_identity_conflicts_duplicates_and_integrity_problems",
+      "P\\Tests\\Feature\\SeedAuditPageTest::__pest_evaluable_the_seed_audit_page_is_read_only_and_reserved_for_super_admins",
+      "P\\Tests\\Feature\\TreeExperienceTest::__pest_evaluable_every_eligible_person_and_approved_father_edge_is_present_exactly_once__hidden_people_appear_nowhere_in_the_payload",
+      "P\\Tests\\Feature\\UnifiedGenealogySeederTest::__pest_evaluable_the_complete_default_import_is_connected_private_traceable_scoped_and_repeatable"
+    ],
+    "runtime_errors": []
+  },
+  "sqlite_relevant": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 61,
+    "passed": 61,
+    "assertions": 383,
+    "duration_ms": 5838,
+    "failed_tests": [],
+    "runtime_errors": []
+  },
+  "postgresql_relevant": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 61,
+    "passed": 61,
+    "assertions": 383,
+    "duration_ms": 16310,
+    "failed_tests": [],
+    "runtime_errors": []
+  },
+  "new_cases_sqlite": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 11,
+    "passed": 11,
+    "assertions": 56,
+    "duration_ms": 910,
+    "failed_tests": [],
+    "runtime_errors": []
+  },
+  "demo_snapshot_sqlite": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 3,
+    "passed": 3,
+    "assertions": 17,
+    "duration_ms": 1161,
+    "failed_tests": [],
+    "runtime_errors": []
+  },
+  "fixed_baseline_failures": [
+    "P\\Tests\\Feature\\SiteAdminDashboardTest::__pest_evaluable_failed_jobs_raise_an_operational_alert_on_the_site_dashboard",
+    "P\\Tests\\Feature\\SiteAdminDashboardTest::__pest_evaluable_the_site_dashboard_reports_global_counts_pending_work_and_system_health"
+  ],
+  "new_sqlite_failure_names": [],
+  "new_postgresql_failure_names": [],
+  "engine_failure_name_difference": [],
+  "browser": {
+    "results": [
+      {
+        "journey": "platform",
+        "status": 200
+      },
+      {
+        "journey": "platform-families",
+        "status": 200
+      },
+      {
+        "journey": "platform-trees",
+        "status": 200
+      },
+      {
+        "journey": "platform-users",
+        "status": 200
+      },
+      {
+        "journey": "platform-memberships",
+        "status": 200
+      },
+      {
+        "journey": "platform-invitations",
+        "status": 200
+      },
+      {
+        "journey": "platform-audit",
+        "status": 200
+      },
+      {
+        "journey": "platform-family-edit",
+        "status": 200
+      },
+      {
+        "journey": "domains",
+        "status": 200
+      },
+      {
+        "journey": "family",
+        "status": 200
+      },
+      {
+        "journey": "authorized-family-switch-and-brand",
+        "status": 200
+      },
+      {
+        "journey": "people",
+        "status": 200
+      },
+      {
+        "journey": "person",
+        "status": 200
+      },
+      {
+        "journey": "administration-tree",
+        "status": 200
+      },
+      {
+        "journey": "three-existing-tree-display-modes",
+        "status": 200
+      },
+      {
+        "journey": "genealogy-review",
+        "status": 200
+      },
+      {
+        "journey": "genealogy-comparison",
+        "status": 200
+      },
+      {
+        "journey": "entity-hierarchy",
+        "status": 200
+      },
+      {
+        "journey": "portal-settings",
+        "status": 200
+      },
+      {
+        "journey": "heritage",
+        "status": 200
+      },
+      {
+        "journey": "media",
+        "status": 200
+      },
+      {
+        "journey": "news",
+        "status": 200
+      },
+      {
+        "journey": "events",
+        "status": 200
+      },
+      {
+        "journey": "directory",
+        "status": 200
+      },
+      {
+        "journey": "roles",
+        "status": 200
+      },
+      {
+        "journey": "membership-assignments",
+        "status": 200
+      },
+      {
+        "journey": "invitations",
+        "status": 200
+      },
+      {
+        "journey": "family-audit",
+        "status": 200
+      },
+      {
+        "journey": "cross-family-denied",
+        "status": 403
+      },
+      {
+        "journey": "platform-denied-to-family-admin",
+        "status": 403
+      },
+      {
+        "journey": "genealogy-reviewer",
+        "status": 200
+      },
+      {
+        "journey": "reviewer-comparison",
+        "status": 200
+      },
+      {
+        "journey": "genealogy-editor",
+        "status": 200
+      },
+      {
+        "journey": "genealogy-editor-create",
+        "status": 200
+      },
+      {
+        "journey": "news-editor",
+        "status": 200
+      },
+      {
+        "journey": "news-editor-create",
+        "status": 200
+      },
+      {
+        "journey": "news-publisher",
+        "status": 200
+      },
+      {
+        "journey": "publisher-queue",
+        "status": 200
+      },
+      {
+        "journey": "directory-moderator",
+        "status": 200
+      },
+      {
+        "journey": "moderator-queue",
+        "status": 200
+      },
+      {
+        "journey": "moderator-roles-denied",
+        "status": 403
+      },
+      {
+        "journey": "entity-editor",
+        "status": 200
+      },
+      {
+        "journey": "entity-editor-hierarchy",
+        "status": 200
+      },
+      {
+        "journey": "entity-editor-own",
+        "status": 200
+      },
+      {
+        "journey": "entity-editor-sibling-denied",
+        "status": 403
+      },
+      {
+        "journey": "reader",
+        "status": 200
+      },
+      {
+        "journey": "mobile-family",
+        "status": 200
+      },
+      {
+        "journey": "mobile-platform",
+        "status": 200
+      },
+      {
+        "journey": "mobile-roles",
+        "status": 200
+      },
+      {
+        "journey": "mobile-members",
+        "status": 200
+      }
+    ],
+    "errors": [],
+    "total_journeys": 50
+  },
+  "before_screenshots": [
+    "docs/screenshots/ux-p0.9/before-admin.png",
+    "docs/screenshots/ux-p0.9/before-directory-moderator.png",
+    "docs/screenshots/ux-p0.9/before-genealogy-reviewer.png",
+    "docs/screenshots/ux-p0.9/before-mobile-family.png",
+    "docs/screenshots/ux-p0.9/before-news-editor.png",
+    "docs/screenshots/ux-p0.9/before-super.png"
+  ],
+  "screenshots": [
+    "docs/screenshots/ux-p0.9/after-administration-tree.png",
+    "docs/screenshots/ux-p0.9/after-directory-moderator.png",
+    "docs/screenshots/ux-p0.9/after-directory.png",
+    "docs/screenshots/ux-p0.9/after-domains.png",
+    "docs/screenshots/ux-p0.9/after-entity-editor-hierarchy.png",
+    "docs/screenshots/ux-p0.9/after-entity-editor-own.png",
+    "docs/screenshots/ux-p0.9/after-entity-editor.png",
+    "docs/screenshots/ux-p0.9/after-entity-hierarchy.png",
+    "docs/screenshots/ux-p0.9/after-events.png",
+    "docs/screenshots/ux-p0.9/after-family-audit.png",
+    "docs/screenshots/ux-p0.9/after-family-switch-second.png",
+    "docs/screenshots/ux-p0.9/after-family.png",
+    "docs/screenshots/ux-p0.9/after-genealogy-comparison.png",
+    "docs/screenshots/ux-p0.9/after-genealogy-editor-create.png",
+    "docs/screenshots/ux-p0.9/after-genealogy-editor.png",
+    "docs/screenshots/ux-p0.9/after-genealogy-review.png",
+    "docs/screenshots/ux-p0.9/after-genealogy-reviewer.png",
+    "docs/screenshots/ux-p0.9/after-heritage.png",
+    "docs/screenshots/ux-p0.9/after-invitations.png",
+    "docs/screenshots/ux-p0.9/after-media.png",
+    "docs/screenshots/ux-p0.9/after-membership-assignments.png",
+    "docs/screenshots/ux-p0.9/after-mobile-family.png",
+    "docs/screenshots/ux-p0.9/after-mobile-members.png",
+    "docs/screenshots/ux-p0.9/after-mobile-platform.png",
+    "docs/screenshots/ux-p0.9/after-mobile-roles.png",
+    "docs/screenshots/ux-p0.9/after-moderator-queue.png",
+    "docs/screenshots/ux-p0.9/after-news-editor-create.png",
+    "docs/screenshots/ux-p0.9/after-news-editor.png",
+    "docs/screenshots/ux-p0.9/after-news-publisher.png",
+    "docs/screenshots/ux-p0.9/after-news.png",
+    "docs/screenshots/ux-p0.9/after-people.png",
+    "docs/screenshots/ux-p0.9/after-person.png",
+    "docs/screenshots/ux-p0.9/after-platform-audit.png",
+    "docs/screenshots/ux-p0.9/after-platform-families.png",
+    "docs/screenshots/ux-p0.9/after-platform-family-edit.png",
+    "docs/screenshots/ux-p0.9/after-platform-invitations.png",
+    "docs/screenshots/ux-p0.9/after-platform-memberships.png",
+    "docs/screenshots/ux-p0.9/after-platform-trees.png",
+    "docs/screenshots/ux-p0.9/after-platform-users.png",
+    "docs/screenshots/ux-p0.9/after-platform.png",
+    "docs/screenshots/ux-p0.9/after-portal-settings.png",
+    "docs/screenshots/ux-p0.9/after-publisher-queue.png",
+    "docs/screenshots/ux-p0.9/after-reader.png",
+    "docs/screenshots/ux-p0.9/after-reviewer-comparison.png",
+    "docs/screenshots/ux-p0.9/after-roles.png",
+    "docs/screenshots/ux-p0.9/before-admin.png",
+    "docs/screenshots/ux-p0.9/before-directory-moderator.png",
+    "docs/screenshots/ux-p0.9/before-genealogy-reviewer.png",
+    "docs/screenshots/ux-p0.9/before-mobile-family.png",
+    "docs/screenshots/ux-p0.9/before-news-editor.png",
+    "docs/screenshots/ux-p0.9/before-super.png",
+    "docs/screenshots/ux-p0.9/family-overview.png",
+    "docs/screenshots/ux-p0.9/mobile-family-navigation.png",
+    "docs/screenshots/ux-p0.9/mobile-members-navigation.png",
+    "docs/screenshots/ux-p0.9/mobile-platform-navigation.png",
+    "docs/screenshots/ux-p0.9/mobile-roles-navigation.png",
+    "docs/screenshots/ux-p0.9/platform-overview.png"
+  ],
+  "node": {
+    "tests": 40,
+    "passed": 40,
+    "failed": 0
+  },
+  "performance_samples": [
+    {
+      "role": "super",
+      "status": 200,
+      "queries": 25,
+      "html_bytes": 30900,
+      "milliseconds": 26.3
+    },
+    {
+      "role": "admin",
+      "status": 200,
+      "queries": 75,
+      "html_bytes": 32694,
+      "milliseconds": 24.4
+    },
+    {
+      "role": "news-editor",
+      "status": 200,
+      "queries": 53,
+      "html_bytes": 17532,
+      "milliseconds": 12.5
+    },
+    {
+      "role": "directory-moderator",
+      "status": 200,
+      "queries": 42,
+      "html_bytes": 16268,
+      "milliseconds": 9.9
+    },
+    {
+      "role": "entity-editor",
+      "status": 200,
+      "queries": 56,
+      "html_bytes": 20964,
+      "milliseconds": 12.1
+    }
+  ],
+  "resolved_verification_issues": [
+    {
+      "cause": "Concurrent SQLite/PostgreSQL Storage::fake directories collided. Rerun uses supported LARAVEL_STORAGE_PATH with isolated temporary storage.",
+      "runtime_error": [
+        {
+          "test": "P\\Tests\\Feature\\EntityPortalExperienceTest::__pest_evaluable_the_directory_lists_public_levels_in_hierarchy_order_with_founders_from_published_branches_only",
+          "file": "ProjectsHub/juthoor/vendor/league/flysystem/src/UnableToWriteFile.php",
+          "line": 24,
+          "message": "Unable to write file at location: 235/24/247e8c04-4059-4fc5-a25d-9eb0dbe8a22a-display.png.",
+          "trace": [
+            "/var/www/html/Dopamind ProjectsHub/juthoor/vendor/league/flysystem/src/UnableToWriteFile.php:24",
+            "/var/www/html/Dopamind ProjectsHub/juthoor/app/Services/Community/MediaStorage.php:85",
+            "/var/www/html/Dopamind ProjectsHub/juthoor/app/Services/Community/MediaService.php:42",
+            "/var/www/html/Dopamind ProjectsHub/juthoor/database/seeders/Fixtures/HeritageShowcaseFixtureSeeder.php:173",
+            "/var/www/html/Dopamind ProjectsHub/juthoor/database/seeders/Fixtures/HeritageShowcaseFixtureSeeder.php:139"
+          ]
+        }
+      ]
+    },
+    {
+      "cause": "PostgreSQL unordered demo snapshot comparison; fixed both snapshots with orderBy(id), preserving every field and assertion. No seeder change.",
+      "test": "P\\Tests\\Feature\\DemoFixtureSeederTest::__pest_evaluable_demo_fixtures_are_synthetic_unpublished_isolated_from_real_families_and_idempotent"
+    }
+  ],
+  "files": [],
+  "quality": {
+    "pint": "passed",
+    "javascript_syntax": "passed",
+    "diff_check": "passed",
+    "new_failures": 0,
+    "application_database_reset": false,
+    "production_migrations": false,
+    "deployment": false,
+    "commits": false,
+    "functional_phase_complete": true,
+    "experience_v3_release_ready": false
+  }
+}

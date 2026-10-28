@@ -18,7 +18,6 @@ use App\Services\Community\CommunityEntityAccess;
 use App\Services\Community\CommunityHierarchy;
 use App\Services\Community\CommunityPublishingService;
 use App\Services\Community\MediaService;
-use App\Services\Dashboards\AdministrationWorkspace;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -247,13 +246,13 @@ class CommunityContentController extends Controller
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         Gate::authorize('viewAny', [CommunityEntity::class, $familyModel]);
         $request->validate(['module' => ['nullable', Rule::in(array_keys(CommunityContentModules::MODULES))]]);
-        $workspace = app(AdministrationWorkspace::class)->build($request->user(), $familyModel);
+        $publicationScopes = $this->access->publicationScopes($request->user(), $familyModel);
         $union = null;
         foreach (CommunityContentModules::MODULES as $key => $module) {
             if ($request->filled('module') && $request->query('module') !== $key) {
                 continue;
             }
-            $ids = $workspace['publicationScopes'][$key];
+            $ids = $publicationScopes[$key];
             if ($ids === []) {
                 continue;
             }

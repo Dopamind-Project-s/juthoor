@@ -6,7 +6,6 @@ use App\Models\Family;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Access\FamilyPermissions;
-use App\Services\Community\CommunityContentModules;
 use App\Services\Community\CommunityEntityAccess;
 use App\Services\Portal\PortalSettings;
 use App\Support\MaintenanceTools;
@@ -30,11 +29,7 @@ class AdministrationWorkspace
         $entity ??= $entityQuery->orderBy('sort_order')->orderBy('id')->first();
         $content = $entity && $user->can('update', $entity);
         $news = $entity && $user->can('update', [$entity, 'news']);
-        $publishable = app(CommunityEntityAccess::class)->publishableIds($user, $family);
-        $publicationScopes = [];
-        foreach (CommunityContentModules::MODULES as $module => $definition) {
-            $publicationScopes[$module] = $has('content.publish') || (in_array($module, ['news', 'events'], true) && $has('news.publish')) ? null : $publishable;
-        }
+        $publicationScopes = app(CommunityEntityAccess::class)->publicationScopes($user, $family);
         $publisher = collect($publicationScopes)->contains(fn ($ids) => $ids === null || $ids !== []);
         $genealogy = $genealogy || (! $content && ! $news && ! $has('directory.moderate') && $has('person.view-drafts'));
         $capabilities = ['createPerson' => $has('person.create') && $tools['genealogy_administration'], 'sources' => $has('source.manage') && $tools['genealogy_administration'], 'branches' => $has('branch.manage') && $tools['genealogy_administration'], 'genealogy' => $genealogy && $tools['genealogy_administration'], 'review' => $has('genealogy.review') && $tools['genealogy_administration'], 'content' => (bool) $content, 'news' => (bool) $news, 'publisher' => (bool) $publisher, 'directory' => $has('directory.moderate'), 'members' => $has('family.members.manage') && $tools['permissions_administration'], 'settings' => $has('family.settings'), 'audit' => $tools['audit_viewer']];

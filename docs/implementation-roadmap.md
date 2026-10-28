@@ -2,7 +2,11 @@
 
 Planning phases below map onto the ten-step roadmap in v2.0 chapter 22. Deferred requirements stay in scope; see `docs/project-audit.md` for statuses.
 
-## Updated priorities (approved 2026-10-27)
+## Current priorities (2026-10-29)
+
+UX-P0.1–P0.9 implementation is delivered. The next release gate is reconciliation of the documented historical regression/security findings and production-readiness work; UI completion does not certify a public release. See [UX-P0.9](admin-ux-p0.9.md). Deferred genealogy relations/GEDCOM/Facebook scope remains unchanged.
+
+## Earlier priorities (approved 2026-10-27)
 
 - Experience v3.0 transformation starts with **UX-P0.1** (people from the tree, review, RBAC and role seeder, safe family seeders) before portal redesign; see the UX-P0.1 section below.
 
@@ -387,3 +391,14 @@ Implemented the existing publishing experience: Arabic-normalized search and dat
 Validation: six new cases pass; full SQLite snapshot 429/464 with the same 35 historical failure names; final relevant SQLite 52/57 with five previously recorded expectation failures. Node 40/40. Chrome public/mobile and editor/publisher journeys pass with no page errors; baseline/current screenshots use synthetic local data. Full PostgreSQL 16.15 snapshot: 430/465, with the identical 35 historical failure names; the final six new tests pass on both databases. Chrome: 21/21 journeys, zero page errors, with three reconstructed baseline screenshots. Full-suite counts differ because additional tests were added between snapshots. Previously failing privacy/seeder/static-route expectations remain a regression/release blocker; UX-P0.9 release readiness is conditional.
 
 See [implementation, workflows, constraints, performance and reproduction](community-ux-p0.8.md), [exact results and changed files](community-ux-p0.8-results.json) and [screenshots](screenshots/ux-p0.8). Apply the additive discovery migration through the normal deployment workflow. No production database reset, dependency/vendor changes, commit, push or deployment occurred.
+
+
+## UX-P0.9 — Differentiated administration workspaces (2026-10-29)
+
+Implemented a central platform frame and a separately branded family frame, sharing the management shell and reusable UI components. Existing routes/policies/RBAC, portal branding, genealogy/review, publishing, directory moderation and audit/recovery services remain authoritative. Navigation, task cards and statistics follow effective family/entity permissions and maintenance switches; family switching clears previous record/tree/filter context. Added management filters/pagination, module-aware content links, private-sibling exclusion, review/task separation and mobile focus/table behavior. The existing tree gains an authorized private-mode return link; its layout and three modes are unchanged.
+
+Baseline: 467 tests, 432 passed, 35 failed. Final full SQLite and PostgreSQL 16.15: **445/478 passed, the same 33 unresolved historical failures, no new failure names or runtime errors**. Fixed two directly relevant platform-health baseline failures. An additional PostgreSQL snapshot-order issue was stabilized using explicit ID ordering without weakening its full-record comparison. A temporary test-file collision was resolved through isolated PostgreSQL test storage. Relevant administration/security/RBAC tests: 61/61 on each engine. New behavior cases: 11/11. Node: 40/40. Chrome: 50/50 actual journeys, no page errors; six before captures and platform/family side-by-side references.
+
+UX-P0.9 is implemented and verified relative to the documented baseline. Experience v3.0 release approval remains conditional on reconciling the 33 historical failures, especially public-name/privacy expectations and the existing source-placement check. No production database/reset, production migration, dependency/vendor change, domain activation, commit or deployment occurred.
+
+See [architecture, workflows, performance, files and limitations](admin-ux-p0.9.md), [baseline classifications](admin-ux-p0.9-baseline.md), [exact results](admin-ux-p0.9-results.json) and [screenshots](screenshots/ux-p0.9).

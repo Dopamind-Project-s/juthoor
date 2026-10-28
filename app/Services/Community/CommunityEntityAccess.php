@@ -7,6 +7,7 @@ use App\Models\CommunityEntityManager;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\User;
+use App\Services\Access\PermissionCatalog;
 
 /**
  * Entity-scoped roles. A manager of an entity manages it and its descendants, never its ancestors or siblings, and only
@@ -52,6 +53,17 @@ class CommunityEntityAccess
         return CommunityEntity::query()->where('family_id', $family->id)
             ->whereHas('managers', fn ($managers) => $managers->where('user_id', $user->id)->where('role', CommunityEntityManager::ROLE_ADMIN))->get()
             ->flatMap(fn (CommunityEntity $entity) => $this->hierarchy->descendantIds($entity, true, $nodes))->unique()->values()->all();
+    }
+
+    /** Module-aware publication scopes shared by the review queue and dashboard presentation.
+     * @return array<string, array<int, int>|null>
+     */
+    public function publicationScopes(User $user, Family $family): array
+    {
+        $content = $this->publishableIds($user, $family);
+        $news = $content === null || ($family->is_active && $user->is_active && $user->hasFamilyPermission($family, 'news.publish')) ? null : $content;
+
+        return collect(CommunityContentModules::MODULES)->mapWithKeys(fn ($module, $key) => [$key => in_array($key, PermissionCatalog::NEWS_MODULES, true) ? $news : $content])->all();
     }
 
     /**
