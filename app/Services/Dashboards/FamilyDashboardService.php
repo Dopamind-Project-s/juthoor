@@ -6,11 +6,13 @@ use App\Models\AuditLog;
 use App\Models\ChangeRequest;
 use App\Models\Citation;
 use App\Models\CrossFamilyLink;
+use App\Models\DirectoryReport;
 use App\Models\Family;
 use App\Models\FamilyMembership;
 use App\Models\FamilyRoleAssignment;
 use App\Models\FamilyTree;
 use App\Models\ImportBatch;
+use App\Models\MemberProfile;
 use App\Models\User;
 use App\Services\Community\CommunityContentModules;
 use App\Services\Genealogy\NameReconciliationService;
@@ -32,42 +34,67 @@ class FamilyDashboardService
     {
         $isAdmin = $user->isSuperAdmin() || $user->roleFor($family) === FamilyMembership::ROLE_ADMIN;
 
+        $workspace = app(AdministrationWorkspace::class)->build($user, $family, $tree->slug);
+        $caps = $workspace['capabilities'];
+        $contentCounts = [];
+        foreach (CommunityContentModules::MODULES as $module => $definition) {
+            if (! $caps['content'] && ! ($caps['news'] && in_array($module, ['news', 'events'], true))) {
+                continue;
+            }
+            $contentCounts[$module] = $definition['model']::query()->whereIn('owner_entity_id', $family->communityEntities()->select('id'))
+                ->when($workspace['manageable'] !== null, fn ($query) => $query->whereIn('owner_entity_id', $workspace['manageable']))
+                ->when($caps['publisher'] && $workspace['publicationScopes'][$module] !== null, fn ($query) => $query->whereIn('owner_entity_id', $workspace['publicationScopes'][$module]))
+                ->when(! $caps['publisher'], fn ($query) => $query->where('created_by', $user->id))
+                ->toBase()->selectRaw('publication_status, count(*) as total')->groupBy('publication_status')->pluck('total', 'publication_status')->map(fn ($count) => (int) $count)->all();
+        }
+        $reviewQueue = ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', 'pending')
+            ->when($caps['review'], fn ($query) => $query->where('submitted_by', '!=', $user->id), fn ($query) => $query->where('submitted_by', $user->id));
+        $directory = $caps['directory'] ? [
+            'profiles' => MemberProfile::query()->where('family_id', $family->id)->where('is_listed', true)->count(),
+            'affiliations' => MemberProfile::query()->where('family_id', $family->id)->where('affiliation_status', 'pending')->count(),
+            'reports' => DirectoryReport::query()->where('status', 'open')->whereHas('profile', fn ($query) => $query->where('family_id', $family->id))->count(),
+        ] : [];
+
         return [
+            'adminWorkspace' => $workspace,
+            'contentCounts' => $contentCounts,
+            'directoryOverview' => $directory,
+            'reviewCount' => $workspace['tools']['genealogy_administration'] ? (clone $reviewQueue)->count() : 0,
             'isAdmin' => $isAdmin,
-            'statistics' => [
+            'statistics' => ! $caps['genealogy'] ? [] : [
                 'people' => $tree->people()->count(),
                 'relationships' => $tree->personRelationships()->count(),
                 'branches' => $tree->branches()->count(),
+                'main_fakhds' => $tree->branches()->where('branch_type', 'fakhd')->count(),
+                'sub_fakhds' => $tree->branches()->where('branch_type', 'sub_fakhd')->count(),
                 'pending_people' => $tree->people()->where('verification_status', 'pending_review')->count(),
                 'pending_changes' => ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', 'pending')->count(),
                 'sources' => $family->sources()->count(),
                 'citations' => Citation::query()->where('family_tree_id', $tree->id)->count(),
                 'trees' => $family->familyTrees()->count(),
             ],
-            'publication' => [
+            'publication' => ! $caps['genealogy'] ? [] : [
                 'tree_active' => $tree->is_active,
                 'family_active' => $family->is_active,
                 'has_root' => $tree->root_person_id !== null,
                 'public_people' => $tree->people()->publiclyVisible()->count(),
                 'living_people' => $tree->people()->where('is_living', true)->count(),
             ],
-            'health' => $this->health->indicators($tree),
-            'duplicateGroups' => $this->health->duplicateGroups($tree),
-            'pendingChanges' => ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', 'pending')
-                ->orderByDesc('id')->limit(5)->get(),
-            'pendingNameDifferences' => $tree->assertions()->where('import_key', 'like', NameReconciliationService::IMPORT_PREFIX.'%')->where('state', 'proposed')->count(),
-            'entityContentPending' => collect(CommunityContentModules::MODULES)->sum(fn (array $module) => $module['model']::query()->where('publication_status', 'submitted')
-                ->whereIn('owner_entity_id', $family->communityEntities()->select('id'))->count()),
+            'health' => $caps['genealogy'] ? $this->health->indicators($tree) : [],
+            'duplicateGroups' => $caps['genealogy'] ? $this->health->duplicateGroups($tree) : [],
+            'pendingChanges' => $workspace['tools']['genealogy_administration'] ? $reviewQueue->orderByDesc('id')->limit(5)->get() : collect(),
+            'pendingNameDifferences' => ! $caps['genealogy'] ? 0 : $tree->assertions()->where('import_key', 'like', NameReconciliationService::IMPORT_PREFIX.'%')->where('state', 'proposed')->count(),
+            'entityContentPending' => collect($contentCounts)->sum(fn ($counts) => $counts['submitted'] ?? 0),
             'entityCounts' => $family->communityEntities()->toBase()->selectRaw('publication_status, count(*) as total')->groupBy('publication_status')->pluck('total', 'publication_status')->map(fn ($total) => (int) $total)->all(),
-            'pendingImports' => ImportBatch::query()->where('family_tree_id', $tree->id)->where('status', 'preview')->count(),
-            'branches' => $tree->branches()->whereNull('parent_branch_id')->with('rootPerson')->withCount('childBranches')
+            'pendingImports' => ! $caps['genealogy'] ? 0 : ImportBatch::query()->where('family_tree_id', $tree->id)->where('status', 'preview')->count(),
+            'branches' => ! $caps['genealogy'] ? collect() : $tree->branches()->whereNull('parent_branch_id')->with('rootPerson')->withCount('childBranches')
                 ->orderBy('sort_order')->limit(8)->get(),
-            'recentAudit' => AuditLog::query()->where('family_id', $family->id)->with('user')
+            'recentAudit' => ! $workspace['tools']['audit_viewer'] ? collect() : AuditLog::query()->where('family_id', $family->id)->with('user')
                 ->visibleToMember($user, $family)
                 ->latest()->limit(8)->get(),
-            'members' => $isAdmin ? $family->memberships()->toBase()->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role')->map(fn ($total) => (int) $total)->all() : [],
-            'portal' => $this->portal($family),
-            'pendingInvitations' => $isAdmin ? $family->invitations()->whereNull('accepted_at')->whereNull('cancelled_at')->where('expires_at', '>', now())->count() : null,
+            'members' => $caps['members'] ? $family->memberships()->toBase()->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role')->map(fn ($total) => (int) $total)->all() : [],
+            'portal' => $caps['settings'] || $isAdmin ? $this->portal($family) : [],
+            'pendingInvitations' => $caps['members'] ? $family->invitations()->whereNull('accepted_at')->whereNull('cancelled_at')->where('expires_at', '>', now())->count() : null,
             'pendingSharedAncestry' => $isAdmin ? CrossFamilyLink::query()->where('status', 'pending_review')
                 ->where(fn ($query) => $query->where('left_family_id', $family->id)->orWhere('right_family_id', $family->id))->count() : null,
         ];

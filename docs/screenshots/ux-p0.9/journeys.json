@@ -1,0 +1,205 @@
+{
+  "results": [
+    {
+      "journey": "platform",
+      "status": 200
+    },
+    {
+      "journey": "platform-families",
+      "status": 200
+    },
+    {
+      "journey": "platform-trees",
+      "status": 200
+    },
+    {
+      "journey": "platform-users",
+      "status": 200
+    },
+    {
+      "journey": "platform-memberships",
+      "status": 200
+    },
+    {
+      "journey": "platform-invitations",
+      "status": 200
+    },
+    {
+      "journey": "platform-audit",
+      "status": 200
+    },
+    {
+      "journey": "platform-family-edit",
+      "status": 200
+    },
+    {
+      "journey": "domains",
+      "status": 200
+    },
+    {
+      "journey": "family",
+      "status": 200
+    },
+    {
+      "journey": "authorized-family-switch-and-brand",
+      "status": 200
+    },
+    {
+      "journey": "people",
+      "status": 200
+    },
+    {
+      "journey": "person",
+      "status": 200
+    },
+    {
+      "journey": "administration-tree",
+      "status": 200
+    },
+    {
+      "journey": "three-existing-tree-display-modes",
+      "status": 200
+    },
+    {
+      "journey": "genealogy-review",
+      "status": 200
+    },
+    {
+      "journey": "genealogy-comparison",
+      "status": 200
+    },
+    {
+      "journey": "entity-hierarchy",
+      "status": 200
+    },
+    {
+      "journey": "portal-settings",
+      "status": 200
+    },
+    {
+      "journey": "heritage",
+      "status": 200
+    },
+    {
+      "journey": "media",
+      "status": 200
+    },
+    {
+      "journey": "news",
+      "status": 200
+    },
+    {
+      "journey": "events",
+      "status": 200
+    },
+    {
+      "journey": "directory",
+      "status": 200
+    },
+    {
+      "journey": "roles",
+      "status": 200
+    },
+    {
+      "journey": "membership-assignments",
+      "status": 200
+    },
+    {
+      "journey": "invitations",
+      "status": 200
+    },
+    {
+      "journey": "family-audit",
+      "status": 200
+    },
+    {
+      "journey": "cross-family-denied",
+      "status": 403
+    },
+    {
+      "journey": "platform-denied-to-family-admin",
+      "status": 403
+    },
+    {
+      "journey": "genealogy-reviewer",
+      "status": 200
+    },
+    {
+      "journey": "reviewer-comparison",
+      "status": 200
+    },
+    {
+      "journey": "genealogy-editor",
+      "status": 200
+    },
+    {
+      "journey": "genealogy-editor-create",
+      "status": 200
+    },
+    {
+      "journey": "news-editor",
+      "status": 200
+    },
+    {
+      "journey": "news-editor-create",
+      "status": 200
+    },
+    {
+      "journey": "news-publisher",
+      "status": 200
+    },
+    {
+      "journey": "publisher-queue",
+      "status": 200
+    },
+    {
+      "journey": "directory-moderator",
+      "status": 200
+    },
+    {
+      "journey": "moderator-queue",
+      "status": 200
+    },
+    {
+      "journey": "moderator-roles-denied",
+      "status": 403
+    },
+    {
+      "journey": "entity-editor",
+      "status": 200
+    },
+    {
+      "journey": "entity-editor-hierarchy",
+      "status": 200
+    },
+    {
+      "journey": "entity-editor-own",
+      "status": 200
+    },
+    {
+      "journey": "entity-editor-sibling-denied",
+      "status": 403
+    },
+    {
+      "journey": "reader",
+      "status": 200
+    },
+    {
+      "journey": "mobile-family",
+      "status": 200
+    },
+    {
+      "journey": "mobile-platform",
+      "status": 200
+    },
+    {
+      "journey": "mobile-roles",
+      "status": 200
+    },
+    {
+      "journey": "mobile-members",
+      "status": 200
+    }
+  ],
+  "errors": []
+}

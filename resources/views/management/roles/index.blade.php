@@ -18,4 +18,5 @@
 <div class="management-list">@forelse($holders as $holder)<article><div><strong>{{ $holder->user->name }}</strong><small>{{ ['reader'=>'قارئ','editor'=>'محرر','admin'=>'مدير'][$holder->role] ?? $holder->role }} · {{ $holder->functionalRoles->map(fn($role)=>$roles->firstWhere('id',$role->id)?->label_ar ?? $role->key)->implode('، ') }}</small></div></article>@empty<p class="text-muted">لا توجد أدوار وظيفية مسندة.</p>@endforelse</div>
 @if($canAssign)<a class="btn btn-primary mt-3" href="{{ route('management.sections.index',[$family->slug,'members','tree'=>$tree->slug]) }}">إسناد الأدوار من صفحة الأعضاء</a>@endif
 </section>
+<details class="management-panel admin-secondary"><summary>صلاحياتي الفعلية داخل هذه العائلة</summary><p class="small text-muted">محصلة دور العضوية والأدوار الوظيفية المسندة؛ لا تنتقل إلى عائلة أخرى. المنح والتعديل يخضعان لسياسات الخادم.</p><ul>@foreach($effectivePermissions as $permission)<li>{{ $catalog::PERMISSIONS[$permission]['label'] ?? $permission }}</li>@endforeach</ul></details>
 @endsection

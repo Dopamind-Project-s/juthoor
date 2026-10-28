@@ -38,7 +38,12 @@ class ChangeRequestController extends Controller
     {
         [$family,$tree] = $this->context($family);
         $status = $request->validate(['status' => ['nullable', 'in:pending,accepted,rejected']])['status'] ?? 'pending';
-        $changes = ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', $status)->orderByDesc('id')->paginate(20)->withQueryString();
+        $filters = $request->validate(['kind' => ['nullable', 'in:person,relationship,branch'], 'q' => ['nullable', 'string', 'max:100'], 'mine' => ['nullable', 'boolean']]);
+        $changes = ChangeRequest::query()->where('family_tree_id', $tree->id)->where('status', $status)
+            ->when($filters['kind'] ?? null, fn ($query, $kind) => $query->where('target_type', $kind))
+            ->when($filters['q'] ?? null, fn ($query, $term) => $query->where('reason', 'like', '%'.$term.'%'))
+            ->when($request->boolean('mine'), fn ($query) => $query->where('submitted_by', $request->user()->id))
+            ->with('submitter:id,name', 'reviewer:id,name')->orderByDesc('id')->paginate(20)->withQueryString();
 
         return view('management.changes.index', compact('family', 'tree', 'changes', 'status'));
     }

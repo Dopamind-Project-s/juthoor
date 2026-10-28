@@ -1,7 +1,7 @@
 <section id="people" class="management-panel">
-    <form method="get" class="management-grid mb-3"><input type="hidden" name="tree" value="{{ $tree->slug }}"><input class="form-control" name="q" value="{{ request('q') }}" placeholder="بحث عربي بالاسم"><select class="form-select" name="verification">
+    <form method="get" class="management-grid mb-3"><input type="hidden" name="tree" value="{{ $tree->slug }}"><input class="form-control" name="q" aria-label="بحث الأشخاص بالاسم" value="{{ request('q') }}" placeholder="بحث عربي بالاسم"><select class="form-select" name="verification" aria-label="حالة التوثيق">
             <option value="">كل حالات التحقق</option>@foreach(['verified'=>'موثق','sourced'=>'مسند','pending_review'=>'قيد المراجعة','unresolved'=>'غير محسوم'] as $value=>$label)<option value="{{ $value }}" @selected(request('verification')===$value)>{{ $label }}</option>@endforeach
-        </select><select class="form-select" name="branch">
+        </select><select class="form-select" name="branch" aria-label="الفرع">
             <option value="">كل الفروع</option>@foreach($branchOptions as $option)<option value="{{ $option->slug }}" @selected(request('branch')===$option->slug)>{{ $option->name_ar }}</option>@endforeach
         </select><label>ارتباط الأب<select name="parentage" class="form-select">
                 <option value="">كل الأشخاص</option>

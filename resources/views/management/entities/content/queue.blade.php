@@ -6,6 +6,7 @@
     <span class="eyebrow">الصفحات المجتمعية</span>
     <h1 class="h4">محتوى بانتظار المراجعة</h1>
     <p class="text-muted">سجلات أرسلها المحررون للمراجعة في كيانات تملك صلاحية نشرها. النشر أو الإعادة إلى المسودة مع ذكر السبب يتمان من صفحة السجل.</p>
+    <form method="get" class="d-flex flex-wrap gap-2 mb-3"><label>نوع المحتوى<select class="form-select" name="module"><option value="">كل الأنواع المصرح بها</option>@foreach(\App\Services\Community\CommunityContentModules::MODULES as $key=>$info)<option value="{{ $key }}" @selected(request('module')===$key)>{{ $info['label'] }}</option>@endforeach</select></label><button class="btn btn-outline-primary">تصفية</button></form>
     <div class="management-list">
         @forelse($pending as $row)
             @php($record = $row['record'])
@@ -16,6 +17,6 @@
         @empty
             <p class="text-muted py-3" role="status">لا يوجد محتوى بانتظار مراجعتك.</p>
         @endforelse
-    </div>
+    </div><div class="mt-3">{{ $pending->links() }}</div>
 </section>
 @endsection

@@ -36,6 +36,7 @@ class FamilyRoleController extends Controller
             'tree' => app(SelectedFamilyTree::class)->resolve($familyModel),
             'roles' => Role::query()->assignable()->with('permissions')->orderBy('is_system', 'desc')->orderBy('id')->get(),
             'holders' => $familyModel->memberships()->with(['user:id,name,email', 'functionalRoles:id,key'])->whereHas('functionalRoles')->get(),
+            'effectivePermissions' => array_values(array_intersect($this->permissions->for($request->user(), $familyModel), PermissionCatalog::familyPermissionKeys())),
             'canAssign' => $request->user()->can('assignRoles', $familyModel),
         ]);
     }

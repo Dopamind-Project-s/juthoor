@@ -18,11 +18,14 @@ use App\Services\Community\CommunityEntityAccess;
 use App\Services\Community\CommunityHierarchy;
 use App\Services\Community\CommunityPublishingService;
 use App\Services\Community\MediaService;
+use App\Services\Dashboards\AdministrationWorkspace;
 use App\Services\Genealogy\SelectedFamilyTree;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -44,13 +47,24 @@ class CommunityContentController extends Controller
     {
         [$familyModel, $entityModel] = $this->context($family, $entity, 'update');
         $model = CommunityContentModules::model($module);
+        $filters = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'status' => ['nullable', Rule::in(array_keys($model::PUBLICATION_STATUSES))]]);
+        $column = match ($module) {
+            'diwans', 'locations' => 'name', default => 'title'
+        };
+        $manageable = $this->access->manageableIds($request->user(), $familyModel);
+        $publicIds = $this->hierarchy->publicIds($familyModel->id);
 
         return view('management.entities.content.index', [
             'family' => $familyModel, 'entity' => $entityModel, 'module' => $module, 'tree' => app(SelectedFamilyTree::class)->resolve($familyModel),
-            'records' => $model::query()->where('owner_entity_id', $entityModel->id)->withCount('citations')->latest('id')->get(),
-            // Records owned elsewhere that are about or addressed to this entity: shown, never editable from here.
+            'records' => $model::query()->where('owner_entity_id', $entityModel->id)->withCount('citations')
+                ->when($filters['q'] ?? null, fn ($query, $term) => $query->where($column, 'like', '%'.$term.'%'))
+                ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('publication_status', $status))->latest('id')->paginate(20)->withQueryString(),
             'linked' => $model::query()->where('owner_entity_id', '!=', $entityModel->id)
-                ->whereHas('entityLinks', fn ($links) => $links->where('community_entity_id', $entityModel->id))->with('ownerEntity:id,name_ar')->get(),
+                ->whereIn('owner_entity_id', $familyModel->communityEntities()->select('id'))
+                ->whereHas('entityLinks', fn ($links) => $links->where('community_entity_id', $entityModel->id))
+                ->when($manageable !== null, fn ($query) => $query->where(fn ($scope) => $scope->whereIn('owner_entity_id', $manageable)
+                    ->orWhere(fn ($public) => $public->whereIn('owner_entity_id', $publicIds)->visibleTo($request->user()))))
+                ->with('ownerEntity:id,name_ar')->latest('id')->limit(20)->get(),
             'canPublish' => $request->user()->can('publish', [$entityModel, $module]),
         ]);
     }
@@ -232,11 +246,29 @@ class CommunityContentController extends Controller
     {
         $familyModel = Family::query()->active()->where('slug', $family)->firstOrFail();
         Gate::authorize('viewAny', [CommunityEntity::class, $familyModel]);
-        $entities = CommunityEntity::query()->where('family_id', $familyModel->id)->get();
-        $pending = collect(CommunityContentModules::MODULES)->flatMap(fn (array $module, string $key) => $module['model']::query()
-            ->whereIn('owner_entity_id', $entities->filter(fn (CommunityEntity $entity) => $request->user()->can('publish', [$entity, $key]))->modelKeys())->where('publication_status', 'submitted')
-            ->with('ownerEntity:id,name_ar', 'creator:id,name')->get()->map(fn (Model $record) => ['module' => $key, 'record' => $record]))
-            ->sortBy(fn (array $row) => $row['record']->submitted_at)->values();
+        $request->validate(['module' => ['nullable', Rule::in(array_keys(CommunityContentModules::MODULES))]]);
+        $workspace = app(AdministrationWorkspace::class)->build($request->user(), $familyModel);
+        $union = null;
+        foreach (CommunityContentModules::MODULES as $key => $module) {
+            if ($request->filled('module') && $request->query('module') !== $key) {
+                continue;
+            }
+            $ids = $workspace['publicationScopes'][$key];
+            if ($ids === []) {
+                continue;
+            }
+            $query = $module['model']::query()->whereIn('owner_entity_id', $familyModel->communityEntities()->select('id'))
+                ->when($ids !== null, fn ($query) => $query->whereIn('owner_entity_id', $ids))->where('publication_status', 'submitted')
+                ->select('id as record_id', 'owner_entity_id', 'submitted_at')->selectRaw('? as module', [$key]);
+            $union = $union ? $union->unionAll($query) : $query;
+        }
+        $pending = $union ? DB::query()->fromSub($union, 'content_queue')->orderBy('submitted_at')->orderBy('module')->orderBy('record_id')->paginate(20)->withQueryString()
+            : new LengthAwarePaginator([], 0, 20);
+        $records = [];
+        foreach ($pending->getCollection()->groupBy('module') as $key => $rows) {
+            $records[$key] = CommunityContentModules::model($key)::query()->whereKey($rows->pluck('record_id')->all())->with('ownerEntity:id,name_ar', 'creator:id,name')->get()->keyBy('id');
+        }
+        $pending->setCollection($pending->getCollection()->map(fn ($row) => ['module' => $row->module, 'record' => $records[$row->module][$row->record_id]]));
 
         return view('management.entities.content.queue', ['family' => $familyModel, 'tree' => app(SelectedFamilyTree::class)->resolve($familyModel), 'pending' => $pending]);
     }

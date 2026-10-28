@@ -49,13 +49,16 @@ class SiteHealthService
      */
     public function statistics(): array
     {
+        $families = Family::query()->toBase()->selectRaw('count(*) as total, count(case when is_active = ? then 1 end) as active', [true])->first();
+        $users = User::query()->toBase()->selectRaw('count(*) as total, count(case when is_active = ? then 1 end) as inactive, count(case when email_verified_at is null then 1 end) as unverified, count(case when is_super_admin = ? and is_active = ? then 1 end) as administrators', [false, true, true])->first();
+
         return [
-            'families' => Family::query()->count(),
-            'active_families' => Family::query()->active()->count(),
-            'users' => User::query()->count(),
-            'inactive_users' => User::query()->where('is_active', false)->count(),
-            'unverified_users' => User::query()->whereNull('email_verified_at')->count(),
-            'super_admins' => User::query()->where('is_super_admin', true)->where('is_active', true)->count(),
+            'families' => (int) $families->total,
+            'active_families' => (int) $families->active,
+            'users' => (int) $users->total,
+            'inactive_users' => (int) $users->inactive,
+            'unverified_users' => (int) $users->unverified,
+            'super_admins' => (int) $users->administrators,
             'pending_changes' => ChangeRequest::query()->where('status', 'pending')->count(),
             'pending_shared_ancestry' => CrossFamilyLink::query()->where('status', 'pending_review')->count(),
             'pending_imports' => ImportBatch::query()->where('status', 'preview')->count(),
@@ -76,7 +79,10 @@ class SiteHealthService
                 ->whereHas('user', fn ($user) => $user->where('is_active', true))])
             ->withCount(['familyTrees as primary_trees_count' => fn ($query) => $query->where('is_primary', true)])
             ->with('primaryTree:id,family_id,root_person_id')
-            ->orderBy('name_ar')->get()
+            ->where(fn ($query) => $query->whereDoesntHave('memberships', fn ($members) => $members->where('role', FamilyMembership::ROLE_ADMIN)->whereHas('user', fn ($user) => $user->where('is_active', true)))
+                ->orWhereDoesntHave('familyTrees', fn ($trees) => $trees->where('is_primary', true))
+                ->orWhereHas('primaryTree', fn ($tree) => $tree->whereNull('root_person_id')))
+            ->orderBy('name_ar')->limit($limit)->get()
             ->map(fn (Family $family) => ['family' => $family, 'issues' => array_values(array_filter([
                 $family->active_admins_count === 0 ? 'لا يوجد مدير عائلة نشط' : null,
                 $family->primary_trees_count === 0 ? 'لا توجد شجرة أساسية' : null,
@@ -84,6 +90,15 @@ class SiteHealthService
             ]))])
             ->filter(fn (array $row) => $row['issues'] !== [])
             ->take($limit)->values()->all();
+    }
+
+    /** Read-only operational facts remain available while optional diagnostics are off. */
+    public function overviewChecks(array $statistics): array
+    {
+        return [
+            ['label' => 'المهام الفاشلة', 'value' => (string) $statistics['failed_jobs'], 'level' => $statistics['failed_jobs'] ? 'danger' : 'ok', 'hint' => $statistics['failed_jobs'] ? 'راجع المهام الفاشلة باستخدام أدوات الطابور المعتمدة.' : null],
+            ['label' => 'النسخ الاحتياطي', 'value' => 'غير مُعدّ في المستودع', 'level' => 'warning', 'hint' => 'لا توجد سياسة نسخ واستعادة مثبتة في المستودع؛ تحقق من إعدادات الاستضافة.'],
+        ];
     }
 
     private function tableCount(string $table): int

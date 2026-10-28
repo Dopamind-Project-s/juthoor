@@ -6,7 +6,7 @@
 @can('assignRoles',$family)@if($assignableRoles->isNotEmpty() && ($membership->user_id !== auth()->id() || auth()->user()->isSuperAdmin()))
 <details class="role-assignment w-100" data-role-assignment><summary>الأدوار الوظيفية</summary>
 <form method="post" action="{{ route('management.memberships.roles.update',[$family->slug,$membership->id,'tree'=>$tree->slug]) }}" class="management-grid">@csrf @method('PUT')
-@foreach($assignableRoles as $assignableRole)<label class="role-option"><input type="checkbox" name="role_ids[]" value="{{ $assignableRole->id }}" @checked($membership->functionalRoles->contains('id',$assignableRole->id))> <strong>{{ $assignableRole->label_ar }}</strong>@unless($assignableRole->is_system) <span class="badge text-bg-warning">مخصص</span>@endunless<small class="d-block text-muted">{{ $assignableRole->description }}</small></label>@endforeach
+@foreach($assignableRoles as $assignableRole)<label class="role-option"><input type="checkbox" name="role_ids[]" value="{{ $assignableRole->id }}" @checked($membership->functionalRoles->contains('id',$assignableRole->id))> <strong>{{ $assignableRole->label_ar }}</strong>@unless($assignableRole->is_system) <span class="badge text-bg-warning">مخصص</span>@endunless<small class="d-block text-muted">{{ $assignableRole->description }} · النطاق: هذه العائلة فقط · {{ count($assignableRole->permissionKeys()) }} صلاحية</small></label>@endforeach
 @error('role_ids')<p class="field-error">{{ $message }}</p>@enderror
 <div><button class="btn btn-sm btn-primary">حفظ الأدوار</button></div></form></details>
 @endif @endcan

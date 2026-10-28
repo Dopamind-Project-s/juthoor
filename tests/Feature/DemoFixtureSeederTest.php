@@ -32,7 +32,7 @@ test('db:seed never runs the demo fixtures', function () {
 test('demo fixtures are synthetic unpublished isolated from real families and idempotent', function () {
     $this->seed(LegacyGenealogySeeder::class);
     $zoubi = Family::query()->where('slug', 'al-zoubi')->sole();
-    $zoubiPeople = Person::query()->whereIn('family_tree_id', $zoubi->familyTrees()->select('id'))->get()->map->getAttributes()->all();
+    $zoubiPeople = Person::query()->whereIn('family_tree_id', $zoubi->familyTrees()->select('id'))->orderBy('id')->get()->map->getAttributes()->all();
     config(['seeding.demo_fixtures' => true]);
 
     $this->seed(JuthoorUiDemoSeeder::class);
@@ -50,7 +50,7 @@ test('demo fixtures are synthetic unpublished isolated from real families and id
         ->and(NewsPost::query()->where('publication_status', '!=', 'draft')->count())->toBe(0)
         ->and(NewsPost::query()->whereNotNull('contact_phone')->count())->toBe(0)
         ->and(CommunityEntity::query()->where('family_id', $zoubi->id)->count())->toBe(0)
-        ->and(Person::query()->whereIn('family_tree_id', $zoubi->familyTrees()->select('id'))->get()->map->getAttributes()->all())->toBe($zoubiPeople);
+        ->and(Person::query()->whereIn('family_tree_id', $zoubi->familyTrees()->select('id'))->orderBy('id')->get()->map->getAttributes()->all())->toBe($zoubiPeople);
 
     $this->get(route('genealogy.person', [JuthoorUiDemoSeeder::SLUG, $people->first()->id]))->assertNotFound();
 });

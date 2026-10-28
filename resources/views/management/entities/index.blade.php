@@ -29,8 +29,9 @@
                 </div>
                 @if($canManage)
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-sm btn-primary" href="{{ route('management.entities.edit', [$family->slug, $entity->id]) }}">إدارة</a>
-                        <a class="btn btn-sm btn-outline-primary" href="{{ route('management.entities.create', [$family->slug, 'parent' => $entity->id]) }}">كيان تابع</a>
+                        @can('update', $entity)<a class="btn btn-sm btn-primary" href="{{ route('management.entities.edit', [$family->slug, $entity->id]) }}">إدارة</a>@endcan
+                        @can('create', [\App\Models\CommunityEntity::class, $family, $entity])<a class="btn btn-sm btn-outline-primary" href="{{ route('management.entities.create', [$family->slug, 'parent' => $entity->id]) }}">كيان تابع</a>@endcan
+                        @can('update', [$entity, 'news'])<a class="btn btn-sm btn-outline-primary" href="{{ route('management.entities.content.index', [$family->slug, $entity->id, 'news']) }}">الأخبار</a><a class="btn btn-sm btn-outline-primary" href="{{ route('management.entities.content.index', [$family->slug, $entity->id, 'events']) }}">المناسبات</a>@endcan
                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('community.entities.show', [$family->slug, $entity->slug, 'preview' => in_array($entity->id, $publicIds, true) ? null : 1]) }}">الصفحة</a>
                     </div>
                 @endif

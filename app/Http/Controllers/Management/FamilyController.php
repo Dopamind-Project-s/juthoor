@@ -60,32 +60,37 @@ class FamilyController extends Controller
         $role = auth()->user()->isSuperAdmin() ? 'super_admin' : auth()->user()->roleFor($familyModel);
 
         return view('management.families.show', [
-            'treeRecords' => $familyModel->familyTrees()->orderBy('name_ar')->paginate(15, ['*'], 'trees_page')->withQueryString(),
+            'treeRecords' => ! $section || $section === 'trees' ? $familyModel->familyTrees()->orderBy('name_ar')->paginate(15, ['*'], 'trees_page')->withQueryString() : null,
             'assignableRoles' => $section === 'members' ? Role::query()->assignable()->with('permissions')->orderBy('id')->get() : collect(),
             'section' => $section, 'family' => $familyModel, 'tree' => $tree, 'trees' => $familyModel->familyTrees()->get(), 'role' => $role,
-            'canEdit' => auth()->user()->canEditFamily($familyModel),
+            'canEdit' => match ($section) {
+                'people', 'relationships' => $request->user()->hasFamilyPermission($familyModel, 'person.edit-unpublished'),
+                'branches' => $request->user()->hasFamilyPermission($familyModel, 'branch.manage'),
+                'trees' => $request->user()->can('update', $familyModel),
+                default => $request->user()->canEditFamily($familyModel),
+            },
             'isAdmin' => auth()->user()->isSuperAdmin() || $role === FamilyMembership::ROLE_ADMIN,
-            'people' => $peopleQuery->paginate(15, ['*'], 'people_page')->withQueryString(),
-            'relationships' => $tree->personRelationships()->with(['person', 'relatedPerson'])
+            'people' => ! $section || $section === 'people' ? $peopleQuery->paginate(15, ['*'], 'people_page')->withQueryString() : null,
+            'relationships' => ! $section || $section === 'relationships' ? $tree->personRelationships()->with(['person', 'relatedPerson'])
                 ->when($section === 'relationships' && $request->filled('q'), fn ($query) => $query->where(fn ($query) => $query->whereHas('person', fn ($person) => $person->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%'))->orWhereHas('relatedPerson', fn ($person) => $person->where('name_search', 'like', '%'.$normalizer->normalize((string) $request->query('q')).'%'))))
-                ->latest()->paginate(15, ['*'], 'relationships_page')->withQueryString(),
-            'branches' => $tree->branches()->with(['rootPerson', 'parentBranch'])
+                ->latest()->paginate(15, ['*'], 'relationships_page')->withQueryString() : null,
+            'branches' => ! $section || $section === 'branches' ? $tree->branches()->with(['rootPerson', 'parentBranch'])
                 ->when($section === 'branches' && $request->filled('q'), fn ($query) => $query->where('name_ar', 'like', '%'.$request->query('q').'%'))
-                ->orderBy('sort_order')->paginate(15, ['*'], 'branches_page')->withQueryString(),
+                ->orderBy('sort_order')->paginate(15, ['*'], 'branches_page')->withQueryString() : null,
             'branchOptions' => $tree->branches()->orderBy('name_ar')->get(['id', 'name_ar', 'slug']),
-            'memberships' => $familyModel->memberships()->with(['user', 'functionalRoles'])
+            'memberships' => ! $section || $section === 'members' ? $familyModel->memberships()->with(['user', 'functionalRoles'])
                 ->when($section === 'members' && $request->filled('q'), fn ($query) => $query->whereHas('user', fn ($user) => $user->where('name', 'like', '%'.$request->query('q').'%')->orWhere('email', 'like', '%'.$request->query('q').'%')))
                 ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
-                ->orderBy('role')->paginate(15, ['*'], 'memberships_page')->withQueryString(),
-            'invitations' => $familyModel->invitations()->with('inviter')
+                ->orderBy('role')->paginate(15, ['*'], 'memberships_page')->withQueryString() : null,
+            'invitations' => ! $section || $section === 'invitations' ? $familyModel->invitations()->with('inviter')
                 ->when($section === 'invitations' && $request->filled('q'), fn ($query) => $query->where('email', 'like', '%'.$request->query('q').'%'))
                 ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
-                ->latest()->paginate(15, ['*'], 'invitations_page')->withQueryString(),
-            'auditLogs' => $familyModel->auditLogs()->with('user')
+                ->latest()->paginate(15, ['*'], 'invitations_page')->withQueryString() : null,
+            'auditLogs' => ! $section || $section === 'audit' ? $familyModel->auditLogs()->with('user')
                 ->visibleToMember($request->user(), $familyModel)
                 ->when($section === 'audit' && $request->filled('q'), fn ($query) => $query->where('action', 'like', '%'.$request->query('q').'%'))
                 ->when($section === 'audit' && $request->filled('person'), fn ($query) => $query->where('auditable_type', (new Person)->getMorphClass())->where('auditable_id', $request->integer('person')))
-                ->latest()->paginate(20, ['*'], 'audit_page')->withQueryString(),
+                ->latest()->paginate(20, ['*'], 'audit_page')->withQueryString() : null,
             'statistics' => [
                 'people' => $tree->people()->count(),
                 'relationships' => $tree->personRelationships()->count(),

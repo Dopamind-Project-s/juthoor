@@ -41,14 +41,16 @@ class CommunityEntityController extends Controller
         $familyModel = $this->family($family);
         Gate::authorize('viewAny', [CommunityEntity::class, $familyModel]);
         $manageable = $this->access->manageableIds($request->user(), $familyModel);
-        $entities = CommunityEntity::query()->where('family_id', $familyModel->id)->with('branch:id,name_ar', 'familyTree:id,name_ar')->withCount('managers')->get();
+        $publicIds = $this->hierarchy->publicIds($familyModel->id);
+        $entities = CommunityEntity::query()->where('family_id', $familyModel->id)
+            ->when($manageable !== null, fn ($query) => $query->where(fn ($scope) => $scope->whereIn('id', $manageable)->orWhereIn('id', $publicIds)))->with('branch:id,name_ar', 'familyTree:id,name_ar')->withCount('managers')->get();
 
         return view('management.entities.index', [
             'family' => $familyModel,
             'tree' => app(SelectedFamilyTree::class)->resolve($familyModel),
             'rows' => $this->hierarchy->ordered($entities),
             'manageable' => $manageable,
-            'publicIds' => $this->hierarchy->publicIds($familyModel->id),
+            'publicIds' => $publicIds,
             'canCreateRoot' => $request->user()->can('create', [CommunityEntity::class, $familyModel, null]),
             'counts' => $entities->countBy('publication_status')->all(),
         ]);

@@ -3,7 +3,7 @@
 @section('page-heading','إدارة '.$family->name_ar)
 @section('title','إدارة '.$family->name_ar)
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4"><div><span class="status-badge">{{ ['reader'=>'قارئ','editor'=>'محرر','admin'=>'مدير','super_admin'=>'سوبر أدمن'][$role] }}</span><h1 class="h3 mt-2">لوحة العائلة</h1></div><a class="btn btn-primary" href="{{ route('genealogy.tree',[$family->slug, 'tree' => $tree->slug, 'private' => 1]) }}">معاينة الشجرة</a></div>
+<x-admin.page-header :title="$section ? ['people'=>'إدارة الأشخاص','relationships'=>'علاقات النسب','branches'=>'الأفخاذ والفروع','trees'=>'أشجار العائلة','members'=>'الأعضاء والعضويات','invitations'=>'الدعوات','audit'=>'سجل التغييرات'][$section] : 'إدارة '.$family->name_ar" :description="'شجرة '.$tree->name_ar.' · جميع السجلات ضمن هذه العائلة فقط.'"><a class="btn btn-outline-primary" href="{{ route('genealogy.tree',[$family->slug,'tree'=>$tree->slug,'private'=>1]) }}">معاينة الشجرة</a></x-admin.page-header>
 @if(!$section || $section === "trees")
 <section class="management-panel" aria-label="الشجرة المختارة">
 <form method="get" class="management-grid"><label for="managementTree">الشجرة الحالية</label><select id="managementTree" class="form-select" name="tree" onchange="this.form.submit()">@foreach($trees as $item)<option value="{{ $item->slug }}" @selected($tree->is($item))>{{ $item->name_ar }}{{ $item->is_primary ? ' — الأساسية' : '' }}{{ !$item->is_active ? ' — معطلة' : '' }}</option>@endforeach</select><button class="btn btn-outline-primary">اختيار</button></form>

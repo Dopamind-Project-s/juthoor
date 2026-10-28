@@ -10,6 +10,7 @@ use App\Models\PersonAttribute;
 use App\Models\PersonRelationship;
 use App\Models\Source;
 use App\Models\User;
+use App\Services\Dashboards\AdministrationWorkspace;
 use App\Services\Dashboards\FamilyDashboardService;
 use App\Services\Genealogy\CrossFamilyLinkInvalidator;
 use App\Services\Portal\FamilySiteChrome;
@@ -58,7 +59,13 @@ class AppServiceProvider extends ServiceProvider
             }
         });
         View::composer('layouts.management', function ($view): void {
-            $view->with('accessibleFamilies', FamilyDashboardService::accessibleFamilies(auth()->user()));
+            $data = $view->getData();
+            $family = ! request()->routeIs('site-admin.*') && ($data['family'] ?? null) instanceof Family ? $data['family'] : null;
+            $platform = request()->routeIs('site-admin.*') || (! $family && request()->routeIs('cross-links.*') && auth()->user()->isSuperAdmin());
+            $view->with('accessibleFamilies', $platform ? [] : FamilyDashboardService::accessibleFamilies(auth()->user()));
+            if (! isset($data['adminWorkspace'])) {
+                $view->with('adminWorkspace', app(AdministrationWorkspace::class)->build(auth()->user(), $family, $data['tree']->slug ?? null));
+            }
         });
     }
 }
